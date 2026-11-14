@@ -1,0 +1,459 @@
+/* ==========================================================================
+   TOCATEXTO — ESTILOS CUSTOMIZADOS (FASE 2 · v02_02)
+   Suporte nativo a Modo Claro e Modo Escuro conforme o Sistema Operacional
+   ========================================================================== */
+
+:root {
+  color-scheme: light dark;
+  --amber-primary: #fbbf24;
+  --amber-glow: rgba(251, 191, 36, 0.28);
+  --emerald-glow: rgba(16, 185, 129, 0.35);
+  --slate-track: #1e293b;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   1. FLUXO SEQUENCIAL GUIADO (MOVIMENTO ENTRE CARDS 01 -> 02 -> 03)
+   ========================================================================== */
+.step-card-active {
+  border-color: rgba(251, 191, 36, 0.65) !important;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2), 0 12px 32px -8px rgba(251, 191, 36, 0.16);
+  animation: stepCardBreath 2.8s infinite ease-in-out;
+}
+
+.step-card-completed {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+}
+
+@keyframes stepCardBreath {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 10px 28px -8px rgba(251, 191, 36, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.42), 0 14px 36px -6px rgba(251, 191, 36, 0.26);
+  }
+}
+
+.step-arrow-cue {
+  display: inline-block;
+  animation: arrowFlowBounce 1.35s infinite ease-in-out;
+}
+
+@keyframes arrowFlowBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+.step-live-indicator {
+  animation: livePulse 2s infinite ease-in-out;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.step-connector-active {
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  background-color: rgba(251, 191, 36, 0.1) !important;
+  color: #fde68a !important;
+}
+
+/* ==========================================================================
+   2. ANIMAÇÃO DE DESTAQUE DO VALOR PIX QUANDO ATUALIZADO
+   ========================================================================== */
+.price-updated-flash {
+  animation: priceFlashPop 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes priceFlashPop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.16);
+    filter: brightness(1.35);
+    text-shadow: 0 0 18px rgba(16, 185, 129, 0.7);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* ==========================================================================
+   3. SELETOR GRANULAR DE VELOCIDADE (RANGE SLIDER CUSTOMIZADO)
+   ========================================================================== */
+.speed-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+  outline: none;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.speed-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  border: 3px solid #0f172a;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.speed-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.45), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.speed-range-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+.speed-range-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  border: 3px solid #0f172a;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35), 0 4px 10px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* Estados de Dropzone e Input Acessível */
+#dropzone {
+  position: relative;
+  user-select: none;
+}
+
+#dropzone > *:not(input) {
+  pointer-events: none;
+}
+
+#fileInput.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+#dropzone.drag-over {
+  border-color: #fbbf24 !important;
+  background-color: rgba(251, 191, 36, 0.12) !important;
+  transform: scale(1.005);
+}
+
+/* ==========================================================================
+   4. CATÁLOGO DE VOZES COM AVATARES E MOVIMENTOS ATRATIVOS
+   ========================================================================== */
+.voice-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.22s ease;
+  animation: cardFadeInUp 0.32s ease backwards;
+}
+
+.voice-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 12px 26px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(251, 191, 36, 0.2);
+}
+
+.voice-card.selected-voice {
+  border-color: #fbbf24;
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.13) 0%, rgba(15, 23, 42, 0.92) 100%);
+  box-shadow: 0 10px 24px -6px rgba(251, 191, 36, 0.2), 0 0 0 1px rgba(251, 191, 36, 0.45);
+}
+
+.voice-card.playing-voice {
+  border-color: #34d399;
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%);
+  box-shadow: 0 12px 28px -6px rgba(16, 185, 129, 0.28), 0 0 0 1px rgba(52, 211, 153, 0.6);
+}
+
+@keyframes cardFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Avatar de Voz e Anel Sonoro */
+.voice-avatar-wrap {
+  position: relative;
+  transition: transform 0.22s ease;
+}
+
+.voice-card:hover .voice-avatar-wrap {
+  transform: scale(1.07) rotate(-2deg);
+}
+
+.voice-card.playing-voice .voice-avatar-wrap {
+  animation: avatarSpeakingPulse 1.1s infinite ease-in-out;
+}
+
+.voice-card.playing-voice .voice-avatar-wrap::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid #34d399;
+  animation: avatarRipple 1.25s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes avatarSpeakingPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes avatarRipple {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+/* Indicador animado de barras de equalizador */
+.eq-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.eq-bars span {
+  width: 2.5px;
+  background-color: currentColor;
+  border-radius: 1px;
+  animation: eqBounce 0.7s infinite ease-in-out;
+}
+
+.eq-bars span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.eq-bars span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+.eq-bars span:nth-child(4) {
+  animation-delay: 0.1s;
+}
+
+@keyframes eqBounce {
+  0%, 100% { height: 3px; }
+  50% { height: 12px; }
+}
+
+/* ==========================================================================
+   5. ADAPTAÇÃO AUTOMÁTICA AO MODO CLARO DO SISTEMA (prefers-color-scheme: light)
+   Se o computador estiver em modo claro, toda a superfície vira clara e legível;
+   se estiver em modo escuro, mantém o visual noturno original intacto.
+   ========================================================================== */
+@media (prefers-color-scheme: light) {
+  body.bg-slate-950 {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  header.bg-slate-950\/90,
+  footer.bg-slate-950\/90 {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  #flowStepper {
+    background-color: rgba(255, 255, 255, 0.94) !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  /* Superfícies de seções e cards */
+  .bg-slate-900\/65,
+  .bg-slate-900\/75,
+  .bg-slate-900\/80,
+  .bg-slate-900\/90,
+  .bg-slate-900 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.07) !important;
+  }
+
+  #summaryStickyCard {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+    border-color: rgba(245, 158, 11, 0.55) !important;
+    box-shadow: 0 14px 30px -8px rgba(15, 23, 42, 0.1) !important;
+  }
+
+  /* Subcards, inputs e caixas internas */
+  .bg-slate-950,
+  .bg-slate-950\/60,
+  .bg-slate-950\/70,
+  .bg-slate-950\/75,
+  .bg-slate-950\/80,
+  .bg-slate-950\/85,
+  .bg-slate-950\/90,
+  .bg-slate-900\/70 {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  input.bg-slate-950,
+  select.bg-slate-950,
+  select.bg-slate-900 {
+    background-color: #ffffff !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+  }
+
+  .bg-slate-800,
+  .bg-slate-800\/80 {
+    background-color: #e2e8f0 !important;
+    color: #1e293b !important;
+  }
+
+  /* Tipografia */
+  .text-white,
+  .text-slate-100,
+  .text-slate-200 {
+    color: #0f172a !important;
+  }
+
+  .text-slate-300 {
+    color: #334155 !important;
+  }
+
+  .text-slate-400 {
+    color: #475569 !important;
+  }
+
+  /* Destaques Âmbar e Esmeralda com contraste forte para fundo claro */
+  .text-amber-300,
+  .text-amber-400 {
+    color: #b45309 !important;
+  }
+
+  .text-emerald-300,
+  .text-emerald-400 {
+    color: #047857 !important;
+  }
+
+  .bg-emerald-950\/15,
+  .bg-emerald-950\/20,
+  .bg-emerald-950\/30,
+  .bg-emerald-950\/40 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+  }
+
+  .bg-red-950\/40 {
+    background-color: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+    color: #991b1b !important;
+  }
+
+  .text-red-200,
+  .text-red-200\/90,
+  .text-red-300 {
+    color: #b91c1c !important;
+  }
+
+  /* Preserva texto branco em botões sólidos */
+  .bg-emerald-600,
+  .bg-emerald-600 span {
+    color: #ffffff !important;
+  }
+
+  /* Bordas */
+  .border-slate-800,
+  .border-slate-800\/70,
+  .border-slate-800\/80,
+  .border-slate-800\/90,
+  .border-slate-700 {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Slider de velocidade no modo claro */
+  .speed-range-slider {
+    background: linear-gradient(90deg, #cbd5e1 0%, #94a3b8 100%);
+    border-color: #94a3b8;
+  }
+
+  .speed-range-slider::-webkit-slider-thumb {
+    border-color: #ffffff;
+  }
+
+  .speed-range-slider::-moz-range-thumb {
+    border-color: #ffffff;
+  }
+
+  /* Cards de vozes no modo claro */
+  .voice-card {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  }
+
+  .voice-card:hover {
+    border-color: #f59e0b !important;
+    box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(245, 158, 11, 0.35);
+  }
+
+  .voice-card.selected-voice {
+    border-color: #d97706 !important;
+    background: linear-gradient(160deg, rgba(251, 191, 36, 0.18) 0%, #ffffff 100%) !important;
+  }
+
+  .voice-card.playing-voice {
+    border-color: #059669 !important;
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.16) 0%, #ffffff 100%) !important;
+  }
+
+  .step-connector-active {
+    background-color: rgba(251, 191, 36, 0.18) !important;
+    border-color: rgba(217, 119, 6, 0.55) !important;
+    color: #92400e !important;
+  }
+}
