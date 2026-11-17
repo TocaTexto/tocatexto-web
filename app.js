@@ -167,7 +167,6 @@
     dropzone: document.getElementById("dropzone"),
     fileInput: document.getElementById("fileInput"),
     addMoreFilesBtn: document.getElementById("addMoreFilesBtn"),
-    step01HeaderAddFilesBtn: document.getElementById("step01HeaderAddFilesBtn"),
     attachedFilesList: document.getElementById("attachedFilesList"),
     readingProgressBox: document.getElementById("readingProgressBox"),
     readingStatusText: document.getElementById("readingStatusText"),
@@ -1617,11 +1616,10 @@
       });
     }
 
-    // Botões de "+ Anexar mais arquivos" no Card 01 (resumo e cabeçalho)
-    [el.addMoreFilesBtn, el.step01HeaderAddFilesBtn].forEach((btn) => {
-      if (!btn) return;
-      btn.addEventListener("click", abrirSeletorArquivos);
-    });
+    // Botão de "+ Anexar mais arquivos" no resumo do Card 01
+    if (el.addMoreFilesBtn) {
+      el.addMoreFilesBtn.addEventListener("click", abrirSeletorArquivos);
+    }
 
     // Impede que o navegador abra o arquivo na aba caso o usuário solte na área da página
     ["dragover", "drop"].forEach((evtGlobal) => {
@@ -1756,9 +1754,11 @@
 
         el.voiceModeBtns.forEach((b) => {
           const ativo = b === btn;
+          b.classList.toggle("active-mode", ativo);
           b.classList.toggle("border-amber-400", ativo);
           b.classList.toggle("bg-amber-500/10", ativo);
           b.classList.toggle("border-slate-800", !ativo);
+          b.classList.toggle("bg-slate-900/70", !ativo);
         });
 
         renderizarMapeadorCapitulos();
@@ -1774,9 +1774,11 @@
 
         el.outputFormatBtns.forEach((b) => {
           const ativo = b === btn;
+          b.classList.toggle("active-format", ativo);
           b.classList.toggle("border-amber-400", ativo);
           b.classList.toggle("bg-amber-500/10", ativo);
           b.classList.toggle("border-slate-800", !ativo);
+          b.classList.toggle("bg-slate-900/70", !ativo);
         });
 
         atualizarResumoPedido();
@@ -1894,7 +1896,6 @@
     el.dropzone = document.getElementById("dropzone");
     el.fileInput = document.getElementById("fileInput");
     el.addMoreFilesBtn = document.getElementById("addMoreFilesBtn");
-    el.step01HeaderAddFilesBtn = document.getElementById("step01HeaderAddFilesBtn");
     el.attachedFilesList = document.getElementById("attachedFilesList");
     el.readingProgressBox = document.getElementById("readingProgressBox");
     el.readingStatusText = document.getElementById("readingStatusText");

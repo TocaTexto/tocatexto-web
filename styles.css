@@ -456,4 +456,11 @@ body {
     border-color: rgba(217, 119, 6, 0.55) !important;
     color: #92400e !important;
   }
+
+  .voice-mode-btn.active-mode,
+  .output-format-btn.active-format {
+    border-color: #d97706 !important;
+    background-color: rgba(251, 191, 36, 0.16) !important;
+    box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.35) !important;
+  }
 }
