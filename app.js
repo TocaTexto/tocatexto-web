@@ -1,30 +1,22 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (FASE 2 · v02_03)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v08_01_fundo_aurora_sonora)
  * ============================================================================
- * Regras de Negócio & UX:
- * 1. Leitura no navegador de 1 ou MÚLTIPLOS documentos (.PDF via PDF.js,
- *    .DOCX via Mammoth.js, .TXT e .MD), com botão "+ Anexar mais arquivos"
- *    exclusivamente no Card 01 (cabeçalho e resumo), remoção individual e autodetecção do idioma
- *    (Português PT-BR ou Inglês EN).
- * 2. Detecção estrutural de Capítulos / Seções:
- *    - PDF: lê o sumário nativo (`pdf.getOutline()`) e, na falta dele, reconstrói
- *      as linhas da página pela coordenada vertical (eixo Y) e altura da fonte,
- *      detectando títulos (`Capítulo`, `Chapter`, `Seção`, `Parte`, numeração
- *      `1.`, `1.1`, `I -`, cabeçalhos em destaque tipográfico).
- *    - DOCX: usa `mammoth.convertToHtml()` para extrair `<h1>..<h4>` e parágrafos
- *      em negrito de abertura de seção, além do texto limpo.
- *    - TXT/MD: detecta headings Markdown (`# ..`) e padrões de capítulos.
- * 3. Bloqueio Anti-OCR imediato se média < 80 caracteres/página.
- * 4. Preço linear por caractere somando todos os arquivos anexados:
- *    `max(1.00, total_caracteres * 0.00005)`, com exibição simultânea no Card 01,
- *    no Resumo e no botão PIX.
- * 5. Vitrine expandida em largura total com 44 vozes reais do XTTSv2 (18 PT + 26 EN),
- *    reproduzindo `amostras_vozes/<id>/<sigla>.mp3` com fallback automático para
- *    o nome bruto do XTTSv2 (`amostra_<id>_<sigla>[_en]_<SIGLA>.mp3`) e para
- *    `../../Audiobook TTS/banco_vozes/<id>/<sigla>.mp3`.
- * 6. Barra de jornada guiada (`#flowStepper`) congelada no topo durante a rolagem
- *    com atualização automática da etapa visível via IntersectionObserver / scroll.
+ * Serviços de Síntese Disponíveis:
+ * 1. XTTSv2 (Qualidade Estúdio): 44 vozes neurais realistas (18 PT-BR · 26 EN),
+ *    cota gratuita inicial de 200.000 chars (~100 pág.) + PIX no excedente
+ *    (`max(1.00, chars_cobraveis * 0.00005)`), prazo calibrado em CPU Kaggle.
+ * 2. Edge TTS (Ultrarrápido e 100% Gratuito): 12 vozes (3 PT-BR · 9 EN),
+ *    arquitetura paralela de múltiplas instâncias simultâneas (espelhada no
+ *    Whispr Flow Like Plus: 6 instâncias em blocos de ~1.200 chars), custo R$ 0,00
+ *    (não consome cota XTTSv2) e estimativa própria bem mais rápida.
+ *
+ * Modernizações (modern-web-guidance):
+ * - Native <dialog> com showModal(), closedby="any" + fallback Safari,
+ *   transição top-layer com @starting-style / allow-discrete + fallback exit.
+ * - Element.replaceChildren(), AbortSignal.timeout(), URLSearchParams, .toSorted().
+ * - Validação pós-interação (:user-invalid) sincronizada com aria-invalid,
+ *   aria-describedby dinâmico (data-error) e live region centralizada.
  * ============================================================================
  */
 
@@ -37,30 +29,48 @@
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   }
 
-  // Constantes alinhadas ao grupo `servico_comercial` de config_orquestrador_xttsv2
+  // Constantes alinhadas ao grupo `servico_comercial`, calibração CPU XTTSv2 e medições Edge TTS (WFLP)
   const CONFIG_COMERCIAL = {
     COM_VALOR_CARACTERE: 0.00005,
     COM_VALOR_MINIMO: 1.0,
+    COM_COTA_GRATIS_ATIVA: true,
+    COM_COTA_GRATIS_CHARS: 200000,
     COM_MIN_CHARS_PAGINA: 80,
     COM_CHARS_POR_PAGINA: 2000,
+    COM_TEMPO_ATUACAO_MIN: 15,
     COM_MARGEM_SEGURANCA: 1.4,
+    COM_MARGEM_AUTOCAL: 1.1,
     COM_LINK_DIAS_EXPIRA: 7,
     COM_LIMITE_ANEXO_MB: 15,
     COM_WHATSAPP_NUMERO_PUBLICO: "5519999999999",
     API_BASE_URL: "",
-    CPU_SETUP_SEG: 330,
-    CPU_BASE_SEG: 300,
-    CPU_S_POR_BYTE: 0.38,
-    CPU_ORQ_POS_SEG: 300,
-    CPU_WORKERS_TOTAIS: 45,
+    // [web_v07_02] Baseline autocalibrado pelos logs centrais do XTTSv2 (22 fatias / 60 itens CPU)
+    // alinhado à frota CPU completa ociosa (9 contas × 5 fatias = 45 fatias / 135 workers: 3 tocatexto* + 3 audiobook* + 3 GPU-como-CPU)
+    CPU_AUTOCALIBRADO: true,
+    CPU_SETUP_SEG: 273.4,
+    CPU_BASE_SEG: 150.0,
+    CPU_S_POR_BYTE: 0.49343,
+    CPU_WORKERS_POR_FATIA: 3,
+    CPU_FATIAS_ATIVAS: 45,
+    CPU_WORKERS_TOTAIS: 135,
     PARTICAO_PISO_BYTES: 3072,
+    // [web_v07_00] Baseline medido do Edge TTS em paralelo (Whispr Flow Like Plus v03_01):
+    // 6 instâncias simultâneas em blocos de ~1.200 chars, ~9.5s handshake + 0.0115s/char (~23.3s/onda de 6 blocos)
+    EDGE_ALVO_BLOCO: 1200,
+    EDGE_PARALELAS: 6,
+    EDGE_HANDSHAKE_SEG: 9.5,
+    EDGE_S_POR_CHAR: 0.0115,
+    EDGE_OVERHEAD_BASE_SEG: 35,
+    EDGE_OVERHEAD_POR_BLOCO_SEG: 0.45,
+    EDGE_MARGEM_SEGURANCA: 1.25,
+    EDGE_PISO_MIN: 2,
   };
 
   // Velocidades preferenciais com atração magnética no slider granular
   const SNAP_SPEEDS = [0.85, 1.0, 1.25];
   const SNAP_TOLERANCE = 0.022;
 
-  // Catálogo oficial das 18 vozes PT-BR (banco_vozes/pt/) e 26 vozes EN (banco_vozes/en/)
+  // Catálogo oficial das 44 vozes XTTSv2 (18 PT-BR + 26 EN)
   const VOZES_CATALOGO = {
     pt: [
       { sigla: "borges", nome: "Borges", idioma: "pt", genero: "M", categoria: "densa", cor1: "#f59e0b", cor2: "#b45309", perfil: "Grave, firme e didático", frase: "A leitura pausada e articulada facilita a absorção de conteúdos densos e legislação." },
@@ -112,137 +122,285 @@
     ],
   };
 
-  // Estado reativo da sessão do cliente (agora suporta múltiplos documentos simultâneos)
+  // [web_v07_00] Catálogo oficial Edge TTS (alinhado ao Whispr Flow Like Plus e Audiobook_Edge_TTT)
+  const VOZES_EDGE_CATALOGO = {
+    pt: [
+      { sigla: "thalita", nome: "Thalita", edgeVoiceId: "pt-BR-ThalitaMultilingualNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "dinamica", cor1: "#06b6d4", cor2: "#0e7490", perfil: "Jovem, vibrante e ágil", frase: "Esta é a voz Thalita no modo rápido e gratuito do TocaTexto. A síntese é muito ágil para entregar seu áudio em poucos minutos." },
+      { sigla: "antonio", nome: "Antônio", edgeVoiceId: "pt-BR-AntonioNeural", motor: "edge", idioma: "pt", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "Grave, séria e documental", frase: "Esta é a voz Antônio no serviço gratuito Edge TTS. Um pouco mais sintética que o estúdio, mas muito clara, ágil e excelente para ouvir apostilas e relatórios." },
+      { sigla: "francisca", nome: "Francisca", edgeVoiceId: "pt-BR-FranciscaNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "Equilibrada, calma e objetiva", frase: "Esta é a voz Francisca no Edge TTS. Equilibrada e objetiva, converte seus documentos em MP3 com rapidez e custo zero." },
+    ],
+    en: [
+      { sigla: "jenny", nome: "Jenny", edgeVoiceId: "en-US-JennyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#06b6d4", cor2: "#0e7490", perfil: "US · Clear & Versatile", frase: "This is Jenny on the fast and free Edge TTS engine. Multiple parallel instances convert your documents into MP3 audio in minutes." },
+      { sigla: "aria", nome: "Aria", edgeVoiceId: "en-US-AriaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "dinamica", cor1: "#ec4899", cor2: "#be185d", perfil: "US · Energetic & Crisp", frase: "This is Aria on Edge TTS. Slightly more synthetic than studio voices, yet crisp, responsive, and completely free to use." },
+      { sigla: "michelle", nome: "Michelle", edgeVoiceId: "en-US-MichelleNeural", motor: "edge", idioma: "en", genero: "F", categoria: "densa", cor1: "#8b5cf6", cor2: "#5b21b6", perfil: "US · Executive & Authoritative", frase: "This is Michelle on Edge TTS. Clear and structured pacing built for rapid review of reports, papers, and technical manuals." },
+      { sigla: "guy", nome: "Guy", edgeVoiceId: "en-US-GuyNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "US · Neutral & News-style", frase: "This is Guy on Edge TTS. Neutral, direct narration generated rapidly across parallel instances at zero cost." },
+      { sigla: "chris", nome: "Christopher", edgeVoiceId: "en-US-ChristopherNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#6366f1", cor2: "#3730a3", perfil: "US · Deep & Documentary", frase: "This is Christopher on Edge TTS. Deep and steady delivery for long documents when you want fast, free audio synthesis." },
+      { sigla: "eric", nome: "Eric", edgeVoiceId: "en-US-EricNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#10b981", cor2: "#047857", perfil: "US · Friendly & Agile", frase: "This is Eric on Edge TTS. Friendly and agile voice synthesis ready for quick listening on any device." },
+      { sigla: "sonia", nome: "Sonia", edgeVoiceId: "en-GB-SoniaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "UK · Clear British RP", frase: "This is Sonia on Edge TTS with a clear British accent. Fast parallel synthesis with zero usage cost." },
+      { sigla: "ryan", nome: "Ryan", edgeVoiceId: "en-GB-RyanNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#0ea5e9", cor2: "#0369a1", perfil: "UK · Versatile British", frase: "This is Ryan on Edge TTS. Versatile British narration generated rapidly for study sessions and commuting." },
+      { sigla: "libby", nome: "Libby", edgeVoiceId: "en-GB-LibbyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#a855f7", cor2: "#6b21a8", perfil: "UK · Smooth & Narrative", frase: "This is Libby on Edge TTS. Smooth British delivery that turns your readings into portable MP3 audio in minutes." },
+    ],
+  };
+
+  // Estado reativo da sessão do cliente
   const state = {
-    arquivos: [], // Array de { id, file, nome, tamanhoBytes, caracteres, paginas, capitulos: [{numero, titulo}], idiomaDetectado }
-    arquivo: null, // Mantido p/ retrocompatibilidade (aponta para o primeiro arquivo)
+    motorServico: "xttsv2", // "xttsv2" | "edge"
+    arquivos: [], // Array de { id, file, nome, tamanhoBytes, caracteres, paginas, capitulos: [{numero, titulo}], idioma: 'pt'|'en'|null, idiomaDetectado }
+    arquivo: null,
     nomeArquivo: "",
     tamanhoBytes: 0,
     totalCaracteres: 0,
     paginasEstimadas: 0,
     capitulosDetectados: [{ numero: 1, titulo: "Documento Completo" }],
-    valorCalculado: CONFIG_COMERCIAL.COM_VALOR_MINIMO,
+    valorCalculado: 0,
+    cotaTotalChars: CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS,
+    cotaConsumidaChars: 0,
+    cotaRestanteChars: CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS,
+    charsCobertosCota: 0,
+    charsCobraveis: 0,
+    pedidoGratuito: true,
     idioma: "pt",
+    validacaoIdiomaTentada: false,
     filtroVoz: "todas",
     velocidade: 1.0,
     modoVoz: "unica",
+    subModoVoz: "escolher", // "escolher" | "aleatoria"
     vozId: "borges",
+    vozIdPorMotor: {
+      xttsv2: { pt: "borges", en: "adam" },
+      edge: { pt: "thalita", en: "jenny" },
+    },
     vozesCapitulos: {},
     formatoSaida: "unico",
     janelaWhatsappAtiva: false,
     vozTocandoSigla: null,
     vozTocandoIdioma: null,
+    vozTocandoMotor: null,
+    carregandoPreviewVoz: false,
+    ultimaVozAleatoriaVel: null,
     etapaAtiva: 1,
     heartbeatOnline: true,
     heartbeatEpoch: Math.floor(Date.now() / 1000),
+    calibracaoCpu: null,
+    calibracaoEdge: null,
     filaPedidosFrente: 0,
     filaMinutosFrente: 0,
-    prazoEstimadoMinutos: 25,
+    filaPedidosFrenteEdge: 0,
+    filaMinutosFrenteEdge: 0,
+    prazoEstimadoMinutos: 0,
     horarioEntregaFormatado: "--:--",
+    previsaoEntregaRotulo: "Aguardando documento...",
+    previsaoEntregaRotuloModal: "--",
     ultimoPedidoCriado: null,
   };
 
   // Referências DOM
-  const el = {
-    flowStepper: document.getElementById("flowStepper"),
-    stepperItem01: document.getElementById("stepperItem01"),
-    stepperItem02: document.getElementById("stepperItem02"),
-    stepperItem03: document.getElementById("stepperItem03"),
-    stepperBadge01: document.getElementById("stepperBadge01"),
-    stepperBadge02: document.getElementById("stepperBadge02"),
-    stepperBadge03: document.getElementById("stepperBadge03"),
-    stepperState01: document.getElementById("stepperState01"),
-    stepperState02: document.getElementById("stepperState02"),
-    stepperState03: document.getElementById("stepperState03"),
-    stepCard01: document.getElementById("stepCard01"),
-    stepCard02: document.getElementById("stepCard02"),
-    stepCard03: document.getElementById("stepCard03"),
-    step01LivePill: document.getElementById("step01LivePill"),
-    step02LivePill: document.getElementById("step02LivePill"),
-    step03LivePill: document.getElementById("step03LivePill"),
-    connector01to02: document.getElementById("connector01to02"),
-    connector01Text: document.getElementById("connector01Text"),
-    connector02to03: document.getElementById("connector02to03"),
-    connector02Text: document.getElementById("connector02Text"),
-    dropzone: document.getElementById("dropzone"),
-    fileInput: document.getElementById("fileInput"),
-    addMoreFilesBtn: document.getElementById("addMoreFilesBtn"),
-    attachedFilesList: document.getElementById("attachedFilesList"),
-    readingProgressBox: document.getElementById("readingProgressBox"),
-    readingStatusText: document.getElementById("readingStatusText"),
-    readingPercentText: document.getElementById("readingPercentText"),
-    readingProgressBar: document.getElementById("readingProgressBar"),
-    ocrErrorAlert: document.getElementById("ocrErrorAlert"),
-    ocrErrorDetail: document.getElementById("ocrErrorDetail"),
-    docSummaryCard: document.getElementById("docSummaryCard"),
-    docFileName: document.getElementById("docFileName"),
-    docDetectedLangBadge: document.getElementById("docDetectedLangBadge"),
-    docQualityBadge: document.getElementById("docQualityBadge"),
-    docCharsCount: document.getElementById("docCharsCount"),
-    docPagesCount: document.getElementById("docPagesCount"),
-    docChaptersCount: document.getElementById("docChaptersCount"),
-    docChaptersSubnote: document.getElementById("docChaptersSubnote"),
-    docPriceBox: document.getElementById("docPriceBox"),
-    docPriceCount: document.getElementById("docPriceCount"),
-    docPriceFormulaNote: document.getElementById("docPriceFormulaNote"),
-    clearFileBtn: document.getElementById("clearFileBtn"),
-    langBtnPt: document.getElementById("langBtnPt"),
-    langBtnEn: document.getElementById("langBtnEn"),
-    speedSlider: document.getElementById("speedSlider"),
-    speedDisplayBadge: document.getElementById("speedDisplayBadge"),
-    speedMinusBtn: document.getElementById("speedMinusBtn"),
-    speedPlusBtn: document.getElementById("speedPlusBtn"),
-    speedHintText: document.getElementById("speedHintText"),
-    speedPresetBtns: document.querySelectorAll(".speed-preset-btn"),
-    voiceModeBtns: document.querySelectorAll(".voice-mode-btn"),
-    outputFormatBtns: document.querySelectorAll(".output-format-btn"),
-    voiceFilterBtns: document.querySelectorAll(".voice-filter-btn"),
-    chapterVoiceMapper: document.getElementById("chapterVoiceMapper"),
-    chapterVoiceList: document.getElementById("chapterVoiceList"),
-    catalogLangCounter: document.getElementById("catalogLangCounter"),
-    selectedVoiceBadge: document.getElementById("selectedVoiceBadge"),
-    voicesGrid: document.getElementById("voicesGrid"),
-    audioSourceStatusText: document.getElementById("audioSourceStatusText"),
-    orderForm: document.getElementById("orderForm"),
-    clientName: document.getElementById("clientName"),
-    clientEmail: document.getElementById("clientEmail"),
-    clientWhatsapp: document.getElementById("clientWhatsapp"),
-    waClickToChatBtn: document.getElementById("waClickToChatBtn"),
-    waActivatedBadge: document.getElementById("waActivatedBadge"),
-    termsCheckbox: document.getElementById("termsCheckbox"),
-    formValidationError: document.getElementById("formValidationError"),
-    generatePixBtn: document.getElementById("generatePixBtn"),
-    priceDisplay: document.getElementById("priceDisplay"),
-    summaryDocStatus: document.getElementById("summaryDocStatus"),
-    priceFormulaHint: document.getElementById("priceFormulaHint"),
-    estConversionTime: document.getElementById("estConversionTime"),
-    estQueueStatus: document.getElementById("estQueueStatus"),
-    estConfigSummary: document.getElementById("estConfigSummary"),
-    estDeliveryClock: document.getElementById("estDeliveryClock"),
-    estDeliverySubtext: document.getElementById("estDeliverySubtext"),
-    heartbeatBadge: document.getElementById("heartbeatBadge"),
-    heartbeatDot: document.getElementById("heartbeatDot"),
-    heartbeatText: document.getElementById("heartbeatText"),
-    pixModal: document.getElementById("pixModal"),
-    closePixModalBtn: document.getElementById("closePixModalBtn"),
-    pixModalOrderId: document.getElementById("pixModalOrderId"),
-    pixPendingStage: document.getElementById("pixPendingStage"),
-    pixApprovedStage: document.getElementById("pixApprovedStage"),
-    pixQrImage: document.getElementById("pixQrImage"),
-    pixCopyPasteInput: document.getElementById("pixCopyPasteInput"),
-    copyPixCodeBtn: document.getElementById("copyPixCodeBtn"),
-    pixModalAmount: document.getElementById("pixModalAmount"),
-    simulatePixApprovedBtn: document.getElementById("simulatePixApprovedBtn"),
-    downloadOrderJsonBtn: document.getElementById("downloadOrderJsonBtn"),
-    approvedOrderIdText: document.getElementById("approvedOrderIdText"),
-    approvedEtaText: document.getElementById("approvedEtaText"),
-    modalWaClickToChatBtn: document.getElementById("modalWaClickToChatBtn"),
-    voicePreviewAudio: document.getElementById("voicePreviewAudio"),
-  };
+  const el = {};
 
   // ==========================================================================
-  // 1. UTILITÁRIOS DE FORMATAÇÃO, PREÇO E DETECÇÃO DE IDIOMA
+  // 0. HELPERS DE TOP-LAYER (<dialog>) E ANÚNCIO ACESSÍVEL (modern-web-guidance)
   // ==========================================================================
+  let _supportsDisplayTransition;
+  function canTransitionDisplay() {
+    if (_supportsDisplayTransition !== undefined) return _supportsDisplayTransition;
+    if (!window.CSS?.supports?.("transition-behavior", "allow-discrete") || !document.body) {
+      return false;
+    }
+    const probe = document.createElement("div");
+    probe.style.cssText = "transition: display 1s allow-discrete !important; display: block;";
+    document.body.appendChild(probe);
+    window.getComputedStyle(probe).display;
+    probe.style.display = "none";
+    _supportsDisplayTransition = window.getComputedStyle(probe).display === "block";
+    probe.remove();
+    return _supportsDisplayTransition;
+  }
+
+  function supportsTopLayerExit() {
+    return Boolean(window.CSS?.supports?.("overlay", "auto") && canTransitionDisplay());
+  }
+
+  async function closeTopLayerDialog(dialog) {
+    if (!dialog || !dialog.open) return;
+    if (!supportsTopLayerExit()) {
+      dialog.setAttribute("data-closing", "");
+      const animations = typeof dialog.getAnimations === "function"
+        ? dialog.getAnimations({ subtree: true })
+        : [];
+      if (animations.length > 0) {
+        await Promise.race([
+          Promise.allSettled(animations.map((a) => a.finished)),
+          new Promise((r) => setTimeout(r, 400)),
+        ]);
+      }
+      if (!dialog.hasAttribute("data-closing")) return;
+      dialog.removeAttribute("data-closing");
+    }
+    dialog.close();
+  }
+
+  function configurarFallbackLightDismissDialog(dialog) {
+    if (!dialog || "closedBy" in HTMLDialogElement.prototype) return;
+    const isOutside = (e) => {
+      const r = dialog.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    let pressedOutside = false;
+    dialog.addEventListener("pointerdown", (e) => {
+      pressedOutside = dialog.open && isOutside(e);
+    });
+    dialog.addEventListener("pointerup", (e) => {
+      if (pressedOutside && dialog.open && isOutside(e)) {
+        closeTopLayerDialog(dialog);
+      }
+      pressedOutside = false;
+    });
+  }
+
+  // Ponte acessível :user-invalid <-> aria-invalid + aria-describedby + live region única
+  let _ariaAnnouncer = null;
+  let _announceTimer = null;
+  let _announcedField = null;
+  const _ariaFlagged = new WeakSet();
+  const _ariaAnnounced = new WeakSet();
+  const _fallbackDirty = new WeakMap();
+
+  function garantirLiveAnnouncer() {
+    if (_ariaAnnouncer) return _ariaAnnouncer;
+    const node = document.createElement("div");
+    node.setAttribute("aria-live", "polite");
+    node.className = "visually-hidden";
+    document.body.append(node);
+    _ariaAnnouncer = node;
+    return node;
+  }
+
+  function linkErrorDescribedBy(control, shown) {
+    const errorId = control?.dataset?.error;
+    if (!errorId) return;
+    const ids = (control.getAttribute("aria-describedby") || "")
+      .split(/\s+/)
+      .filter((id) => id && id !== errorId);
+    if (shown) ids.push(errorId);
+    if (ids.length) control.setAttribute("aria-describedby", ids.join(" "));
+    else control.removeAttribute("aria-describedby");
+  }
+
+  function spokenText(node) {
+    const copy = node.cloneNode(true);
+    copy.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove());
+    copy.querySelectorAll('[role="img"][aria-label]').forEach((n) => {
+      n.replaceWith(`${n.getAttribute("aria-label")}: `);
+    });
+    return copy.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function anunciarErroCampo(control) {
+    const errorEl = control?.dataset?.error ? document.getElementById(control.dataset.error) : null;
+    if (!errorEl) return;
+    const announcer = garantirLiveAnnouncer();
+    const labelPrefix = control.labels?.[0] ? `${spokenText(control.labels[0])}: ` : "";
+    clearTimeout(_announceTimer);
+    announcer.textContent = "";
+    _announcedField = control;
+    _announceTimer = setTimeout(() => {
+      announcer.textContent = labelPrefix + spokenText(errorEl);
+    }, 500);
+  }
+
+  function syncFieldAria(control, announce = false, forceCheck = false) {
+    if (!control?.matches?.("input, select, textarea")) return;
+    const supportsUserInvalid = Boolean(window.CSS?.supports?.("selector(:user-invalid)"));
+    let invalid = false;
+    if (forceCheck) {
+      invalid = !control.validity.valid;
+      if (!supportsUserInvalid) {
+        control.classList.toggle("user-invalid-fallback", invalid);
+      }
+    } else if (supportsUserInvalid) {
+      invalid = control.matches(":user-invalid");
+    } else {
+      invalid = control.classList.contains("user-invalid-fallback");
+    }
+
+    if (invalid) {
+      if (announce && !_ariaAnnounced.has(control)) {
+        anunciarErroCampo(control);
+        _ariaAnnounced.add(control);
+      }
+      control.setAttribute("aria-invalid", "true");
+      linkErrorDescribedBy(control, true);
+      _ariaFlagged.add(control);
+    } else if (_ariaFlagged.has(control) || control.getAttribute("aria-invalid") !== "true") {
+      control.setAttribute("aria-invalid", "false");
+      linkErrorDescribedBy(control, false);
+      _ariaFlagged.delete(control);
+      _ariaAnnounced.delete(control);
+      if (_announcedField === control && _ariaAnnouncer) {
+        clearTimeout(_announceTimer);
+        _ariaAnnouncer.textContent = "";
+      }
+    }
+  }
+
+  function inicializarValidacaoAcessivelFormulario(form) {
+    if (!form) return;
+    garantirLiveAnnouncer();
+    const supportsUserInvalid = Boolean(window.CSS?.supports?.("selector(:user-invalid)"));
+
+    form.querySelectorAll("input, select, textarea").forEach((ctrl) => {
+      if (ctrl.type !== "radio" && ctrl.type !== "hidden") {
+        ctrl.setAttribute("aria-invalid", "false");
+      }
+    });
+
+    if (!supportsUserInvalid) {
+      const updateFallback = (ctrl) => {
+        if (!ctrl.checkValidity) return;
+        const ok = ctrl.validity.valid;
+        ctrl.classList.toggle("user-invalid-fallback", !ok);
+        syncFieldAria(ctrl, true, false);
+      };
+      form.addEventListener("blur", (e) => {
+        const st = _fallbackDirty.get(e.target) || { interacted: false, blurred: false };
+        st.blurred = true;
+        _fallbackDirty.set(e.target, st);
+        if (st.interacted) updateFallback(e.target);
+      }, true);
+      form.addEventListener("input", (e) => {
+        const st = _fallbackDirty.get(e.target) || { interacted: false, blurred: false };
+        st.interacted = true;
+        _fallbackDirty.set(e.target, st);
+        if (st.blurred) updateFallback(e.target);
+      });
+      form.addEventListener("change", (e) => {
+        const st = _fallbackDirty.get(e.target) || { interacted: false, blurred: false };
+        st.interacted = true;
+        st.blurred = true;
+        _fallbackDirty.set(e.target, st);
+        updateFallback(e.target);
+      }, true);
+    } else {
+      form.addEventListener("blur", (e) => syncFieldAria(e.target, true), true);
+      form.addEventListener("input", (e) => {
+        if (e.target?.hasAttribute?.("aria-invalid")) syncFieldAria(e.target, false);
+      });
+      form.addEventListener("change", (e) => syncFieldAria(e.target, true), true);
+    }
+
+    form.addEventListener("invalid", (e) => {
+      _ariaAnnounced.add(e.target);
+      syncFieldAria(e.target, false, true);
+    }, true);
+  }
+
+  // ==========================================================================
+  // 1. UTILITÁRIOS DE FORMATAÇÃO, PREÇO, MOTOR E DETECÇÃO DE IDIOMA
+  // ==========================================================================
+  function ehEdgeTts() {
+    return state.motorServico === "edge";
+  }
+
   function formatarBRL(valor) {
     return valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -265,12 +423,192 @@
     return `${bytes} B`;
   }
 
-  function calcularPrecoPorCaracteres(totalChars) {
-    if (!totalChars || totalChars <= 0) {
-      return CONFIG_COMERCIAL.COM_VALOR_MINIMO;
+  function velocidadeParaRateEdge(vel) {
+    const pct = Math.round((Number(vel || 1.0) - 1.0) * 100);
+    return `${pct >= 0 ? "+" : ""}${pct}%`;
+  }
+
+  const STORAGE_COTA_PREFIX = "tocatexto_cota_v1_";
+
+  function normalizarEmailCota(email) {
+    const bruto = String(email || "").trim().toLowerCase();
+    if (!bruto || !bruto.includes("@")) return "";
+    const [local, dominio] = bruto.split("@", 2);
+    if ((dominio === "gmail.com" || dominio === "googlemail.com") && local.includes("+")) {
+      return `${local.split("+", 1)[0]}@${dominio}`;
     }
-    const bruto = totalChars * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
-    return Math.round(Math.max(CONFIG_COMERCIAL.COM_VALOR_MINIMO, bruto) * 100) / 100;
+    return `${local}@${dominio}`;
+  }
+
+  function lerConsumidoCotaLocal(emailNormalizado) {
+    if (!CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA || !emailNormalizado) return 0;
+    try {
+      const bruto = window.localStorage.getItem(`${STORAGE_COTA_PREFIX}${emailNormalizado}`);
+      if (!bruto) return 0;
+      const obj = JSON.parse(bruto);
+      return Math.max(0, Math.min(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS, Number(obj?.chars_consumidos || 0)));
+    } catch (_err) {
+      return 0;
+    }
+  }
+
+  function debitarCotaLocal(email, charsCobertos) {
+    const emailNorm = normalizarEmailCota(email);
+    const delta = Math.max(0, Math.round(Number(charsCobertos || 0)));
+    if (!emailNorm || delta <= 0) return;
+    const total = CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS;
+    const atual = lerConsumidoCotaLocal(emailNorm);
+    const novoConsumido = Math.min(total, atual + delta);
+    try {
+      window.localStorage.setItem(
+        `${STORAGE_COTA_PREFIX}${emailNorm}`,
+        JSON.stringify({
+          chars_consumidos: novoConsumido,
+          atualizado_em: new Date().toISOString(),
+        })
+      );
+    } catch (_err) {
+      // Silencioso se localStorage estiver bloqueado
+    }
+    state.cotaConsumidaChars = novoConsumido;
+    state.cotaRestanteChars = Math.max(0, total - novoConsumido);
+  }
+
+  function criarSignalTimeout(ms) {
+    if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+      return { signal: AbortSignal.timeout(ms), cleanup: () => {} };
+    }
+    if (typeof AbortController === "function") {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      return { signal: ctrl.signal, cleanup: () => clearTimeout(timer) };
+    }
+    return { signal: undefined, cleanup: () => {} };
+  }
+
+  async function atualizarSaldoCotaPorEmail(consultarApi = false) {
+    const total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS : 0;
+    const emailNorm = normalizarEmailCota(el.clientEmail?.value || "");
+    let consumido = lerConsumidoCotaLocal(emailNorm);
+
+    if (consultarApi && emailNorm && CONFIG_COMERCIAL.API_BASE_URL) {
+      const { signal, cleanup } = criarSignalTimeout(3000);
+      try {
+        const endpoint = new URL("/api/cota", CONFIG_COMERCIAL.API_BASE_URL);
+        endpoint.searchParams.set("email", emailNorm);
+        const resp = await fetch(endpoint, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal,
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (typeof data?.chars_consumidos === "number") {
+            consumido = Math.max(0, Math.min(total, data.chars_consumidos));
+          }
+        }
+      } catch (_err) {
+        // Fallback silencioso para saldo local quando API não responder
+      } finally {
+        cleanup();
+      }
+    }
+
+    state.cotaTotalChars = total;
+    state.cotaConsumidaChars = consumido;
+    state.cotaRestanteChars = Math.max(0, total - consumido);
+    recalcularAgregadosDocumentos();
+    atualizarResumoPedido();
+    if (state.arquivos.length > 0) {
+      atualizarFluxoEtapas(state.etapaAtiva, true);
+    }
+  }
+
+  async function sincronizarStatusMotor() {
+    if (!CONFIG_COMERCIAL.API_BASE_URL) return;
+    const { signal, cleanup } = criarSignalTimeout(3000);
+    try {
+      const endpoint = new URL("/api/status", CONFIG_COMERCIAL.API_BASE_URL);
+      const resp = await fetch(endpoint, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal,
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const hb = data?.heartbeat || data;
+      if (hb && typeof hb === "object") {
+        if (typeof hb.timestamp_epoch === "number") {
+          state.heartbeatEpoch = hb.timestamp_epoch;
+          const idadeSeg = Math.max(0, Math.floor(Date.now() / 1000) - hb.timestamp_epoch);
+          state.heartbeatOnline = hb.status === "online" && idadeSeg <= 360;
+        }
+        if (hb.calibracao_cpu && typeof hb.calibracao_cpu === "object") {
+          state.calibracaoCpu = hb.calibracao_cpu;
+        }
+        if (hb.calibracao_edge && typeof hb.calibracao_edge === "object") {
+          state.calibracaoEdge = hb.calibracao_edge;
+        }
+        const fila = data?.fila || hb.fila;
+        if (fila && typeof fila === "object") {
+          state.filaPedidosFrente = Math.max(0, Number(fila.pedidos_pendentes || 0));
+          state.filaMinutosFrente = Math.max(0, Number(fila.minutos_estimados || 0));
+          state.filaPedidosFrenteEdge = Math.max(0, Number(fila.pedidos_pendentes_edge || 0));
+          state.filaMinutosFrenteEdge = Math.max(0, Number(fila.minutos_estimados_edge || 0));
+        }
+        if (el.heartbeatDot && el.heartbeatText) {
+          el.heartbeatDot.className = state.heartbeatOnline
+            ? "h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse"
+            : "h-2.5 w-2.5 rounded-full bg-amber-400";
+          el.heartbeatText.textContent = state.heartbeatOnline
+            ? "Motor online · XTTSv2 & Edge TTS prontos"
+            : "Motor em espera (janela programada)";
+        }
+        atualizarResumoPedido();
+      }
+    } catch (err) {
+      if (err?.name !== "TimeoutError" && err?.name !== "AbortError") {
+        // Fallback silencioso para constantes locais calibradas
+      }
+    } finally {
+      cleanup();
+    }
+  }
+
+  function calcularPrecoXttsParaCaracteres(totalChars) {
+    const cotaRestante = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? Math.max(0, state.cotaRestanteChars) : 0;
+    if (!totalChars || totalChars <= 0) {
+      return {
+        preco: cotaRestante > 0 ? 0 : CONFIG_COMERCIAL.COM_VALOR_MINIMO,
+        charsCobertos: 0,
+        charsCobraveis: 0,
+        gratuito: cotaRestante > 0,
+      };
+    }
+    const charsCobertos = Math.min(totalChars, cotaRestante);
+    const charsCobraveis = Math.max(0, totalChars - charsCobertos);
+    if (charsCobraveis === 0) {
+      return { preco: 0, charsCobertos, charsCobraveis: 0, gratuito: true };
+    }
+    const bruto = charsCobraveis * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
+    const preco = Math.round(Math.max(CONFIG_COMERCIAL.COM_VALOR_MINIMO, bruto) * 100) / 100;
+    return { preco, charsCobertos, charsCobraveis, gratuito: false };
+  }
+
+  function calcularPrecoPorCaracteres(totalChars) {
+    // [web_v07_00] Edge TTS é sempre 100% gratuito e não consome a cota XTTSv2
+    if (ehEdgeTts()) {
+      state.charsCobertosCota = 0;
+      state.charsCobraveis = 0;
+      state.pedidoGratuito = true;
+      return 0;
+    }
+
+    const res = calcularPrecoXttsParaCaracteres(totalChars);
+    state.charsCobertosCota = res.charsCobertos;
+    state.charsCobraveis = res.charsCobraveis;
+    state.pedidoGratuito = res.gratuito;
+    return res.preco;
   }
 
   function detectarIdiomaTexto(texto, nomeArquivo) {
@@ -302,6 +640,8 @@
   function atualizarFluxoEtapas(etapaAtiva, apenasVisualStepper = false) {
     state.etapaAtiva = etapaAtiva;
     const temDoc = state.totalCaracteres > 0 && state.arquivos.length > 0;
+    const todosIdiomasDefinidos =
+      temDoc && state.arquivos.every((a) => a.idioma === "pt" || a.idioma === "en");
 
     if (!apenasVisualStepper) {
       [el.stepCard01, el.stepCard02, el.stepCard03].forEach((card, idx) => {
@@ -310,7 +650,7 @@
         card.classList.remove("step-card-active", "step-card-completed");
         if (num === etapaAtiva) {
           card.classList.add("step-card-active");
-        } else if ((num === 1 && temDoc) || num < etapaAtiva) {
+        } else if ((num === 1 && todosIdiomasDefinidos) || (num < etapaAtiva && (num !== 1 || todosIdiomasDefinidos))) {
           card.classList.add("step-card-completed");
         }
       });
@@ -326,10 +666,21 @@
       { pill: el.stepperItem03, badge: el.stepperBadge03, stateTxt: el.stepperState03, num: 3 },
     ];
 
+    const valorCurto = state.valorCalculado <= 0 ? "GRÁTIS" : formatarBRL(state.valorCalculado);
+    const motorCurto = ehEdgeTts() ? "Edge TTS" : "XTTSv2";
+
     itensStepper.forEach(({ pill, badge, stateTxt, num }) => {
       if (!pill || !badge || !stateTxt) return;
-      const concluido = (num === 1 && temDoc && etapaAtiva > 1) || (num === 2 && temDoc && etapaAtiva === 3);
+      const concluido =
+        (num === 1 && todosIdiomasDefinidos && etapaAtiva > 1) ||
+        (num === 2 && todosIdiomasDefinidos && etapaAtiva === 3);
       const ativo = num === etapaAtiva;
+
+      if (ativo) {
+        pill.setAttribute("aria-current", "step");
+      } else {
+        pill.removeAttribute("aria-current");
+      }
 
       pill.className = "stepper-pill flex items-center justify-between rounded-xl border px-4 py-2.5 transition ";
       if (ativo) {
@@ -337,32 +688,42 @@
         badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950";
         badge.textContent = `0${num}`;
         stateTxt.className = "step-arrow-cue text-xs font-bold text-amber-300";
-        stateTxt.textContent = "Etapa atual ↓";
+        stateTxt.textContent = num === 1 && temDoc && !todosIdiomasDefinidos ? "Escolha o idioma ↓" : "Etapa atual ↓";
       } else if (concluido) {
         pill.className += "border-emerald-500/45 bg-emerald-950/25";
         badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 font-mono text-xs font-extrabold text-slate-950";
         badge.textContent = "✓";
         stateTxt.className = "text-xs font-semibold text-emerald-300";
-        stateTxt.textContent = num === 1 ? `${state.arquivos.length} arq. · ${formatarBRL(state.valorCalculado)}` : `Voz: ${state.vozId}`;
+        stateTxt.textContent = num === 1 ? `${state.arquivos.length} arq. · ${valorCurto}` : `${motorCurto} · ${state.vozId}`;
       } else {
         pill.className += "border-slate-800 bg-slate-950/60 hover:border-slate-700";
         badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300";
         badge.textContent = `0${num}`;
-        stateTxt.className = "text-xs font-medium text-slate-400";
-        stateTxt.textContent = num === 2 ? "44 vozes →" : "E-mail & WhatsApp";
+        stateTxt.className =
+          num === 1 && temDoc && !todosIdiomasDefinidos
+            ? "text-xs font-semibold text-amber-300"
+            : "text-xs font-medium text-slate-400";
+        stateTxt.textContent =
+          num === 1 && temDoc && !todosIdiomasDefinidos
+            ? "Idioma pendente"
+            : num === 2
+            ? `${motorCurto} →`
+            : "E-mail & WhatsApp";
       }
     });
 
     if (el.connector01to02) {
-      el.connector01to02.classList.toggle("step-connector-active", temDoc);
+      el.connector01to02.classList.toggle("step-connector-active", todosIdiomasDefinidos);
     }
     if (el.connector01Text) {
-      el.connector01Text.textContent = temDoc
-        ? `✓ ${state.arquivos.length} documento(s) validado(s) (${formatarBRL(state.valorCalculado)}) — Agora escolha a voz e a velocidade no Passo 02`
-        : "Próximo passo: escolha o idioma, o narrador e a velocidade";
+      el.connector01Text.textContent = !temDoc
+        ? "Próximo passo: escolha o motor (XTTSv2 ou Edge TTS), narrador e velocidade"
+        : todosIdiomasDefinidos
+        ? `✓ ${state.arquivos.length} documento(s) validado(s) (${valorCurto}) — Agora escolha o serviço, voz e velocidade no Passo 02`
+        : "Escolha o idioma obrigatório de cada documento acima antes de prosseguir";
     }
     if (el.connector02to03) {
-      el.connector02to03.classList.toggle("step-connector-active", etapaAtiva >= 2 && temDoc);
+      el.connector02to03.classList.toggle("step-connector-active", etapaAtiva >= 2 && todosIdiomasDefinidos);
     }
   }
 
@@ -402,11 +763,138 @@
   }
 
   // ==========================================================================
-  // 3. GERAÇÃO DE AVATARES ILUSTRADOS E VITRINE DAS 44 VOZES (PT-BR & EN)
+  // 3. SELEÇÃO DE SERVIÇO DE ÁUDIO (XTTSv2 ESTÚDIO vs EDGE TTS RÁPIDO/GRÁTIS)
+  // ==========================================================================
+  function selecionarMotorServico(novoMotor, animarPreco = false) {
+    if (novoMotor !== "xttsv2" && novoMotor !== "edge") return;
+    if (state.motorServico === novoMotor) return;
+
+    // Salva a voz atual do motor anterior para restaurar depois
+    if (state.vozIdPorMotor[state.motorServico]) {
+      state.vozIdPorMotor[state.motorServico][state.idioma] = state.vozId;
+    }
+
+    pararPreviewVoz();
+    state.motorServico = novoMotor;
+    state.ultimaVozAleatoriaVel = null;
+
+    // Restaura voz preferida do motor recém-escolhido
+    const listaNova = obterListaVozesIdiomaAtual();
+    const salva = state.vozIdPorMotor[novoMotor]?.[state.idioma];
+    state.vozId = listaNova.some((v) => v.sigla === salva) ? salva : listaNova[0]?.sigla || "borges";
+    state.vozesCapitulos = {};
+
+    // Reseta filtro se o filtro atual não retornar nenhuma voz no novo motor
+    if (obterVozesFiltradas().length === 0) {
+      state.filtroVoz = "todas";
+      atualizarUiFiltrosVoz();
+    }
+
+    atualizarUiSeletorMotor();
+    renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
+    renderizarMapeadorCapitulos();
+    recalcularAgregadosDocumentos();
+    atualizarResumoPedido();
+    atualizarFluxoEtapas(state.etapaAtiva, true);
+
+    if (animarPreco && state.totalCaracteres > 0) {
+      dispararFlashPreco();
+    }
+  }
+
+  function atualizarUiSeletorMotor() {
+    const isEdge = ehEdgeTts();
+    // [web_v08_00] Sincroniza a temperatura de cor da Aurora Sonora com o motor selecionado
+    if (document.body) {
+      document.body.dataset.engine = isEdge ? "edge" : "xttsv2";
+    }
+    if (el.engineRadioXtts) el.engineRadioXtts.checked = !isEdge;
+    if (el.engineRadioEdge) el.engineRadioEdge.checked = isEdge;
+    if (el.engineCardXtts) el.engineCardXtts.classList.toggle("engine-active", !isEdge);
+    if (el.engineCardEdge) el.engineCardEdge.classList.toggle("engine-active", isEdge);
+
+    if (el.catalogEnginePill) {
+      if (isEdge) {
+        el.catalogEnginePill.textContent = "⚡ Edge TTS · 100% Grátis";
+        el.catalogEnginePill.className = "rounded-lg border border-cyan-400/45 bg-cyan-500/15 px-2.5 py-1 font-mono text-[11px] font-bold text-cyan-300";
+      } else {
+        el.catalogEnginePill.textContent = "🎙️ XTTSv2 Estúdio";
+        el.catalogEnginePill.className = "rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-300";
+      }
+    }
+
+    if (el.audioSourceStatusText && !state.vozTocandoSigla) {
+      el.audioSourceStatusText.textContent = isEdge
+        ? "⚡ Amostras reais do Edge TTS (voz mais robótica, porém muito clara e ágil — controle de velocidade ativo em tempo real)."
+        : "🔊 Amostras reais das vozes neurais XTTSv2 (qualidade de estúdio — controle de velocidade com preservação de tom ativa).";
+    }
+  }
+
+  function atualizarCardsComparacaoMotores() {
+    const temDoc = state.totalCaracteres > 0;
+    const minXtts = temDoc ? calcularMinutosXttsLocal(state.totalCaracteres) : 0;
+    const minEdge = temDoc ? calcularMinutosEdgeLocal(state.totalCaracteres) : 0;
+    const xttsPreco = calcularPrecoXttsParaCaracteres(state.totalCaracteres);
+
+    if (el.engineXttsEtaBadge) {
+      el.engineXttsEtaBadge.textContent = temDoc
+        ? `⏱️ ~${formatarDuracaoHorasMinutos(minXtts)} (CPU nuvem)`
+        : "⏱️ Ex.: ~1h20 para 100 pág.";
+    }
+
+    if (el.engineXttsPriceBadge) {
+      if (!temDoc) {
+        el.engineXttsPriceBadge.textContent = state.cotaRestanteChars > 0
+          ? `💰 Grátis até ${formatarInteiro(state.cotaRestanteChars)} ch`
+          : "💰 R$ 0,05 / 1.000 chars";
+      } else {
+        el.engineXttsPriceBadge.textContent = xttsPreco.preco <= 0
+          ? "💰 GRÁTIS (usa cota)"
+          : `💰 ${formatarBRL(xttsPreco.preco)} (PIX)`;
+      }
+    }
+
+    if (el.engineEdgeEtaBadge) {
+      el.engineEdgeEtaBadge.textContent = temDoc
+        ? `⚡ ~${formatarDuracaoHorasMinutos(minEdge)}`
+        : "⚡ Ex.: ~16 min para 100 pág.";
+    }
+
+    if (el.engineEdgePriceBadge) {
+      el.engineEdgePriceBadge.textContent = "🆓 R$ 0,00 (Grátis ilimitado)";
+    }
+
+    // Card de comparativo rápido no Resumo Sticky
+    if (el.estEngineCompareBox && el.estEngineCompareHint && el.quickSwitchEngineBtn) {
+      if (!temDoc) {
+        el.estEngineCompareBox.classList.add("hidden");
+      } else {
+        if (ehEdgeTts()) {
+          // [web_v08_01] Em Edge TTS, o atalho sugere XTTSv2 na cor âmbar/laranja temática
+          el.estEngineCompareBox.className = "mt-3 rounded-xl border border-amber-500/35 bg-amber-950/25 px-3 py-2 text-[11px] text-slate-300 compare-target-xtts";
+          el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-amber-400/55 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition";
+          const precoTxt = xttsPreco.preco <= 0 ? "grátis na cota" : formatarBRL(xttsPreco.preco);
+          el.estEngineCompareHint.textContent = `Prefere voz mais natural (estúdio)? XTTSv2: ~${formatarDuracaoHorasMinutos(minXtts)} (${precoTxt}).`;
+          el.quickSwitchEngineBtn.textContent = "Usar XTTSv2";
+        } else {
+          // Em XTTSv2, o atalho sugere Edge TTS na cor ciano temática
+          el.estEngineCompareBox.className = "mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-3 py-2 text-[11px] text-slate-300 compare-target-edge";
+          el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-bold text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition";
+          const economiaTxt = xttsPreco.preco > 0 ? ` e economize ${formatarBRL(xttsPreco.preco)}` : " e preserve sua cota";
+          el.estEngineCompareHint.textContent = `Quer bem mais rápido e grátis? Edge TTS: ~${formatarDuracaoHorasMinutos(minEdge)}${economiaTxt}.`;
+          el.quickSwitchEngineBtn.textContent = "Usar Edge TTS";
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // 4. GERAÇÃO DE AVATARES ILUSTRADOS E VITRINE DE VOZES (XTTSv2 & EDGE TTS)
   // ==========================================================================
   function criarAvatarSvg(voz) {
     const iniciais = voz.nome.slice(0, 2).toUpperCase();
-    const idGrad = `grad_${voz.idioma}_${voz.sigla}`;
+    const prefixoMotor = voz.motor === "edge" ? "edge" : "xtts";
+    const idGrad = `grad_${prefixoMotor}_${voz.idioma}_${voz.sigla}`;
     const iconeGenero = voz.genero === "F" ? "♀" : "♂";
     return `
       <div class="voice-avatar-wrap relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-md" style="background: linear-gradient(135deg, ${voz.cor1}, ${voz.cor2});">
@@ -422,7 +910,7 @@
           <path d="M11 40c2.2-6.5 7.2-10 13-10s10.8 3.5 13 10" fill="rgba(255,255,255,0.20)" />
           <text x="24" y="28" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-weight="800" font-size="13" letter-spacing="0.5">${iniciais}</text>
         </svg>
-        <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-900 bg-slate-950 text-[10px] font-bold text-amber-300 shadow" title="${voz.genero === "F" ? "Voz Feminina" : "Voz Masculina"}">
+        <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-900 bg-slate-950 text-[10px] font-bold text-amber-300 shadow" title="${voz.genero === "F" ? "Voz Feminina" : "Voz Masculina"}" aria-hidden="true">
           ${iconeGenero}
         </span>
       </div>
@@ -430,7 +918,8 @@
   }
 
   function obterListaVozesIdiomaAtual() {
-    return VOZES_CATALOGO[state.idioma] || VOZES_CATALOGO.pt;
+    const catalogo = ehEdgeTts() ? VOZES_EDGE_CATALOGO : VOZES_CATALOGO;
+    return catalogo[state.idioma] || catalogo.pt;
   }
 
   function obterVozesFiltradas() {
@@ -442,17 +931,53 @@
     return lista.filter((v) => v.categoria === state.filtroVoz);
   }
 
-  function renderizarCatalogoVozes() {
-    if (!el.voicesGrid) return;
-    el.voicesGrid.innerHTML = "";
+  function atualizarUiFiltrosVoz() {
+    el.voiceFilterBtns.forEach((b) => {
+      const f = b.getAttribute("data-voice-filter") || "todas";
+      const ativo = f === state.filtroVoz;
+      b.setAttribute("aria-pressed", ativo ? "true" : "false");
+      b.className = ativo
+        ? "voice-filter-btn active-filter rounded-full border border-amber-400/60 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300 transition"
+        : "voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition";
+    });
+  }
 
+  function atualizarBotoesCarrosselVozes() {
+    if (!el.voicesGrid || !el.voicesCarouselNavBtns) return;
+    const maxScroll = Math.max(0, el.voicesGrid.scrollWidth - el.voicesGrid.clientWidth);
+    const atual = el.voicesGrid.scrollLeft;
+    const noInicio = atual <= 6;
+    const noFim = atual >= maxScroll - 6 || maxScroll <= 6;
+
+    el.voicesCarouselNavBtns.forEach((btn) => {
+      const dir = Number(btn.getAttribute("data-carousel-dir") || 0);
+      btn.disabled = dir < 0 ? noInicio : noFim;
+    });
+  }
+
+  function rolarCarrosselVozes(direcao) {
+    if (!el.voicesGrid) return;
+    const passo = Math.max(260, Math.round(el.voicesGrid.clientWidth * 0.8));
+    const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    el.voicesGrid.scrollBy({
+      left: direcao * passo,
+      behavior: reduzido ? "auto" : "smooth",
+    });
+  }
+
+  function renderizarCatalogoVozes(opcoes = {}) {
+    if (!el.voicesGrid) return;
+    const { preservarScroll = true, animarEntrada = false } = opcoes;
+    const prevScrollLeft = preservarScroll ? el.voicesGrid.scrollLeft : 0;
+
+    const isEdge = ehEdgeTts();
     const todasIdioma = obterListaVozesIdiomaAtual();
     const filtradas = obterVozesFiltradas();
 
     if (el.catalogLangCounter) {
       el.catalogLangCounter.textContent =
         state.idioma === "en"
-          ? `${filtradas.length}/${todasIdioma.length} vozes EN (Inglês)`
+          ? `${filtradas.length}/${todasIdioma.length} vozes EN`
           : `${filtradas.length}/${todasIdioma.length} vozes PT-BR`;
     }
 
@@ -462,21 +987,49 @@
       state.vozId = vozSelecionadaObj.sigla;
     }
     if (el.selectedVoiceBadge && vozSelecionadaObj) {
-      el.selectedVoiceBadge.textContent = `Voz ativa: ${vozSelecionadaObj.nome} (${vozSelecionadaObj.sigla})`;
+      if (state.modoVoz === "unica" && state.subModoVoz === "aleatoria") {
+        el.selectedVoiceBadge.textContent = "Modo: 🎲 Voz única aleatória";
+      } else if (state.modoVoz === "por_capitulo" && state.subModoVoz === "aleatoria") {
+        el.selectedVoiceBadge.textContent = isEdge ? "Modo: 🎲 Rodízio automático por capítulo" : "Modo: 🎲 Aleatórias por capítulo";
+      } else if (state.modoVoz === "por_capitulo") {
+        el.selectedVoiceBadge.textContent = "Modo: Voz por capítulo (manual)";
+      } else {
+        el.selectedVoiceBadge.textContent = `Voz ativa: ${vozSelecionadaObj.nome} (${vozSelecionadaObj.sigla})`;
+      }
     }
 
+    if (!filtradas.length) {
+      const vazio = document.createElement("div");
+      vazio.className = "rounded-xl border border-slate-800 bg-slate-950/75 px-4 py-6 text-xs text-slate-400";
+      vazio.textContent = "Nenhuma voz encontrada para este filtro.";
+      el.voicesGrid.replaceChildren(vazio);
+      el.voicesGrid.scrollLeft = 0;
+      atualizarBotoesCarrosselVozes();
+      return;
+    }
+
+    const modoVozUnicaManual = state.modoVoz === "unica" && state.subModoVoz === "escolher";
+    const cards = [];
+
     filtradas.forEach((voz, index) => {
-      const selecionada = state.vozId === voz.sigla;
+      const selecionada = modoVozUnicaManual && state.vozId === voz.sigla;
       const tocando =
-        state.vozTocandoSigla === voz.sigla && state.vozTocandoIdioma === voz.idioma;
+        state.vozTocandoSigla === voz.sigla &&
+        state.vozTocandoIdioma === voz.idioma &&
+        state.vozTocandoMotor === (voz.motor || "xttsv2");
 
       const card = document.createElement("div");
-      card.style.animationDelay = `${Math.min(index * 18, 220)}ms`;
-      card.className = `voice-card rounded-2xl border p-4 cursor-pointer flex flex-col justify-between ${
+      if (animarEntrada) {
+        card.style.animationDelay = `${Math.min(index * 18, 220)}ms`;
+      }
+      const selectedClass = isEdge
+        ? "selected-voice-edge border-cyan-400 bg-cyan-500/10"
+        : "selected-voice border-amber-400 bg-amber-500/10";
+      card.className = `voice-card ${animarEntrada ? "voice-card-enter" : ""} rounded-2xl border p-4 cursor-pointer flex flex-col justify-between ${
         tocando
           ? "playing-voice"
           : selecionada
-          ? "selected-voice border-amber-400 bg-amber-500/10"
+          ? selectedClass
           : "border-slate-800 bg-slate-950/75 hover:border-slate-700"
       }`;
 
@@ -487,6 +1040,15 @@
           ? "⚡ Dinâmica / Ágil"
           : "📖 Narrativa / Fluida";
 
+      const badgeAtiva = isEdge
+        ? `<span class="rounded bg-cyan-400 px-1.5 py-0.5 font-mono text-[9px] font-extrabold uppercase text-slate-950">Ativa</span>`
+        : `<span class="rounded bg-amber-400 px-1.5 py-0.5 font-mono text-[9px] font-extrabold uppercase text-slate-950">Ativa</span>`;
+
+      const langAttr = voz.idioma === "en" ? "en" : "pt-BR";
+      const playAriaLabel = tocando
+        ? `Parar amostra de voz ${voz.nome}`
+        : `Ouvir amostra de voz ${voz.nome} em ${state.velocidade.toFixed(2)}x`;
+
       card.innerHTML = `
         <div>
           <div class="flex items-start justify-between gap-3">
@@ -495,13 +1057,9 @@
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5">
                   <h4 class="text-sm font-extrabold text-white truncate">${voz.nome}</h4>
-                  ${
-                    selecionada
-                      ? `<span class="rounded bg-amber-400 px-1.5 py-0.5 font-mono text-[9px] font-extrabold uppercase text-slate-950">Ativa</span>`
-                      : ""
-                  }
+                  ${selecionada ? badgeAtiva : ""}
                 </div>
-                <span class="block text-[11px] font-medium text-amber-300/90 truncate">${voz.perfil}</span>
+                <span class="block text-[11px] font-medium ${isEdge ? "text-cyan-300/95" : "text-amber-300/90"} truncate">${voz.perfil}</span>
                 <span class="mt-0.5 inline-block rounded border border-slate-800 bg-slate-900/90 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
                   ${tagCategoria}
                 </span>
@@ -512,6 +1070,7 @@
               type="button"
               data-play-voice="${voz.sigla}"
               data-play-lang="${voz.idioma}"
+              aria-label="${playAriaLabel}"
               class="play-voice-btn shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition shadow ${
                 tocando
                   ? "bg-emerald-400 text-slate-950 shadow-emerald-500/25"
@@ -521,25 +1080,24 @@
             >
               ${
                 tocando
-                  ? `<span class="eq-bars"><span></span><span></span><span></span><span></span></span><span>Parar</span>`
-                  : `<span>▶</span><span>Ouvir</span>`
+                  ? `<span class="eq-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></span><span>Parar</span>`
+                  : `<span aria-hidden="true">▶</span><span>Ouvir</span>`
               }
             </button>
           </div>
 
-          <p class="mt-3 text-xs text-slate-300 leading-relaxed line-clamp-2 italic">
+          <p lang="${langAttr}" class="mt-3 text-xs text-slate-300 leading-relaxed line-clamp-2 italic">
             "${voz.frase}"
           </p>
         </div>
 
         <div class="mt-3 pt-2.5 border-t border-slate-800/70 flex items-center justify-between text-[11px]">
-          <span class="font-mono text-slate-400">ID: <strong class="text-slate-200">${voz.sigla}</strong> · ${voz.idioma.toUpperCase()}</span>
-          <span class="font-semibold ${selecionada ? "text-amber-300" : "text-slate-400"}">
-            ${selecionada ? "✓ Selecionada p/ o pedido" : "Clique p/ escolher"}
+          <span class="font-mono text-slate-400">ID: <strong class="text-slate-200">${voz.sigla}</strong> · ${isEdge ? "EDGE" : "XTTS"} · ${voz.idioma.toUpperCase()}</span>
+          <span class="font-semibold ${selecionada ? (isEdge ? "text-cyan-300" : "text-amber-300") : "text-slate-400"}">
+            ${selecionada ? "✓ Selecionada" : "Clique p/ escolher"}
           </span>
         </div>
 
-        <!-- Barra de progresso de áudio ao vivo -->
         <div class="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-900 ${tocando ? "" : "hidden"}" data-progress-wrap="${voz.sigla}">
           <div class="h-full bg-emerald-400 transition-all duration-100" style="width: 0%" data-progress-bar="${voz.sigla}"></div>
         </div>
@@ -549,76 +1107,99 @@
         const playBtn = ev.target.closest("[data-play-voice]");
         if (playBtn) {
           ev.stopPropagation();
-          alternarPreviewVoz(voz);
+          alternarPreviewVoz(voz, { selecionarVoz: state.modoVoz === "unica" && state.subModoVoz === "escolher", motivo: "manual" });
           return;
         }
         state.vozId = voz.sigla;
+        if (state.vozIdPorMotor[state.motorServico]) {
+          state.vozIdPorMotor[state.motorServico][state.idioma] = voz.sigla;
+        }
+        if (state.modoVoz !== "unica" || state.subModoVoz !== "escolher") {
+          state.modoVoz = "unica";
+          state.subModoVoz = "escolher";
+          atualizarUiModoVoz();
+        }
         if (state.etapaAtiva === 1 && state.totalCaracteres > 0) {
           atualizarFluxoEtapas(2);
         }
         renderizarCatalogoVozes();
+        renderizarMapeadorCapitulos();
         atualizarResumoPedido();
       });
 
-      el.voicesGrid.appendChild(card);
+      cards.push(card);
     });
+
+    el.voicesGrid.replaceChildren(...cards);
+    el.voicesGrid.scrollLeft = preservarScroll ? prevScrollLeft : 0;
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(atualizarBotoesCarrosselVozes);
+    } else {
+      atualizarBotoesCarrosselVozes();
+    }
   }
 
   function renderizarMapeadorCapitulos() {
     if (!el.chapterVoiceMapper || !el.chapterVoiceList) return;
-    if (state.modoVoz !== "por_capitulo") {
+    if (state.modoVoz !== "por_capitulo" || state.subModoVoz !== "escolher") {
       el.chapterVoiceMapper.classList.add("hidden");
       return;
     }
     el.chapterVoiceMapper.classList.remove("hidden");
-    el.chapterVoiceList.innerHTML = "";
 
     const vozesIdioma = obterListaVozesIdiomaAtual();
     const caps = state.capitulosDetectados.length
       ? state.capitulosDetectados
       : [{ numero: 1, titulo: "Capítulo 1 (Documento Completo)" }];
 
+    const rows = [];
     caps.forEach((cap, idx) => {
       const capKey = String(cap.numero || idx + 1);
-      const siglaPadrao =
-        state.vozesCapitulos[capKey] ||
-        vozesIdioma[idx % vozesIdioma.length].sigla;
+      const existenteValida = vozesIdioma.some((v) => v.sigla === state.vozesCapitulos[capKey]);
+      const siglaPadrao = existenteValida
+        ? state.vozesCapitulos[capKey]
+        : vozesIdioma[idx % vozesIdioma.length].sigla;
       state.vozesCapitulos[capKey] = siglaPadrao;
 
       const row = document.createElement("div");
       row.className =
         "flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-2 text-xs";
 
-      const opcoesHtml = vozesIdioma
-        .map(
-          (v) =>
-            `<option value="${v.sigla}" ${
-              v.sigla === siglaPadrao ? "selected" : ""
-            }>${v.nome} (${v.genero}) — ${v.perfil}</option>`
-        )
-        .join("");
+      const labelSpan = document.createElement("span");
+      labelSpan.className = "truncate text-slate-200 font-medium";
+      labelSpan.title = cap.titulo;
+      const numStrong = document.createElement("strong");
+      numStrong.className = "font-mono text-amber-300";
+      numStrong.textContent = `#${capKey}`;
+      labelSpan.append(numStrong, ` ${cap.titulo}`);
 
-      row.innerHTML = `
-        <span class="truncate text-slate-200 font-medium" title="${cap.titulo}">
-          <strong class="font-mono text-amber-300">#${capKey}</strong> ${cap.titulo}
-        </span>
-        <select data-chapter-key="${capKey}" class="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white focus:border-amber-400 focus:outline-none">
-          ${opcoesHtml}
-        </select>
-      `;
+      const selectEl = document.createElement("select");
+      selectEl.setAttribute("data-chapter-key", capKey);
+      selectEl.setAttribute("aria-label", `Narrador do capítulo ${capKey}: ${cap.titulo}`);
+      selectEl.className = "rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-white";
 
-      const selectEl = row.querySelector("select");
+      vozesIdioma.forEach((v) => {
+        const opt = document.createElement("option");
+        opt.value = v.sigla;
+        opt.textContent = `${v.nome} (${v.genero}) — ${v.perfil}`;
+        if (v.sigla === siglaPadrao) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+
       selectEl.addEventListener("change", (e) => {
         state.vozesCapitulos[capKey] = e.target.value;
         atualizarResumoPedido();
       });
 
-      el.chapterVoiceList.appendChild(row);
+      row.append(labelSpan, selectEl);
+      rows.push(row);
     });
+
+    el.chapterVoiceList.replaceChildren(...rows);
   }
 
   // ==========================================================================
-  // 4. REPRODUÇÃO 100% EM CIMA DOS ARQUIVOS MP3 REAIS + VELOCIDADE EM TEMPO REAL
+  // 5. REPRODUÇÃO 100% EM CIMA DOS ARQUIVOS MP3 REAIS + VELOCIDADE EM TEMPO REAL
   // ==========================================================================
   function aplicarVelocidadeNoAudioAtivo(novaVelocidade) {
     const audio = el.voicePreviewAudio;
@@ -638,18 +1219,25 @@
         audio.currentTime = 0;
       } catch (_) {}
     }
+    state.carregandoPreviewVoz = false;
     state.vozTocandoSigla = null;
     state.vozTocandoIdioma = null;
+    state.vozTocandoMotor = null;
     renderizarCatalogoVozes();
   }
 
   function construirCandidatosMp3Voz(voz) {
     const id = voz.idioma;
     const s = voz.sigla;
+    if (voz.motor === "edge" || ehEdgeTts()) {
+      return [
+        `amostras_vozes/edge/${id}/${s}.mp3`,
+        `./amostras_vozes/edge/${id}/${s}.mp3`,
+        `/amostras_vozes/edge/${id}/${s}.mp3`,
+      ];
+    }
     const sUp = s.toUpperCase();
     const sufixoEn = id === "en" ? "_en" : "";
-    // [v02_01] Tenta primeiro o nome canônico `<sigla>.mp3`, depois o nome bruto do XTTSv2
-    // caso o usuário tenha movido manualmente sem renomear, e por fim o banco_vozes original.
     return [
       `amostras_vozes/${id}/${s}.mp3`,
       `./amostras_vozes/${id}/${s}.mp3`,
@@ -661,10 +1249,14 @@
     ];
   }
 
-  function alternarPreviewVoz(voz) {
+  function alternarPreviewVoz(voz, opcoes = {}) {
+    const { selecionarVoz = true, motivo = "manual" } = opcoes;
+    const motorVoz = voz.motor || "xttsv2";
     if (
+      motivo === "manual" &&
       state.vozTocandoSigla === voz.sigla &&
-      state.vozTocandoIdioma === voz.idioma
+      state.vozTocandoIdioma === voz.idioma &&
+      state.vozTocandoMotor === motorVoz
     ) {
       pararPreviewVoz();
       return;
@@ -674,9 +1266,16 @@
     if (!audio) return;
 
     audio.pause();
+    state.carregandoPreviewVoz = true;
     state.vozTocandoSigla = voz.sigla;
     state.vozTocandoIdioma = voz.idioma;
-    state.vozId = voz.sigla;
+    state.vozTocandoMotor = motorVoz;
+    if (selecionarVoz) {
+      state.vozId = voz.sigla;
+      if (state.vozIdPorMotor[state.motorServico]) {
+        state.vozIdPorMotor[state.motorServico][state.idioma] = voz.sigla;
+      }
+    }
     renderizarCatalogoVozes();
     atualizarResumoPedido();
 
@@ -686,17 +1285,22 @@
     const tentarProximoMp3 = () => {
       if (
         state.vozTocandoSigla !== voz.sigla ||
-        state.vozTocandoIdioma !== voz.idioma
+        state.vozTocandoIdioma !== voz.idioma ||
+        state.vozTocandoMotor !== motorVoz
       ) {
         return;
       }
       if (idxTentativa >= candidatosUrl.length) {
+        state.carregandoPreviewVoz = false;
         state.vozTocandoSigla = null;
         state.vozTocandoIdioma = null;
+        state.vozTocandoMotor = null;
         renderizarCatalogoVozes();
         if (el.audioSourceStatusText) {
-          el.audioSourceStatusText.innerHTML =
-            `<span class="text-amber-300">⚠️ Amostra MP3 de <strong>${voz.nome}</strong> não encontrada em <code>web/amostras_vozes/${voz.idioma}/${voz.sigla}.mp3</code>. Rode a opção <strong>[A]</strong> no <code>processar_pedidos.py</code>.</span>`;
+          const caminhoEsperado = motorVoz === "edge"
+            ? `web/amostras_vozes/edge/${voz.idioma}/${voz.sigla}.mp3`
+            : `web/amostras_vozes/${voz.idioma}/${voz.sigla}.mp3`;
+          el.audioSourceStatusText.textContent = `⚠️ Amostra MP3 de ${voz.nome} não encontrada em ${caminhoEsperado}.`;
         }
         return;
       }
@@ -709,24 +1313,33 @@
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            state.carregandoPreviewVoz = false;
             aplicarVelocidadeNoAudioAtivo(state.velocidade);
             if (el.audioSourceStatusText) {
-              const origemTipo = url.includes("amostras_vozes")
-                ? "Amostra XTTSv2 da vitrine"
+              const origemTipo = motorVoz === "edge"
+                ? "Amostra real Edge TTS (rápido e gratuito)"
+                : url.includes("amostras_vozes")
+                ? "Amostra XTTSv2 Estúdio"
                 : "Voz original do banco_vozes";
+              const prefixoMotivo =
+                motivo === "velocidade" ? "🎲 Teste de velocidade:" : "🔊 Tocando agora:";
               el.audioSourceStatusText.innerHTML =
-                `🔊 Tocando agora: <strong class="text-emerald-300">${voz.nome} (${voz.idioma.toUpperCase()})</strong> em <strong class="font-mono text-amber-300">${state.velocidade.toFixed(2)}x</strong> (${origemTipo}). Arraste o controle de velocidade acima para testar em tempo real!`;
+                `${prefixoMotivo} <strong class="text-emerald-300">${voz.nome} (${voz.idioma.toUpperCase()})</strong> em <strong class="font-mono text-amber-300">${state.velocidade.toFixed(2)}x</strong> (${origemTipo}). Arraste o controle de velocidade acima para testar em tempo real!`;
             }
           })
           .catch(() => {
             tentarProximoMp3();
           });
+      } else {
+        state.carregandoPreviewVoz = false;
       }
     };
 
     audio.onended = () => {
+      state.carregandoPreviewVoz = false;
       state.vozTocandoSigla = null;
       state.vozTocandoIdioma = null;
+      state.vozTocandoMotor = null;
       renderizarCatalogoVozes();
     };
 
@@ -740,8 +1353,25 @@
     tentarProximoMp3();
   }
 
+  function sortearVozDoIdiomaAtual(excluirSigla = null) {
+    const lista = obterListaVozesIdiomaAtual();
+    if (!lista.length) return null;
+    const candidatas =
+      excluirSigla && lista.length > 1
+        ? lista.filter((v) => v.sigla !== excluirSigla)
+        : lista;
+    return candidatas[Math.floor(Math.random() * candidatas.length)];
+  }
+
+  function tocarVozAleatoriaParaVelocidade() {
+    const voz = sortearVozDoIdiomaAtual(state.ultimaVozAleatoriaVel);
+    if (!voz) return;
+    state.ultimaVozAleatoriaVel = voz.sigla;
+    alternarPreviewVoz(voz, { selecionarVoz: false, motivo: "velocidade" });
+  }
+
   // ==========================================================================
-  // 5. SELETOR GRANULAR DE VELOCIDADE (COM ATRAÇÃO MAGNÉTICA EM 0.85x, 1.0x, 1.25x)
+  // 6. SELETOR GRANULAR DE VELOCIDADE (COM ATRAÇÃO MAGNÉTICA EM 0.85x, 1.0x, 1.25x)
   // ==========================================================================
   function normalizarVelocidadeComIma(valorBruto, aplicarIma = true) {
     let val = parseFloat(valorBruto);
@@ -759,7 +1389,7 @@
     return Math.round(val * 100) / 100;
   }
 
-  function atualizarVelocidade(novoValor, aplicarIma = true) {
+  function atualizarVelocidade(novoValor, aplicarIma = true, acionarAudio = false) {
     const vel = normalizarVelocidadeComIma(novoValor, aplicarIma);
     state.velocidade = vel;
 
@@ -769,9 +1399,21 @@
     el.speedPresetBtns.forEach((btn) => {
       const preset = parseFloat(btn.getAttribute("data-speed-preset"));
       const ativo = Math.abs(vel - preset) < 0.005;
+      btn.setAttribute("aria-pressed", ativo ? "true" : "false");
+      btn.classList.toggle("active-preset", ativo);
       btn.classList.toggle("border-amber-400/60", ativo);
       btn.classList.toggle("bg-amber-500/10", ativo);
       btn.classList.toggle("border-slate-800", !ativo);
+      btn.classList.toggle("bg-slate-900/90", !ativo);
+      const spans = btn.querySelectorAll("span");
+      if (spans[0]) {
+        spans[0].classList.toggle("text-amber-300", ativo);
+        spans[0].classList.toggle("text-white", !ativo);
+      }
+      if (spans[1]) {
+        spans[1].classList.toggle("text-slate-300", ativo);
+        spans[1].classList.toggle("text-slate-400", !ativo);
+      }
     });
 
     let rotuloRitmo = "Personalizada";
@@ -780,71 +1422,109 @@
     else if (Math.abs(vel - 1.25) < 0.005) rotuloRitmo = "Rápida — Revisão e ganho de tempo";
 
     if (el.speedHintText) {
-      el.speedHintText.innerHTML = `Ritmo selecionado: <strong class="text-amber-300">${vel.toFixed(2)}x (${rotuloRitmo})</strong> — Este valor exato será aplicado na síntese neural e no áudio que você está ouvindo agora.`;
+      el.speedHintText.innerHTML = `Ritmo selecionado: <strong class="text-amber-300">${vel.toFixed(2)}x (${rotuloRitmo})</strong> — Este valor exato será aplicado na síntese (${ehEdgeTts() ? `Edge rate ${velocidadeParaRateEdge(vel)}` : "XTTSv2"}) e no áudio em reprodução.`;
     }
 
     aplicarVelocidadeNoAudioAtivo(vel);
     atualizarResumoPedido();
+
+    if (acionarAudio) {
+      const audio = el.voicePreviewAudio;
+      const jaTocando = Boolean(
+        audio && state.vozTocandoSigla && (state.carregandoPreviewVoz || (!audio.paused && !audio.ended))
+      );
+      if (!jaTocando) {
+        tocarVozAleatoriaParaVelocidade();
+      }
+    }
   }
 
-  function alternarIdiomaCatalogo(novoIdioma, origemAuto = false) {
+  function atualizarUiModoVoz() {
+    const ehUnica = state.modoVoz === "unica";
+    const grupos = [
+      { box: el.voiceModeGroupUnica, panel: el.subModeUnicaPanel, ativo: ehUnica },
+      { box: el.voiceModeGroupCapitulo, panel: el.subModeCapituloPanel, ativo: !ehUnica },
+    ];
+
+    grupos.forEach(({ box, panel, ativo }) => {
+      if (box) {
+        box.classList.toggle("active-mode", ativo);
+        box.classList.toggle("border-amber-400", ativo);
+        box.classList.toggle("bg-amber-500/10", ativo);
+        box.classList.toggle("border-slate-800", !ativo);
+        box.classList.toggle("bg-slate-900/70", !ativo);
+      }
+      if (panel) {
+        panel.classList.toggle("hidden", !ativo);
+        panel.classList.toggle("grid", ativo);
+      }
+    });
+
+    if (el.voiceModeBtns) {
+      el.voiceModeBtns.forEach((btn) => {
+        const modo = btn.getAttribute("data-voice-mode") || "unica";
+        const ativo = modo === state.modoVoz;
+        btn.classList.toggle("active-mode", ativo);
+        btn.setAttribute("aria-pressed", ativo ? "true" : "false");
+      });
+    }
+
+    if (el.voiceSubmodeBtns) {
+      el.voiceSubmodeBtns.forEach((btn) => {
+        const parent = btn.getAttribute("data-voice-parent");
+        const sub = btn.getAttribute("data-voice-submode");
+        const ativo = parent === state.modoVoz && sub === state.subModoVoz;
+        btn.setAttribute("aria-pressed", ativo ? "true" : "false");
+        btn.classList.toggle("active-submode", ativo);
+        btn.classList.toggle("border-amber-400", ativo);
+        btn.classList.toggle("bg-amber-400/20", ativo);
+        btn.classList.toggle("border-slate-700/80", !ativo);
+        btn.classList.toggle("bg-slate-900/70", !ativo);
+      });
+    }
+  }
+
+  function alternarIdiomaCatalogo(novoIdioma, _origemAuto = false) {
     if (novoIdioma !== "pt" && novoIdioma !== "en") return;
-    if (state.vozTocandoSigla) {
+    if (state.vozTocandoSigla && state.vozTocandoIdioma !== novoIdioma) {
       pararPreviewVoz();
     }
     state.idioma = novoIdioma;
 
-    const lista = VOZES_CATALOGO[novoIdioma] || VOZES_CATALOGO.pt;
-    if (!lista.some((v) => v.sigla === state.vozId)) {
+    const lista = obterListaVozesIdiomaAtual();
+    const salva = state.vozIdPorMotor[state.motorServico]?.[novoIdioma];
+    if (salva && lista.some((v) => v.sigla === salva)) {
+      state.vozId = salva;
+    } else if (!lista.some((v) => v.sigla === state.vozId)) {
       state.vozId = lista[0].sigla;
     }
 
-    if (el.langBtnPt && el.langBtnEn) {
-      const isPt = novoIdioma === "pt";
-      el.langBtnPt.className = isPt
-        ? "lang-tab-btn active-lang inline-flex items-center gap-2 rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-extrabold text-slate-950 shadow transition"
-        : "lang-tab-btn inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition";
-      el.langBtnEn.className = !isPt
-        ? "lang-tab-btn active-lang inline-flex items-center gap-2 rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-extrabold text-slate-950 shadow transition"
-        : "lang-tab-btn inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition";
-    }
-
-    if (el.docDetectedLangBadge && state.totalCaracteres > 0) {
-      el.docDetectedLangBadge.textContent =
-        novoIdioma === "en"
-          ? `🇺🇸 Idioma: Inglês${origemAuto ? " (Autodetectado)" : ""}`
-          : `🇧🇷 Idioma: Português${origemAuto ? " (Autodetectado)" : ""}`;
-    }
-
-    renderizarCatalogoVozes();
+    renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
     renderizarMapeadorCapitulos();
     atualizarResumoPedido();
   }
 
   // ==========================================================================
-  // 6. EXTRAÇÃO DE TEXTO E DETECÇÃO ESTRUTURAL DE CAPÍTULOS (.PDF, .DOCX, .TXT, .MD)
+  // 7. EXTRAÇÃO DE TEXTO E DETECÇÃO ESTRUTURAL DE CAPÍTULOS (.PDF, .DOCX, .TXT, .MD)
   // ==========================================================================
   function atualizarBarraLeitura(percent, textoStatus) {
     if (!el.readingProgressBox) return;
+    const pct = Math.min(100, Math.max(0, Math.round(percent)));
     el.readingProgressBox.classList.remove("hidden");
     if (el.readingStatusText && textoStatus) el.readingStatusText.textContent = textoStatus;
-    if (el.readingPercentText) el.readingPercentText.textContent = `${Math.round(percent)}%`;
-    if (el.readingProgressBar) el.readingProgressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    if (el.readingPercentText) el.readingPercentText.textContent = `${pct}%`;
+    if (el.readingProgressBar) el.readingProgressBar.value = pct;
   }
 
-  // Verifica se uma linha reconstruída tem padrão de título de capítulo/seção
   function ehLinhaTituloCapitulo(limpa) {
     if (!limpa || limpa.length < 3 || limpa.length > 120) return false;
-    // Ignora linhas de sumário com pontilhados "Capítulo 1 ....... 12"
     if (/\.{4,}\s*\d+$/.test(limpa)) return false;
-    // Ignora linhas puramente numéricas (números de página)
     if (/^\d+$/.test(limpa)) return false;
 
     const padraoExplicito =
       /^(?:#{1,4}\s+.+|(?:cap[íi]tulo|chapter|se[çc][ãa]o|section|parte|part|unidade|unit|m[óo]dulo|module|aula|lesson|livro|book|t[íi]tulo|title|anexo|appendix|introdu[çc][ãa]o|introduction|conclus[ãa]o|conclusion|pref[áa]cio|preface|resumo|abstract)\b[\s\dIVXLCDM.:—–-]*.*)$/i;
     if (padraoExplicito.test(limpa)) return true;
 
-    // Numeração estrutural no início da linha: "1. Introdução", "1.1 Conceitos", "I - Fundamentos"
     const padraoNumerado =
       /^(?:\d{1,2}(?:\.\d{1,2}){0,2}(?:\s*[-–—.)]|\s+)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][^\n]{2,90}|[IVXLCDM]{1,5}\s*[-–—.]\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ][^\n]{2,90})$/;
     if (padraoNumerado.test(limpa)) return true;
@@ -877,7 +1557,6 @@
     return encontrados;
   }
 
-  // Reconstrói as linhas reais de uma página do PDF agrupando os fragmentos pelo eixo Y (`transform[5]`)
   function reconstruirLinhasPaginaPdf(items) {
     if (!items || !items.length) return { textoPagina: "", candidatosTitulo: [] };
     const fragmentos = [];
@@ -894,15 +1573,14 @@
 
     if (!fragmentos.length) return { textoPagina: "", candidatosTitulo: [] };
 
-    // Ordena de cima para baixo (Y decrescente no sistema de coordenadas do PDF) e da esquerda para a direita (X crescente)
-    fragmentos.sort((a, b) => {
-      if (Math.abs(b.y - a.y) > 3.5) return b.y - a.y;
-      return a.x - b.x;
-    });
+    const cmpFrag = (a, b) => (Math.abs(b.y - a.y) > 3.5 ? b.y - a.y : a.x - b.x);
+    const ordenados = typeof fragmentos.toSorted === "function"
+      ? fragmentos.toSorted(cmpFrag)
+      : [...fragmentos].sort(cmpFrag);
 
     const linhas = [];
     let linhaAtual = null;
-    for (const f of fragmentos) {
+    for (const f of ordenados) {
       if (!linhaAtual || Math.abs(f.y - linhaAtual.y) > 3.5) {
         if (linhaAtual) linhas.push(linhaAtual);
         linhaAtual = { y: f.y, textos: [f.str], maxAlt: f.alt };
@@ -913,8 +1591,10 @@
     }
     if (linhaAtual) linhas.push(linhaAtual);
 
-    // Calcula a altura mediana da fonte na página para detectar cabeçalhos tipográficos maiores
-    const alturasOrd = linhas.map((l) => l.maxAlt).sort((a, b) => a - b);
+    const alturasRaw = linhas.map((l) => l.maxAlt);
+    const alturasOrd = typeof alturasRaw.toSorted === "function"
+      ? alturasRaw.toSorted((a, b) => a - b)
+      : [...alturasRaw].sort((a, b) => a - b);
     const medianaAlt = alturasOrd[Math.floor(alturasOrd.length / 2)] || 10;
 
     const linhasTexto = [];
@@ -954,7 +1634,6 @@
     const bytesPrincipais = new Uint8Array(buffer);
     let pdf;
     try {
-      // Se estiver rodando localmente via file://, desativa o WebWorker externo para evitar bloqueio CORS e transferir o ArrayBuffer
       const isFileProtocol = window.location.protocol === "file:";
       pdf = await window.pdfjsLib.getDocument({
         data: bytesPrincipais.slice(0),
@@ -970,7 +1649,6 @@
     let textoAcumulado = "";
     const titulosPorLayout = [];
 
-    // 1. Tenta ler o sumário/bookmarks nativos do PDF (getOutline)
     let capitulosOutline = [];
     try {
       const outline = await pdf.getOutline();
@@ -995,7 +1673,6 @@
       }
     } catch (_) {}
 
-    // 2. Extrai o texto página a página reconstruindo quebras de linha e cabeçalhos tipográficos
     for (let p = 1; p <= numPages; p++) {
       const page = await pdf.getPage(p);
       const content = await page.getTextContent();
@@ -1052,7 +1729,6 @@
     const texto = (rawRes.value || "").trim();
     const paginas = Math.max(1, Math.ceil(texto.length / CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA));
 
-    // Extrai capítulos reais das tags <h1>..<h4> e parágrafos curtos em negrito do HTML gerado pelo Mammoth
     const capitulosHtml = [];
     if (htmlRes && htmlRes.value) {
       try {
@@ -1072,7 +1748,6 @@
           }
         });
 
-        // Se o DOCX não usou estilos Heading formais, inspeciona parágrafos com padrão de título ou <strong> isolado
         if (capitulosHtml.length === 0) {
           const paragrafos = docHtml.querySelectorAll("p");
           paragrafos.forEach((p) => {
@@ -1115,7 +1790,6 @@
     return { texto, paginas, capitulos };
   }
 
-  // Recalcula todos os totais agregados a partir de `state.arquivos`
   function recalcularAgregadosDocumentos() {
     if (!state.arquivos.length) {
       state.arquivo = null;
@@ -1124,7 +1798,7 @@
       state.totalCaracteres = 0;
       state.paginasEstimadas = 0;
       state.capitulosDetectados = [{ numero: 1, titulo: "Documento Completo" }];
-      state.valorCalculado = CONFIG_COMERCIAL.COM_VALOR_MINIMO;
+      state.valorCalculado = calcularPrecoPorCaracteres(0);
       return;
     }
 
@@ -1160,23 +1834,116 @@
     state.valorCalculado = calcularPrecoPorCaracteres(state.totalCaracteres);
   }
 
+  function obterResumoIdiomasDocumentos() {
+    const total = state.arquivos.length;
+    const qtdPt = state.arquivos.filter((a) => a.idioma === "pt").length;
+    const qtdEn = state.arquivos.filter((a) => a.idioma === "en").length;
+    const pendentes = state.arquivos.filter((a) => a.idioma !== "pt" && a.idioma !== "en");
+    return { total, qtdPt, qtdEn, pendentes };
+  }
+
+  function atualizarStatusIdiomaDocumentos() {
+    const { total, qtdPt, qtdEn, pendentes } = obterResumoIdiomasDocumentos();
+    if (el.docDetectedLangBadge && total > 0) {
+      if (pendentes.length > 0) {
+        el.docDetectedLangBadge.className =
+          "rounded-full border border-amber-400/60 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300";
+        el.docDetectedLangBadge.textContent =
+          pendentes.length === 1 && total === 1
+            ? "⚠️ Obrigatório: escolha o idioma do arquivo"
+            : `⚠️ Idioma pendente em ${pendentes.length} de ${total} documento(s)`;
+      } else if (qtdPt > 0 && qtdEn > 0) {
+        el.docDetectedLangBadge.className =
+          "rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300";
+        el.docDetectedLangBadge.textContent = `🌐 Idiomas: PT-BR (${qtdPt}) · EN (${qtdEn})`;
+      } else if (qtdEn > 0) {
+        el.docDetectedLangBadge.className =
+          "rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300";
+        el.docDetectedLangBadge.textContent = "🇺🇸 Idioma: Inglês";
+      } else {
+        el.docDetectedLangBadge.className =
+          "rounded-full border border-emerald-400/50 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300";
+        el.docDetectedLangBadge.textContent = "🇧🇷 Idioma: Português (PT-BR)";
+      }
+    }
+
+    if (el.docLangValidationError) {
+      if (pendentes.length === 0) {
+        el.docLangValidationError.classList.add("hidden");
+        el.docLangValidationError.textContent = "";
+      } else if (state.validacaoIdiomaTentada) {
+        const nomesPend = pendentes.map((a) => `"${a.nome}"`).join(", ");
+        el.docLangValidationError.textContent = `Campo obrigatório: selecione o idioma (PT-BR ou EN) para ${nomesPend} antes de continuar.`;
+        el.docLangValidationError.classList.remove("hidden");
+      }
+    }
+  }
+
   function renderizarListaArquivosAnexados() {
     if (!el.attachedFilesList) return;
-    el.attachedFilesList.innerHTML = "";
+    const rows = [];
 
     state.arquivos.forEach((item, index) => {
       const qtdCaps = item.capitulos ? item.capitulos.length : 1;
+      const idiomaDefinido = item.idioma === "pt" || item.idioma === "en";
+      const faltaComErro = state.validacaoIdiomaTentada && !idiomaDefinido;
+      const isPt = item.idioma === "pt";
+      const isEn = item.idioma === "en";
+
       const row = document.createElement("div");
-      row.className =
-        "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-xs";
+      row.setAttribute("data-file-row-id", item.id);
+      row.className = `flex flex-wrap items-center justify-between gap-2.5 rounded-lg border px-3 py-2 text-xs transition ${
+        faltaComErro
+          ? "doc-row-lang-missing border-red-500/80 bg-red-950/25"
+          : "border-slate-800 bg-slate-950/80"
+      }`;
       row.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
           <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-amber-500/20 font-mono text-[10px] font-bold text-amber-300">${index + 1}</span>
-          <span class="font-semibold text-white truncate" title="${item.nome}">${item.nome}</span>
+          <span class="font-semibold text-white truncate" data-file-name-label></span>
           <span class="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">${formatarBytes(item.tamanhoBytes)}</span>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
           <span class="font-mono text-[11px] text-slate-300">${formatarInteiro(item.caracteres)} chars · ${item.paginas} pág. · <strong class="text-amber-300">${qtdCaps} cap./seç.</strong></span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-bold uppercase tracking-wider ${
+              faltaComErro ? "text-red-300" : idiomaDefinido ? "text-emerald-300" : "text-amber-300"
+            }">
+              ${faltaComErro ? "Escolha o idioma *" : idiomaDefinido ? "Idioma:" : "Idioma *"}
+            </span>
+            <div
+              role="group"
+              data-lang-group
+              class="doc-lang-toggle ${
+                faltaComErro
+                  ? "doc-lang-toggle-pending doc-lang-toggle-error border-red-400/80 bg-red-950/40"
+                  : idiomaDefinido
+                  ? "border-emerald-500/45 bg-slate-900"
+                  : "doc-lang-toggle-pending border-amber-400/60 bg-slate-900"
+              } inline-flex items-center gap-1 rounded-lg border p-0.5"
+            >
+              <button
+                type="button"
+                data-doc-lang="pt"
+                data-file-id="${item.id}"
+                aria-pressed="${isPt ? "true" : "false"}"
+                class="doc-lang-btn ${isPt ? "active-doc-lang" : !idiomaDefinido ? "doc-lang-btn-pending" : ""} rounded-md px-2 py-0.5 text-[11px] font-bold transition"
+                title="Definir Português (PT-BR) para este documento"
+              >
+                🇧🇷 PT
+              </button>
+              <button
+                type="button"
+                data-doc-lang="en"
+                data-file-id="${item.id}"
+                aria-pressed="${isEn ? "true" : "false"}"
+                class="doc-lang-btn ${isEn ? "active-doc-lang" : !idiomaDefinido ? "doc-lang-btn-pending" : ""} rounded-md px-2 py-0.5 text-[11px] font-bold transition"
+                title="Definir Inglês (EN) para este documento"
+              >
+                🇺🇸 EN
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             data-remove-file-id="${item.id}"
@@ -1188,17 +1955,52 @@
         </div>
       `;
 
+      // Define nome do arquivo via textContent (seguro contra HTML/XSS em nomes de arquivo)
+      const nameNode = row.querySelector("[data-file-name-label]");
+      if (nameNode) {
+        nameNode.textContent = item.nome;
+        nameNode.title = item.nome;
+      }
+      const langGroup = row.querySelector("[data-lang-group]");
+      if (langGroup) {
+        langGroup.setAttribute("aria-label", `Idioma obrigatório de ${item.nome}`);
+      }
+
+      row.querySelectorAll("[data-doc-lang]").forEach((langBtn) => {
+        langBtn.addEventListener("click", () => {
+          const escolhido = langBtn.getAttribute("data-doc-lang");
+          if (escolhido !== "pt" && escolhido !== "en") return;
+          item.idioma = escolhido;
+          const aindaPendente = state.arquivos.some((a) => a.idioma !== "pt" && a.idioma !== "en");
+          if (!aindaPendente) {
+            state.validacaoIdiomaTentada = false;
+            if (el.formValidationError && el.formValidationError.dataset.langOnly === "true") {
+              el.formValidationError.classList.add("hidden");
+              delete el.formValidationError.dataset.langOnly;
+            }
+          }
+          alternarIdiomaCatalogo(escolhido, false);
+          atualizarCardsResumoDocumentos();
+          atualizarFluxoEtapas(state.etapaAtiva);
+        });
+      });
+
       const btnRem = row.querySelector("[data-remove-file-id]");
+      btnRem.setAttribute("aria-label", `Remover arquivo ${item.nome}`);
       btnRem.addEventListener("click", () => {
         removerArquivoAnexado(item.id);
       });
 
-      el.attachedFilesList.appendChild(row);
+      rows.push(row);
     });
+
+    el.attachedFilesList.replaceChildren(...rows);
   }
 
-  function atualizarCardsResumoDocumentos() {
+  function atualizarCardsResumoDocumentos(animarPreco = false) {
     if (!state.arquivos.length) {
+      state.validacaoIdiomaTentada = false;
+      if (el.docLangValidationError) el.docLangValidationError.classList.add("hidden");
       if (el.docSummaryCard) el.docSummaryCard.classList.add("hidden");
       atualizarFluxoEtapas(1);
       renderizarMapeadorCapitulos();
@@ -1229,19 +2031,12 @@
           ? "Títulos/seções detectados"
           : "Seção única contínua";
     }
-    if (el.docPriceCount) el.docPriceCount.textContent = formatarBRL(state.valorCalculado);
-
-    const bruto = state.totalCaracteres * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
-    if (el.docPriceFormulaNote) {
-      el.docPriceFormulaNote.textContent =
-        bruto < CONFIG_COMERCIAL.COM_VALOR_MINIMO
-          ? `Bruto ${formatarBRL(bruto)} → Piso R$ 1,00`
-          : `${formatarInteiro(state.totalCaracteres)} × R$ 0,00005`;
-    }
-
+    atualizarStatusIdiomaDocumentos();
     renderizarListaArquivosAnexados();
     if (el.docSummaryCard) el.docSummaryCard.classList.remove("hidden");
-    dispararFlashPreco();
+    if (animarPreco) {
+      dispararFlashPreco();
+    }
     renderizarMapeadorCapitulos();
     atualizarResumoPedido();
   }
@@ -1249,6 +2044,12 @@
   function removerArquivoAnexado(idArquivo) {
     state.arquivos = state.arquivos.filter((a) => a.id !== idArquivo);
     recalcularAgregadosDocumentos();
+    const idiomasRestantes = Array.from(
+      new Set(state.arquivos.map((a) => a.idioma).filter((id) => id === "pt" || id === "en"))
+    );
+    if (idiomasRestantes.length === 1 && idiomasRestantes[0] !== state.idioma) {
+      alternarIdiomaCatalogo(idiomasRestantes[0], false);
+    }
     atualizarCardsResumoDocumentos();
   }
 
@@ -1265,7 +2066,7 @@
     }
 
     const errosOcr = [];
-    let ultimoIdiomaDetectado = null;
+    let arquivosProcessados = 0;
 
     for (let i = 0; i < lista.length; i++) {
       const file = lista[i];
@@ -1291,7 +2092,6 @@
         const paginas = Math.max(1, resultado.paginas || 1);
         const mediaCharsPorPag = totalChars / paginas;
 
-        // Regra Anti-OCR: barra PDFs escaneados ou arquivos vazios
         if (
           totalChars < CONFIG_COMERCIAL.COM_MIN_CHARS_PAGINA ||
           (ext === ".pdf" && mediaCharsPorPag < CONFIG_COMERCIAL.COM_MIN_CHARS_PAGINA)
@@ -1305,12 +2105,14 @@
         }
 
         const idiomaDetectado = detectarIdiomaTexto(resultado.texto, nome);
-        ultimoIdiomaDetectado = idiomaDetectado;
 
-        // Se já existir arquivo com mesmo nome e tamanho na lista, substitui para evitar duplicata acidental
         const idxExistente = state.arquivos.findIndex(
           (a) => a.nome === nome && a.tamanhoBytes === file.size
         );
+        const idiomaExistente =
+          idxExistente >= 0 && (state.arquivos[idxExistente].idioma === "pt" || state.arquivos[idxExistente].idioma === "en")
+            ? state.arquivos[idxExistente].idioma
+            : null;
         const novoItem = {
           id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
           file,
@@ -1322,6 +2124,7 @@
             resultado.capitulos && resultado.capitulos.length
               ? resultado.capitulos
               : [{ numero: 1, titulo: nome }],
+          idioma: idiomaExistente,
           idiomaDetectado,
         };
 
@@ -1330,6 +2133,7 @@
         } else {
           state.arquivos.push(novoItem);
         }
+        arquivosProcessados++;
       } catch (err) {
         errosOcr.push(`"${nome}": Falha ao ler arquivo (${err.message || err}).`);
       }
@@ -1344,115 +2148,363 @@
 
     recalcularAgregadosDocumentos();
 
-    if (ultimoIdiomaDetectado && state.arquivos.length > 0) {
-      alternarIdiomaCatalogo(ultimoIdiomaDetectado, true);
-    }
+    const todosIdiomasDefinidos =
+      state.arquivos.length > 0 &&
+      state.arquivos.every((a) => a.idioma === "pt" || a.idioma === "en");
 
-    atualizarCardsResumoDocumentos();
+    atualizarCardsResumoDocumentos(arquivosProcessados > 0);
     if (state.arquivos.length > 0) {
-      atualizarFluxoEtapas(2);
+      atualizarFluxoEtapas(todosIdiomasDefinidos ? 2 : 1);
     }
   }
 
   // ==========================================================================
-  // 7. ESTIMATIVA DINÂMICA DE TEMPO E RESUMO DO PEDIDO
+  // 8. ESTIMATIVA DINÂMICA DE TEMPO (XTTSv2 CPU E EDGE TTS PARALELO) & RESUMO
   // ==========================================================================
-  function calcularMinutosConversaoLocal(totalChars) {
-    const bytesEst = Math.max(1500, totalChars);
-    const numPartes = Math.min(
-      CONFIG_COMERCIAL.CPU_WORKERS_TOTAIS,
-      Math.max(1, Math.ceil(bytesEst / CONFIG_COMERCIAL.PARTICAO_PISO_BYTES))
+  function calcularMinutosXttsLocal(totalChars) {
+    const chars = Number(totalChars || 0);
+    if (!Number.isFinite(chars) || chars <= 0) {
+      return 0;
+    }
+    const cal = state.calibracaoCpu || {};
+    const setupSeg = Number(cal.setup_seg) > 0 ? Number(cal.setup_seg) : CONFIG_COMERCIAL.CPU_SETUP_SEG;
+    const baseSeg = Number(cal.base_seg) > 0 ? Number(cal.base_seg) : CONFIG_COMERCIAL.CPU_BASE_SEG;
+    const sByte = Number(cal.s_byte) > 0 ? Number(cal.s_byte) : CONFIG_COMERCIAL.CPU_S_POR_BYTE;
+    const workersPorFatia = Math.max(
+      1,
+      Number(cal.workers_por_fatia) || CONFIG_COMERCIAL.CPU_WORKERS_POR_FATIA || 3
     );
-    const bytesNoWorkerMaisPesado = Math.ceil(bytesEst / numPartes);
+    const fatiasAtivas = Math.max(1, Number(cal.fatias_ativas) || CONFIG_COMERCIAL.CPU_FATIAS_ATIVAS || 45);
+    const workersTotais = Math.max(
+      1,
+      Number(cal.workers_totais) || fatiasAtivas * workersPorFatia || CONFIG_COMERCIAL.CPU_WORKERS_TOTAIS
+    );
+    const autocal =
+      typeof cal.autocalibrado === "boolean" ? cal.autocalibrado : Boolean(CONFIG_COMERCIAL.CPU_AUTOCALIBRADO);
+    const pisoMin =
+      cal.piso_min !== undefined && cal.piso_min !== null && Number.isFinite(Number(cal.piso_min))
+        ? Math.max(0, Number(cal.piso_min))
+        : Number(CONFIG_COMERCIAL.COM_TEMPO_ATUACAO_MIN ?? 15);
+    const margem = autocal
+      ? Number(CONFIG_COMERCIAL.COM_MARGEM_AUTOCAL || 1.1)
+      : Number(cal.margem_seguranca) > 0
+      ? Number(cal.margem_seguranca)
+      : CONFIG_COMERCIAL.COM_MARGEM_SEGURANCA;
 
-    const segSetup = CONFIG_COMERCIAL.CPU_SETUP_SEG;
-    const segSintese =
-      CONFIG_COMERCIAL.CPU_BASE_SEG + CONFIG_COMERCIAL.CPU_S_POR_BYTE * bytesNoWorkerMaisPesado;
-    const segPos = CONFIG_COMERCIAL.CPU_ORQ_POS_SEG;
+    const bytesEst = Math.max(1, Math.round(chars));
+    const numPartes = Math.min(
+      workersTotais,
+      Math.max(1, Math.floor(bytesEst / CONFIG_COMERCIAL.PARTICAO_PISO_BYTES))
+    );
+    const tamParte = Math.ceil(bytesEst / numPartes);
+    const maxPartesNaFatia = Math.ceil(numPartes / fatiasAtivas);
+    const baldesNaFatia = Math.ceil(maxPartesNaFatia / workersPorFatia);
 
-    const minutosBrutos = (segSetup + segSintese + segPos) / 60.0;
-    const minutosComMargem = Math.ceil(minutosBrutos * CONFIG_COMERCIAL.COM_MARGEM_SEGURANCA);
-    return Math.max(20, minutosComMargem);
+    const segSintese = setupSeg + baldesNaFatia * (baseSeg + sByte * tamParte);
+    const segOverhead = 120 + 2 * numPartes;
+
+    const minutosBrutos = (segSintese + segOverhead) / 60.0;
+    const minutosComMargem = Math.ceil(minutosBrutos * margem);
+    return Math.max(pisoMin, minutosComMargem);
+  }
+
+  // [web_v07_00] Estimativa calibrada para Edge TTS em paralelo (Whispr Flow Like Plus: 6 instâncias × blocos 1.200 chars)
+  function calcularMinutosEdgeLocal(totalChars) {
+    const chars = Number(totalChars || 0);
+    if (!Number.isFinite(chars) || chars <= 0) {
+      return 0;
+    }
+    const cal = state.calibracaoEdge || {};
+    const alvoBloco = Math.max(300, Number(cal.alvo_bloco) || CONFIG_COMERCIAL.EDGE_ALVO_BLOCO);
+    const paralelas = Math.max(1, Number(cal.paralelas) || CONFIG_COMERCIAL.EDGE_PARALELAS);
+    const handshakeSeg = Number(cal.handshake_seg) > 0 ? Number(cal.handshake_seg) : CONFIG_COMERCIAL.EDGE_HANDSHAKE_SEG;
+    const sPorChar = Number(cal.s_por_char) > 0 ? Number(cal.s_por_char) : CONFIG_COMERCIAL.EDGE_S_POR_CHAR;
+    const overheadBase = Number(cal.overhead_base_seg) >= 0 ? Number(cal.overhead_base_seg) : CONFIG_COMERCIAL.EDGE_OVERHEAD_BASE_SEG;
+    const overheadBloco = Number(cal.overhead_bloco_seg) >= 0 ? Number(cal.overhead_bloco_seg) : CONFIG_COMERCIAL.EDGE_OVERHEAD_POR_BLOCO_SEG;
+    const margem = Number(cal.margem_seguranca) > 0 ? Number(cal.margem_seguranca) : CONFIG_COMERCIAL.EDGE_MARGEM_SEGURANCA;
+    const pisoMin =
+      cal.piso_min !== undefined && cal.piso_min !== null && Number.isFinite(Number(cal.piso_min))
+        ? Math.max(1, Number(cal.piso_min))
+        : Number(CONFIG_COMERCIAL.EDGE_PISO_MIN ?? 2);
+
+    const numBlocos = Math.max(1, Math.ceil(chars / alvoBloco));
+    const ondas = Math.ceil(numBlocos / paralelas);
+    const tamMedioBloco = Math.min(alvoBloco, chars / numBlocos);
+
+    const segPorOnda = handshakeSeg + sPorChar * tamMedioBloco;
+    const segSintese = ondas * segPorOnda;
+    const segOverhead = overheadBase + overheadBloco * numBlocos;
+
+    const minutosBrutos = (segSintese + segOverhead) / 60.0;
+    const minutosComMargem = Math.ceil(minutosBrutos * margem);
+    return Math.max(pisoMin, minutosComMargem);
+  }
+
+  function calcularMinutosConversaoLocal(totalChars, motor = state.motorServico) {
+    return motor === "edge"
+      ? calcularMinutosEdgeLocal(totalChars)
+      : calcularMinutosXttsLocal(totalChars);
+  }
+
+  function atualizarExibicaoCotaEPreco(preco) {
+    const isEdge = ehEdgeTts();
+    const temDoc = state.totalCaracteres > 0;
+    const cotaTotal = state.cotaTotalChars;
+    const cotaRest = state.cotaRestanteChars;
+    const cobertos = state.charsCobertosCota;
+    const cobraveis = state.charsCobraveis;
+    const gratis = state.pedidoGratuito;
+    const valorFmt = preco <= 0 ? "GRÁTIS" : formatarBRL(preco);
+
+    if (el.priceDisplay) el.priceDisplay.textContent = valorFmt;
+    if (el.docPriceCount) el.docPriceCount.textContent = valorFmt;
+
+    if (el.docPriceLabel) {
+      el.docPriceLabel.textContent = isEdge
+        ? "Valor (Edge TTS · Grátis)"
+        : preco <= 0
+        ? "Valor Estimado (Cota Grátis)"
+        : "Valor PIX Calculado";
+    }
+    if (el.summaryPriceLabel) {
+      el.summaryPriceLabel.textContent = isEdge
+        ? "Serviço Edge TTS"
+        : preco <= 0
+        ? "Valor do Pedido"
+        : "Valor Total PIX";
+    }
+
+    if (el.quotaStatusTitle) {
+      el.quotaStatusTitle.textContent = isEdge
+        ? "⚡ Edge TTS Ativo (100% Gratuito · Cota XTTSv2 intacta)"
+        : "🎁 Cota Gratuita XTTSv2 (100 páginas / 200.000 chars)";
+    }
+    if (el.quotaBalanceBadge) {
+      el.quotaBalanceBadge.textContent = isEdge
+        ? `Sem consumo · ${formatarInteiro(cotaRest)} ch XTTSv2 intactos`
+        : `${formatarInteiro(cotaRest)} chars disponíveis`;
+    }
+    if (el.quotaBalanceBar) {
+      const pctRest = cotaTotal > 0 ? Math.max(0, Math.min(100, (cotaRest / cotaTotal) * 100)) : 0;
+      el.quotaBalanceBar.style.width = `${pctRest}%`;
+    }
+    if (el.quotaStatusHint) {
+      if (isEdge) {
+        el.quotaStatusHint.textContent =
+          "O serviço Edge TTS é 100% gratuito e sem limite de caracteres. Sua cota gratuita do XTTSv2 (200.000 chars) permanece preservada para quando você quiser qualidade de estúdio.";
+      } else if (cotaRest <= 0) {
+        el.quotaStatusHint.textContent =
+          "Cota gratuita inicial de 200.000 caracteres do XTTSv2 já consumida para este e-mail. Cobrança padrão de R$ 0,05 / 1.000 chars (mín. R$ 1,00) — ou troque para Edge TTS no Passo 02 para converter grátis.";
+      } else if (temDoc && cobraveis > 0) {
+        el.quotaStatusHint.textContent = `Este pedido XTTSv2 consome seus últimos ${formatarInteiro(
+          cobertos
+        )} chars grátis e cobra apenas o excedente de ${formatarInteiro(cobraveis)} chars via PIX.`;
+      } else if (temDoc) {
+        const apos = Math.max(0, cotaRest - cobertos);
+        el.quotaStatusHint.textContent = `Este pedido XTTSv2 usa ${formatarInteiro(
+          cobertos
+        )} chars da sua cota gratuita. Após confirmar, ainda restarão ${formatarInteiro(apos)} chars grátis.`;
+      } else {
+        el.quotaStatusHint.textContent =
+          "O saldo gratuito do XTTSv2 é vinculado ao seu e-mail. No modo Edge TTS, a conversão é sempre 100% gratuita e não consome esta cota.";
+      }
+    }
+
+    if (el.summaryQuotaLabel) {
+      el.summaryQuotaLabel.textContent = isEdge ? "• Cota XTTSv2:" : "• Cota grátis XTTSv2 (100 pág.):";
+    }
+    if (el.summaryQuotaStatus) {
+      if (isEdge) {
+        el.summaryQuotaStatus.textContent = `Preservada (${formatarInteiro(cotaRest)} ch intactos)`;
+      } else if (!temDoc) {
+        el.summaryQuotaStatus.textContent = `${formatarInteiro(cotaRest)} de ${formatarInteiro(cotaTotal)} chars`;
+      } else if (cobertos > 0) {
+        const apos = Math.max(0, cotaRest - cobertos);
+        el.summaryQuotaStatus.textContent = `-${formatarInteiro(cobertos)} chars (restam ${formatarInteiro(apos)})`;
+      } else {
+        el.summaryQuotaStatus.textContent = "Esgotada (0 chars restantes)";
+      }
+    }
+
+    let notaFormula = "";
+    if (isEdge) {
+      notaFormula = "100% gratuito no Edge TTS";
+    } else if (!temDoc) {
+      notaFormula =
+        cotaRest > 0
+          ? `Grátis até ${formatarInteiro(cotaRest)} chars (~${Math.floor(
+              cotaRest / CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA
+            )} pág.)`
+          : "Mín. R$ 1,00 (até 20.000 chars)";
+    } else if (gratis) {
+      notaFormula = `100% coberto pela cota grátis (${formatarInteiro(cobertos)} chars)`;
+    } else {
+      const bruto = cobraveis * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
+      const prefixo = cobertos > 0 ? `Excedente ${formatarInteiro(cobraveis)} ch · ` : "";
+      notaFormula =
+        bruto < CONFIG_COMERCIAL.COM_VALOR_MINIMO
+          ? `${prefixo}Bruto ${formatarBRL(bruto)} → Piso R$ 1,00`
+          : `${prefixo}${formatarInteiro(cobraveis)} × R$ 0,00005 = ${formatarBRL(preco)}`;
+    }
+
+    if (el.priceFormulaHint) el.priceFormulaHint.textContent = notaFormula;
+    if (el.docPriceFormulaNote) el.docPriceFormulaNote.textContent = notaFormula;
+
+    if (el.generatePixBtn) {
+      if (isEdge) {
+        el.generatePixBtn.textContent = "⚡ Iniciar Conversão Gratuita e Rápida (Edge TTS)";
+        el.generatePixBtn.className =
+          "w-full rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
+      } else {
+        el.generatePixBtn.textContent =
+          preco <= 0
+            ? "✓ Iniciar Conversão Gratuita XTTSv2 (Usa Cota Inicial)"
+            : `Gerar QR Code PIX (${formatarBRL(preco)}) e Iniciar Conversão XTTSv2`;
+        el.generatePixBtn.className =
+          "w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
+      }
+    }
+  }
+
+  function formatarDuracaoHorasMinutos(totalMinutos) {
+    const m = Math.max(0, Math.round(Number(totalMinutos) || 0));
+    if (m < 60) {
+      return `${m} min`;
+    }
+    const h = Math.floor(m / 60);
+    const resto = m % 60;
+    const hLabel = h === 1 ? "hora" : "horas";
+    if (resto === 0) {
+      return `${h} ${hLabel}`;
+    }
+    const mLabel = resto === 1 ? "minuto" : "minutos";
+    return `${h} ${hLabel} e ${resto} ${mLabel}`;
+  }
+
+  function formatarRotuloEntrega(agora, entregaDate, minuscula = false) {
+    const hh = String(entregaDate.getHours()).padStart(2, "0");
+    const mm = String(entregaDate.getMinutes()).padStart(2, "0");
+    const hora = `${hh}:${mm}`;
+
+    const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    const inicioEntrega = new Date(entregaDate.getFullYear(), entregaDate.getMonth(), entregaDate.getDate());
+    const diffDias = Math.round((inicioEntrega.getTime() - inicioHoje.getTime()) / (24 * 60 * 60 * 1000));
+
+    if (diffDias <= 0) {
+      return `${minuscula ? "hoje" : "Hoje"} às ${hora}`;
+    }
+    if (diffDias === 1) {
+      return `${minuscula ? "amanhã" : "Amanhã"} às ${hora}`;
+    }
+    const dd = String(entregaDate.getDate()).padStart(2, "0");
+    const mes = String(entregaDate.getMonth() + 1).padStart(2, "0");
+    return `${minuscula ? "dia" : "Dia"} ${dd}/${mes} às ${hora}`;
   }
 
   function atualizarResumoPedido() {
+    const isEdge = ehEdgeTts();
     const preco = calcularPrecoPorCaracteres(state.totalCaracteres);
     state.valorCalculado = preco;
 
-    const minProprio = calcularMinutosConversaoLocal(state.totalCaracteres);
-    const minTotais = state.filaMinutosFrente + minProprio;
+    const temDoc = state.totalCaracteres > 0;
+    const filaMin = isEdge ? state.filaMinutosFrenteEdge : state.filaMinutosFrente;
+    const filaPed = isEdge ? state.filaPedidosFrenteEdge : state.filaPedidosFrente;
+    const minProprio = temDoc ? calcularMinutosConversaoLocal(state.totalCaracteres) : 0;
+    const minTotais = temDoc ? filaMin + minProprio : 0;
     state.prazoEstimadoMinutos = minTotais;
 
-    const agora = new Date();
-    const entregaDate = new Date(agora.getTime() + minTotais * 60 * 1000);
-    const hh = String(entregaDate.getHours()).padStart(2, "0");
-    const mm = String(entregaDate.getMinutes()).padStart(2, "0");
-    state.horarioEntregaFormatado = `${hh}:${mm}`;
+    if (temDoc) {
+      const agora = new Date();
+      const entregaDate = new Date(agora.getTime() + minTotais * 60 * 1000);
+      const hh = String(entregaDate.getHours()).padStart(2, "0");
+      const mm = String(entregaDate.getMinutes()).padStart(2, "0");
+      state.horarioEntregaFormatado = `${hh}:${mm}`;
+      state.previsaoEntregaRotulo = formatarRotuloEntrega(agora, entregaDate, false);
+      state.previsaoEntregaRotuloModal = formatarRotuloEntrega(agora, entregaDate, true);
+    } else {
+      state.horarioEntregaFormatado = "--:--";
+      state.previsaoEntregaRotulo = "Aguardando documento...";
+      state.previsaoEntregaRotuloModal = "--";
+    }
 
-    if (el.priceDisplay) el.priceDisplay.textContent = formatarBRL(preco);
-    if (el.docPriceCount) el.docPriceCount.textContent = formatarBRL(preco);
+    if (el.estEngineSummary) {
+      el.estEngineSummary.textContent = isEdge
+        ? "⚡ Edge TTS (Rápido · Gratuito)"
+        : "🎙️ XTTSv2 (Qualidade Estúdio)";
+      el.estEngineSummary.className = isEdge
+        ? "font-mono font-bold text-cyan-300"
+        : "font-mono font-bold text-amber-300";
+    }
 
     if (el.summaryDocStatus) {
       el.summaryDocStatus.textContent =
-        state.totalCaracteres > 0
+        temDoc
           ? `${state.arquivos.length} arq. · ${formatarInteiro(state.totalCaracteres)} chars (${state.capitulosDetectados.length} cap.)`
           : "Aguardando arquivo...";
       el.summaryDocStatus.className =
-        state.totalCaracteres > 0
+        temDoc
           ? "font-mono font-semibold text-white"
           : "font-mono font-semibold text-slate-400";
     }
 
-    if (el.priceFormulaHint) {
-      if (state.totalCaracteres <= 0) {
-        el.priceFormulaHint.textContent = "Mín. R$ 1,00 (até 20.000 chars)";
-      } else {
-        const bruto = state.totalCaracteres * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
-        el.priceFormulaHint.textContent =
-          bruto < CONFIG_COMERCIAL.COM_VALOR_MINIMO
-            ? `Bruto ${formatarBRL(bruto)} → Piso R$ 1,00`
-            : `${formatarInteiro(state.totalCaracteres)} × R$ 0,00005 = ${formatarBRL(preco)}`;
-      }
-    }
-
-    if (el.generatePixBtn) {
-      el.generatePixBtn.textContent = `Gerar QR Code PIX (${formatarBRL(preco)}) e Iniciar Conversão`;
-    }
+    atualizarExibicaoCotaEPreco(preco);
+    atualizarCardsComparacaoMotores();
 
     if (el.estConversionTime) {
-      el.estConversionTime.textContent = `~${minProprio} min`;
+      el.estConversionTime.textContent = temDoc ? `~${formatarDuracaoHorasMinutos(minProprio)}` : "--";
     }
 
     if (el.estQueueStatus) {
-      if (state.filaPedidosFrente <= 0) {
-        el.estQueueStatus.textContent = "Livre (0 pedidos na frente)";
+      if (filaPed <= 0) {
+        el.estQueueStatus.textContent = isEdge
+          ? "Livre (processamento imediato)"
+          : "Livre (0 pedidos na frente)";
         el.estQueueStatus.className = "font-mono font-semibold text-emerald-300";
       } else {
-        el.estQueueStatus.textContent = `${state.filaPedidosFrente} pedido(s) (+${state.filaMinutosFrente} min)`;
+        el.estQueueStatus.textContent = `${filaPed} pedido(s) (+${filaMin} min)`;
         el.estQueueStatus.className = "font-mono font-semibold text-amber-300";
       }
     }
 
-    const modoLabel =
-      state.modoVoz === "unica"
-        ? `Voz: ${state.vozId}`
-        : state.modoVoz === "por_capitulo"
-        ? "Vozes p/ capítulo"
-        : "Vozes aleatórias";
+    let modoLabel = `Voz: ${state.vozId}`;
+    if (state.modoVoz === "unica" && state.subModoVoz === "aleatoria") {
+      modoLabel = "Voz única aleatória";
+    } else if (state.modoVoz === "por_capitulo" && state.subModoVoz === "aleatoria") {
+      modoLabel = isEdge ? "Rodízio p/ capítulo" : "Aleatórias p/ capítulo";
+    } else if (state.modoVoz === "por_capitulo") {
+      modoLabel = "Vozes p/ capítulo";
+    }
     const fmtLabel = state.formatoSaida === "capitulos" ? ".zip (capítulos)" : ".mp3 único";
     const langLabel = state.idioma === "en" ? "EN" : "PT-BR";
+    const motorLabel = isEdge ? "Edge TTS" : "XTTSv2";
 
     if (el.estConfigSummary) {
-      el.estConfigSummary.textContent = `${langLabel} · ${modoLabel} · ${state.velocidade.toFixed(2)}x · ${fmtLabel}`;
+      el.estConfigSummary.textContent = `${motorLabel} · ${langLabel} · ${modoLabel} · ${state.velocidade.toFixed(2)}x · ${fmtLabel}`;
+      el.estConfigSummary.className = isEdge
+        ? "font-mono text-right text-cyan-300"
+        : "font-mono text-right text-amber-300";
     }
 
     if (el.estDeliveryClock) {
-      el.estDeliveryClock.textContent = `Hoje às ${state.horarioEntregaFormatado} (~${minTotais} min)`;
+      el.estDeliveryClock.textContent = temDoc
+        ? `${state.previsaoEntregaRotulo} (~${formatarDuracaoHorasMinutos(minTotais)})`
+        : "Aguardando documento...";
+    }
+    if (el.estDeliveryBox && el.estDeliveryLabel) {
+      el.estDeliveryBox.className = isEdge
+        ? "mt-5 rounded-xl border border-cyan-500/35 bg-cyan-500/10 p-4 text-center"
+        : "mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center";
+      el.estDeliveryLabel.className = isEdge
+        ? "text-[11px] font-semibold uppercase tracking-wider text-cyan-300"
+        : "text-[11px] font-semibold uppercase tracking-wider text-amber-300";
+      el.estDeliveryLabel.textContent = isEdge
+        ? "⚡ Síntese rápida Edge TTS — entregue até"
+        : "🚀 Seu áudio será entregue até";
     }
   }
 
   // ==========================================================================
-  // 8. INTEGRAÇÃO CLICK-TO-CHAT WHATSAPP (JANELA DE 24H META CLOUD API)
+  // 9. INTEGRAÇÃO CLICK-TO-CHAT WHATSAPP (JANELA DE 24H META CLOUD API)
   // ==========================================================================
   function atualizarLinkWhatsappClickToChat() {
     const numPublico = CONFIG_COMERCIAL.COM_WHATSAPP_NUMERO_PUBLICO.replace(/\D/g, "");
@@ -1460,13 +2512,14 @@
     const saudacao = nome
       ? `Oi! Aqui é ${nome}. Quero receber meu audiobook do TocaTexto pelo WhatsApp.`
       : `Oi! Quero receber meu audiobook do TocaTexto pelo WhatsApp.`;
-    const url = `https://wa.me/${numPublico}?text=${encodeURIComponent(saudacao)}`;
-    if (el.waClickToChatBtn) el.waClickToChatBtn.href = url;
-    if (el.modalWaClickToChatBtn) el.modalWaClickToChatBtn.href = url;
+    const waUrl = new URL(`https://wa.me/${numPublico}`);
+    waUrl.searchParams.set("text", saudacao);
+    if (el.waClickToChatBtn) el.waClickToChatBtn.href = waUrl.toString();
+    if (el.modalWaClickToChatBtn) el.modalWaClickToChatBtn.href = waUrl.toString();
   }
 
   // ==========================================================================
-  // 9. CONSTRUÇÃO DO CONTRATO `pedido.json` E CHECKOUT PIX
+  // 10. CONSTRUÇÃO DO CONTRATO `pedido.json` E CHECKOUT PIX / GRATUITO (<dialog>)
   // ==========================================================================
   function construirContratoPedidoJson() {
     const agora = new Date();
@@ -1475,6 +2528,7 @@
       agora.getHours()
     )}${pad(agora.getMinutes())}${pad(agora.getSeconds())}`;
     const idPedido = `PED-${ts}`;
+    const isEdge = ehEdgeTts();
 
     const arquivosMeta = state.arquivos.map((a) => ({
       arquivo: a.nome,
@@ -1482,8 +2536,53 @@
       total_caracteres: a.caracteres,
       paginas_estimadas: a.paginas,
       capitulos_estimados: a.capitulos ? a.capitulos.length : 1,
+      idioma: a.idioma || state.idioma,
       idioma_detectado: a.idiomaDetectado,
     }));
+
+    const idiomasEscolhidos = Array.from(
+      new Set(state.arquivos.map((a) => a.idioma).filter((id) => id === "pt" || id === "en"))
+    );
+    const idiomaPedido = idiomasEscolhidos.length === 1 ? idiomasEscolhidos[0] : state.idioma;
+
+    let modoVozContrato = state.modoVoz;
+    let vozIdContrato = state.vozId;
+    let vozesCapitulosContrato = {};
+    const vozAleatoria = state.subModoVoz === "aleatoria";
+
+    if (state.modoVoz === "unica" && vozAleatoria) {
+      const sorteada = sortearVozDoIdiomaAtual();
+      vozIdContrato = sorteada ? sorteada.sigla : state.vozId;
+      modoVozContrato = "unica";
+    } else if (state.modoVoz === "por_capitulo" && vozAleatoria) {
+      modoVozContrato = "aleatoria";
+    } else if (state.modoVoz === "por_capitulo") {
+      modoVozContrato = "por_capitulo";
+      vozesCapitulosContrato = state.vozesCapitulos;
+    }
+
+    const listaVozesAtual = obterListaVozesIdiomaAtual();
+    const vozObjContrato = listaVozesAtual.find((v) => v.sigla === vozIdContrato) || listaVozesAtual[0];
+
+    const configuracoes = {
+      motor_tts: state.motorServico,
+      motor_tts_rotulo: isEdge ? "Edge TTS (Paralelo · Gratuito)" : "XTTSv2 (Qualidade Estúdio)",
+      idioma: idiomaPedido,
+      modo_voz: modoVozContrato,
+      voz_aleatoria: vozAleatoria,
+      voz_id: vozIdContrato,
+      vozes_capitulos: vozesCapitulosContrato,
+      velocidade: state.velocidade,
+      formato_saida: state.formatoSaida,
+      nivel_titulo: 1,
+    };
+
+    if (isEdge) {
+      configuracoes.voz_edge_id = vozObjContrato?.edgeVoiceId || "pt-BR-ThalitaMultilingualNeural";
+      configuracoes.velocidade_edge = velocidadeParaRateEdge(state.velocidade);
+      configuracoes.paralelismo_edge = CONFIG_COMERCIAL.EDGE_PARALELAS;
+      configuracoes.alvo_bloco_edge = CONFIG_COMERCIAL.EDGE_ALVO_BLOCO;
+    }
 
     return {
       id_pedido: idPedido,
@@ -1504,18 +2603,24 @@
         capitulos_estimados: state.capitulosDetectados.length,
         valor_pago: state.valorCalculado,
       },
-      configuracoes: {
-        idioma: state.idioma,
-        modo_voz: state.modoVoz,
-        voz_id: state.vozId,
-        vozes_capitulos: state.modoVoz === "por_capitulo" ? state.vozesCapitulos : {},
-        velocidade: state.velocidade,
-        formato_saida: state.formatoSaida,
-        nivel_titulo: 1,
+      cota: {
+        cota_ativa: CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA,
+        cota_total_chars: state.cotaTotalChars,
+        cota_restante_antes: state.cotaRestanteChars,
+        chars_cobertos_cota: state.charsCobertosCota,
+        chars_cobraveis: state.charsCobraveis,
+        pedido_gratuito: Boolean(state.pedidoGratuito),
+        motivo_gratuidade: isEdge
+          ? "edge_tts_gratuito"
+          : state.pedidoGratuito
+          ? "cota_inicial_xttsv2"
+          : null,
       },
+      configuracoes,
       prazos: {
         prazo_estimado_minutos: state.prazoEstimadoMinutos,
         horario_estimado_entrega: state.horarioEntregaFormatado,
+        previsao_entrega_rotulo: state.previsaoEntregaRotuloModal,
         link_dias_expira: CONFIG_COMERCIAL.COM_LINK_DIAS_EXPIRA,
       },
     };
@@ -1530,40 +2635,92 @@
 
   function abrirModalPix(pedido) {
     state.ultimoPedidoCriado = pedido;
-    const codigoPix = gerarPayloadPixSimulado(pedido);
+    const ehGratuito = Number(pedido.documento.valor_pago || 0) <= 0;
+    const ehEdge = pedido.configuracoes?.motor_tts === "edge";
 
     if (el.pixModalOrderId) el.pixModalOrderId.textContent = pedido.id_pedido;
-    if (el.pixModalAmount) el.pixModalAmount.textContent = formatarBRL(pedido.documento.valor_pago);
-    if (el.pixCopyPasteInput) el.pixCopyPasteInput.value = codigoPix;
 
-    if (el.pixQrImage) {
-      el.pixQrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-        codigoPix
-      )}`;
+    if (ehGratuito) {
+      if (el.pixModalTitle) {
+        el.pixModalTitle.textContent = ehEdge
+          ? "Confirmação — Edge TTS Gratuito"
+          : "Confirmação do Pedido Gratuito";
+      }
+      confirmarPixNoModal(true);
+    } else {
+      if (el.pixModalTitle) el.pixModalTitle.textContent = "Pagamento Instantâneo via PIX";
+      const codigoPix = gerarPayloadPixSimulado(pedido);
+      if (el.pixModalAmount) el.pixModalAmount.textContent = formatarBRL(pedido.documento.valor_pago);
+      if (el.pixCopyPasteInput) el.pixCopyPasteInput.value = codigoPix;
+
+      if (el.pixQrImage) {
+        const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
+        qrUrl.searchParams.set("size", "220x220");
+        qrUrl.searchParams.set("data", codigoPix);
+        el.pixQrImage.src = qrUrl.toString();
+      }
+      if (el.pixPendingStage) el.pixPendingStage.classList.remove("hidden");
+      if (el.pixApprovedStage) el.pixApprovedStage.classList.add("hidden");
     }
 
-    if (el.pixPendingStage) el.pixPendingStage.classList.remove("hidden");
-    if (el.pixApprovedStage) el.pixApprovedStage.classList.add("hidden");
-    if (el.pixModal) {
-      el.pixModal.classList.remove("hidden");
-      el.pixModal.classList.add("flex");
+    if (el.pixModal && !el.pixModal.open) {
+      el.pixModal.removeAttribute("data-closing");
+      el.pixModal.showModal();
     }
   }
 
   function fecharModalPix() {
-    if (!el.pixModal) return;
-    el.pixModal.classList.add("hidden");
-    el.pixModal.classList.remove("flex");
+    if (!el.pixModal || !el.pixModal.open) return;
+    closeTopLayerDialog(el.pixModal);
   }
 
-  function confirmarPixNoModal() {
+  function confirmarPixNoModal(ehGratuitoDireto = false) {
     const ped = state.ultimoPedidoCriado;
     if (!ped) return;
+    const gratuito = ehGratuitoDireto === true || Number(ped.documento?.valor_pago || 0) <= 0;
+    const ehEdge = ped.configuracoes?.motor_tts === "edge";
+    const charsCobertos = Number(ped.cota?.chars_cobertos_cota || 0);
+
+    if (!ped._cotaDebitadaLocal && charsCobertos > 0 && !ehEdge) {
+      ped._cotaDebitadaLocal = true;
+      debitarCotaLocal(ped.cliente?.email || "", charsCobertos);
+      atualizarResumoPedido();
+    }
+
     if (el.pixPendingStage) el.pixPendingStage.classList.add("hidden");
     if (el.pixApprovedStage) el.pixApprovedStage.classList.remove("hidden");
+    if (el.approvedStageTitle) {
+      el.approvedStageTitle.textContent = ehEdge
+        ? "Pedido Edge TTS Gratuito Confirmado!"
+        : gratuito
+        ? "Pedido Gratuito Confirmado!"
+        : "Pagamento Confirmado!";
+    }
     if (el.approvedOrderIdText) el.approvedOrderIdText.textContent = ped.id_pedido;
+    if (el.approvedEngineLabel) {
+      el.approvedEngineLabel.textContent = ehEdge
+        ? "Edge TTS · Rápido e Gratuito"
+        : "XTTSv2 · Qualidade Estúdio";
+    }
     if (el.approvedEtaText) {
-      el.approvedEtaText.textContent = `hoje às ${ped.prazos.horario_estimado_entrega} (~${ped.prazos.prazo_estimado_minutos} min)`;
+      const rotulo = ped.prazos.previsao_entrega_rotulo || `hoje às ${ped.prazos.horario_estimado_entrega}`;
+      el.approvedEtaText.textContent = `${rotulo} (~${formatarDuracaoHorasMinutos(ped.prazos.prazo_estimado_minutos)})`;
+    }
+    if (el.approvedQuotaSummary) {
+      if (ehEdge) {
+        el.approvedQuotaSummary.textContent = `Serviço Edge TTS 100% gratuito selecionado · Sua cota XTTSv2 (${formatarInteiro(state.cotaRestanteChars)} chars) permanece intacta.`;
+        el.approvedQuotaSummary.classList.remove("hidden");
+      } else if (charsCobertos > 0) {
+        el.approvedQuotaSummary.textContent = `Cota gratuita XTTSv2 aplicada: ${formatarInteiro(
+          charsCobertos
+        )} chars usados neste pedido · Saldo restante: ${formatarInteiro(state.cotaRestanteChars)} chars.`;
+        el.approvedQuotaSummary.classList.remove("hidden");
+      } else {
+        el.approvedQuotaSummary.classList.add("hidden");
+      }
+    }
+    if (el.localApprovedActions) {
+      el.localApprovedActions.classList.toggle("hidden", !gratuito);
     }
   }
 
@@ -1583,7 +2740,7 @@
   }
 
   // ==========================================================================
-  // 10. EVENT LISTENERS E INICIALIZAÇÃO
+  // 11. EVENT LISTENERS E INICIALIZAÇÃO
   // ==========================================================================
   function registrarEventos() {
     const abrirSeletorArquivos = (e) => {
@@ -1616,12 +2773,10 @@
       });
     }
 
-    // Botão de "+ Anexar mais arquivos" no resumo do Card 01
     if (el.addMoreFilesBtn) {
       el.addMoreFilesBtn.addEventListener("click", abrirSeletorArquivos);
     }
 
-    // Impede que o navegador abra o arquivo na aba caso o usuário solte na área da página
     ["dragover", "drop"].forEach((evtGlobal) => {
       window.addEventListener(
         evtGlobal,
@@ -1635,14 +2790,21 @@
     });
 
     if (el.dropzone) {
-      // Clique em qualquer ponto do dropzone abre o seletor de arquivos
       el.dropzone.addEventListener("click", (e) => {
         if (e.target === el.fileInput) return;
         abrirSeletorArquivos(e);
       });
 
       el.dropzone.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === "Enter") {
+          abrirSeletorArquivos(e);
+        } else if (e.key === " ") {
+          e.preventDefault();
+        }
+      });
+
+      el.dropzone.addEventListener("keyup", (e) => {
+        if (e.key === " ") {
           abrirSeletorArquivos(e);
         }
       });
@@ -1698,69 +2860,111 @@
       });
     }
 
-    // Abas de Idioma (PT-BR vs EN)
-    if (el.langBtnPt) {
-      el.langBtnPt.addEventListener("click", () => alternarIdiomaCatalogo("pt", false));
+    // Controle de pausa/retomada da animação da Aurora Sonora (WCAG 2.2.2)
+    if (el.auroraMotionToggleBtn) {
+      el.auroraMotionToggleBtn.addEventListener("click", () => {
+        const pausadaAtual = document.body?.dataset.auroraPaused === "true";
+        aplicarEstadoAnimacaoAurora(!pausadaAtual, true);
+      });
     }
-    if (el.langBtnEn) {
-      el.langBtnEn.addEventListener("click", () => alternarIdiomaCatalogo("en", false));
+
+    // Seletor nativo de serviço de áudio (XTTSv2 vs Edge TTS)
+    [el.engineRadioXtts, el.engineRadioEdge].forEach((radio) => {
+      if (!radio) return;
+      radio.addEventListener("change", () => {
+        if (radio.checked) {
+          selecionarMotorServico(radio.value, true);
+        }
+      });
+    });
+
+    if (el.quickSwitchEngineBtn) {
+      el.quickSwitchEngineBtn.addEventListener("click", () => {
+        selecionarMotorServico(ehEdgeTts() ? "xttsv2" : "edge", true);
+      });
     }
 
     // Filtros do catálogo de vozes
     el.voiceFilterBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
         state.filtroVoz = btn.getAttribute("data-voice-filter") || "todas";
-        el.voiceFilterBtns.forEach((b) => {
-          const ativo = b === btn;
-          b.className = ativo
-            ? "voice-filter-btn active-filter rounded-full border border-amber-400/60 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300 transition"
-            : "voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition";
-        });
-        renderizarCatalogoVozes();
+        atualizarUiFiltrosVoz();
+        renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
       });
     });
+
+    // Controles de navegação horizontal do carrossel de vozes
+    if (el.voicesCarouselNavBtns) {
+      el.voicesCarouselNavBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const dir = Number(btn.getAttribute("data-carousel-dir") || 1);
+          rolarCarrosselVozes(dir);
+        });
+      });
+    }
+
+    if (el.voicesGrid) {
+      el.voicesGrid.addEventListener("scroll", atualizarBotoesCarrosselVozes, { passive: true });
+      el.voicesGrid.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          rolarCarrosselVozes(1);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          rolarCarrosselVozes(-1);
+        }
+      });
+    }
+
+    window.addEventListener("resize", atualizarBotoesCarrosselVozes, { passive: true });
 
     // Slider granular de velocidade em tempo real
     if (el.speedSlider) {
       el.speedSlider.addEventListener("input", (e) => {
-        atualizarVelocidade(e.target.value, true);
+        atualizarVelocidade(e.target.value, true, true);
       });
     }
 
     if (el.speedMinusBtn) {
       el.speedMinusBtn.addEventListener("click", () => {
-        atualizarVelocidade(state.velocidade - 0.05, false);
+        atualizarVelocidade(state.velocidade - 0.05, false, true);
       });
     }
 
     if (el.speedPlusBtn) {
       el.speedPlusBtn.addEventListener("click", () => {
-        atualizarVelocidade(state.velocidade + 0.05, false);
+        atualizarVelocidade(state.velocidade + 0.05, false, true);
       });
     }
 
     el.speedPresetBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
         const preset = parseFloat(btn.getAttribute("data-speed-preset"));
-        atualizarVelocidade(preset, false);
+        atualizarVelocidade(preset, false, true);
       });
     });
 
-    // Modos de voz (unica, por_capitulo, aleatoria)
+    // Modos de voz (unica / por_capitulo) e submodos (escolher / aleatoria)
     el.voiceModeBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
         const modo = btn.getAttribute("data-voice-mode") || "unica";
         state.modoVoz = modo;
+        atualizarUiModoVoz();
+        renderizarCatalogoVozes();
+        renderizarMapeadorCapitulos();
+        atualizarResumoPedido();
+      });
+    });
 
-        el.voiceModeBtns.forEach((b) => {
-          const ativo = b === btn;
-          b.classList.toggle("active-mode", ativo);
-          b.classList.toggle("border-amber-400", ativo);
-          b.classList.toggle("bg-amber-500/10", ativo);
-          b.classList.toggle("border-slate-800", !ativo);
-          b.classList.toggle("bg-slate-900/70", !ativo);
-        });
-
+    el.voiceSubmodeBtns.forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const parent = btn.getAttribute("data-voice-parent");
+        const sub = btn.getAttribute("data-voice-submode") || "escolher";
+        if (parent) state.modoVoz = parent;
+        state.subModoVoz = sub;
+        atualizarUiModoVoz();
+        renderizarCatalogoVozes();
         renderizarMapeadorCapitulos();
         atualizarResumoPedido();
       });
@@ -1774,6 +2978,7 @@
 
         el.outputFormatBtns.forEach((b) => {
           const ativo = b === btn;
+          b.setAttribute("aria-pressed", ativo ? "true" : "false");
           b.classList.toggle("active-format", ativo);
           b.classList.toggle("border-amber-400", ativo);
           b.classList.toggle("bg-amber-500/10", ativo);
@@ -1785,16 +2990,29 @@
       });
     });
 
-    // Foco nos campos do Passo 03 ativa visualmente a Etapa 03
-    [el.clientName, el.clientEmail, el.clientWhatsapp].forEach((inp) => {
-      if (!inp) return;
-      inp.addEventListener("focus", () => {
-        if (state.totalCaracteres > 0) atualizarFluxoEtapas(3);
-      });
-    });
-
     if (el.clientName) {
-      el.clientName.addEventListener("input", atualizarLinkWhatsappClickToChat);
+      el.clientName.addEventListener("input", () => {
+        el.clientName.classList.remove("field-validation-error");
+        atualizarLinkWhatsappClickToChat();
+      });
+    }
+
+    if (el.clientEmail) {
+      el.clientEmail.addEventListener("input", () => {
+        el.clientEmail.classList.remove("field-validation-error");
+        atualizarSaldoCotaPorEmail(false);
+      });
+      el.clientEmail.addEventListener("blur", () => {
+        atualizarSaldoCotaPorEmail(true);
+      });
+    }
+
+    if (el.termsCheckbox) {
+      el.termsCheckbox.addEventListener("change", () => {
+        if (el.termsCheckbox.checked && el.termsBox) {
+          el.termsBox.classList.remove("field-validation-error");
+        }
+      });
     }
 
     if (el.waClickToChatBtn) {
@@ -1804,39 +3022,81 @@
       });
     }
 
-    // Submissão do formulário e abertura do modal PIX
+    // Submissão do formulário e abertura do <dialog> nativo
     if (el.orderForm) {
+      inicializarValidacaoAcessivelFormulario(el.orderForm);
+
       el.orderForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        if (el.formValidationError) el.formValidationError.classList.add("hidden");
-
-        if (!state.arquivos.length || state.totalCaracteres <= 0) {
-          if (el.formValidationError) {
-            el.formValidationError.textContent =
-              "Por favor, envie ao menos um documento válido (.PDF, .DOCX, .TXT ou .MD) no Passo 01 antes de gerar o PIX.";
-            el.formValidationError.classList.remove("hidden");
-          }
-          atualizarFluxoEtapas(1);
-          el.stepCard01?.scrollIntoView({ behavior: "smooth" });
-          return;
+        if (el.formValidationError) {
+          el.formValidationError.classList.add("hidden");
+          delete el.formValidationError.dataset.langOnly;
         }
+        el.clientName?.classList.remove("field-validation-error");
+        el.clientEmail?.classList.remove("field-validation-error");
+        el.termsBox?.classList.remove("field-validation-error");
 
+        const semArquivo = !state.arquivos.length || state.totalCaracteres <= 0;
+        const arquivosSemIdioma = semArquivo
+          ? []
+          : state.arquivos.filter((a) => a.idioma !== "pt" && a.idioma !== "en");
         const nome = (el.clientName?.value || "").trim();
         const email = (el.clientEmail?.value || "").trim();
-        if (!nome || !email || !email.includes("@")) {
-          if (el.formValidationError) {
-            el.formValidationError.textContent =
-              "Informe seu nome e um endereço de e-mail válido para receber o audiobook.";
-            el.formValidationError.classList.remove("hidden");
-          }
-          return;
+        const nomeInvalido = !nome;
+        const emailInvalido = !email || !email.includes("@") || (el.clientEmail && !el.clientEmail.validity.valid);
+        const termosNaoAceitos = !el.termsCheckbox?.checked;
+
+        const pendencias = [];
+        if (semArquivo) {
+          pendencias.push("enviar ao menos um documento válido (.PDF, .DOCX, .TXT ou .MD) no Passo 01");
+        }
+        if (arquivosSemIdioma.length > 0) {
+          state.validacaoIdiomaTentada = true;
+          atualizarStatusIdiomaDocumentos();
+          renderizarListaArquivosAnexados();
+          pendencias.push(
+            `escolher o idioma obrigatório de cada documento no Passo 01 (${arquivosSemIdioma
+              .map((a) => `"${a.nome}"`)
+              .join(", ")})`
+          );
+        }
+        if (nomeInvalido) {
+          el.clientName?.classList.add("field-validation-error");
+          if (el.clientName) syncFieldAria(el.clientName, false, true);
+          pendencias.push("informar seu nome");
+        }
+        if (emailInvalido) {
+          el.clientEmail?.classList.add("field-validation-error");
+          if (el.clientEmail) syncFieldAria(el.clientEmail, false, true);
+          pendencias.push("informar um e-mail válido");
+        }
+        if (termosNaoAceitos) {
+          el.termsBox?.classList.add("field-validation-error");
+          if (el.termsCheckbox) syncFieldAria(el.termsCheckbox, false, true);
+          pendencias.push("aceitar os Termos e Condições de Uso");
         }
 
-        if (!el.termsCheckbox?.checked) {
+        if (pendencias.length > 0) {
           if (el.formValidationError) {
-            el.formValidationError.textContent =
-              "É obrigatório aceitar os Termos e Condições de Uso para iniciar a conversão.";
+            el.formValidationError.textContent = `Preencha os campos obrigatórios antes de continuar: ${pendencias.join("; ")}.`;
             el.formValidationError.classList.remove("hidden");
+            if (!semArquivo && arquivosSemIdioma.length > 0 && !nomeInvalido && !emailInvalido && !termosNaoAceitos) {
+              el.formValidationError.dataset.langOnly = "true";
+            }
+          }
+          const reduzido = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+          if (semArquivo || arquivosSemIdioma.length > 0) {
+            atualizarFluxoEtapas(1);
+            (el.docSummaryCard && !el.docSummaryCard.classList.contains("hidden")
+              ? el.docSummaryCard
+              : el.stepCard01
+            )?.scrollIntoView({ behavior: reduzido ? "auto" : "smooth", block: "center" });
+          } else if (nomeInvalido) {
+            el.clientName?.focus();
+          } else if (emailInvalido) {
+            el.clientEmail?.focus();
+          } else if (termosNaoAceitos) {
+            el.termsCheckbox?.focus();
           }
           return;
         }
@@ -1847,6 +3107,23 @@
       });
     }
 
+    // Eventos nativos do <dialog> (<dialog closedby="any"> + fallback Safari + exit animation)
+    if (el.pixModal) {
+      configurarFallbackLightDismissDialog(el.pixModal);
+
+      el.pixModal.addEventListener("cancel", (event) => {
+        if (!supportsTopLayerExit()) {
+          event.preventDefault();
+          closeTopLayerDialog(el.pixModal);
+        }
+      });
+
+      el.pixModal.addEventListener("close", () => {
+        el.pixModal.removeAttribute("data-closing");
+        el.pixModal.returnValue = "";
+      });
+    }
+
     if (el.closePixModalBtn) {
       el.closePixModalBtn.addEventListener("click", fecharModalPix);
     }
@@ -1854,7 +3131,7 @@
     if (el.copyPixCodeBtn) {
       el.copyPixCodeBtn.addEventListener("click", () => {
         if (!el.pixCopyPasteInput) return;
-        navigator.clipboard.writeText(el.pixCopyPasteInput.value).then(() => {
+        navigator.clipboard?.writeText(el.pixCopyPasteInput.value).then(() => {
           el.copyPixCodeBtn.textContent = "Copiado!";
           setTimeout(() => {
             el.copyPixCodeBtn.textContent = "Copiar";
@@ -1864,11 +3141,15 @@
     }
 
     if (el.simulatePixApprovedBtn) {
-      el.simulatePixApprovedBtn.addEventListener("click", confirmarPixNoModal);
+      el.simulatePixApprovedBtn.addEventListener("click", () => confirmarPixNoModal(false));
     }
 
     if (el.downloadOrderJsonBtn) {
       el.downloadOrderJsonBtn.addEventListener("click", baixarPedidoJsonLocal);
+    }
+
+    if (el.approvedDownloadOrderJsonBtn) {
+      el.approvedDownloadOrderJsonBtn.addEventListener("click", baixarPedidoJsonLocal);
     }
   }
 
@@ -1897,6 +3178,7 @@
     el.fileInput = document.getElementById("fileInput");
     el.addMoreFilesBtn = document.getElementById("addMoreFilesBtn");
     el.attachedFilesList = document.getElementById("attachedFilesList");
+    el.docLangValidationError = document.getElementById("docLangValidationError");
     el.readingProgressBox = document.getElementById("readingProgressBox");
     el.readingStatusText = document.getElementById("readingStatusText");
     el.readingPercentText = document.getElementById("readingPercentText");
@@ -1912,18 +3194,31 @@
     el.docChaptersCount = document.getElementById("docChaptersCount");
     el.docChaptersSubnote = document.getElementById("docChaptersSubnote");
     el.docPriceBox = document.getElementById("docPriceBox");
+    el.docPriceLabel = document.getElementById("docPriceLabel");
     el.docPriceCount = document.getElementById("docPriceCount");
     el.docPriceFormulaNote = document.getElementById("docPriceFormulaNote");
     el.clearFileBtn = document.getElementById("clearFileBtn");
-    el.langBtnPt = document.getElementById("langBtnPt");
-    el.langBtnEn = document.getElementById("langBtnEn");
+    el.engineRadioXtts = document.getElementById("engineRadioXtts");
+    el.engineRadioEdge = document.getElementById("engineRadioEdge");
+    el.engineCardXtts = document.getElementById("engineCardXtts");
+    el.engineCardEdge = document.getElementById("engineCardEdge");
+    el.engineXttsEtaBadge = document.getElementById("engineXttsEtaBadge");
+    el.engineXttsPriceBadge = document.getElementById("engineXttsPriceBadge");
+    el.engineEdgeEtaBadge = document.getElementById("engineEdgeEtaBadge");
+    el.engineEdgePriceBadge = document.getElementById("engineEdgePriceBadge");
+    el.catalogEnginePill = document.getElementById("catalogEnginePill");
     el.speedSlider = document.getElementById("speedSlider");
     el.speedDisplayBadge = document.getElementById("speedDisplayBadge");
     el.speedMinusBtn = document.getElementById("speedMinusBtn");
     el.speedPlusBtn = document.getElementById("speedPlusBtn");
     el.speedHintText = document.getElementById("speedHintText");
     el.speedPresetBtns = document.querySelectorAll(".speed-preset-btn");
+    el.voiceModeGroupUnica = document.getElementById("voiceModeGroupUnica");
+    el.voiceModeGroupCapitulo = document.getElementById("voiceModeGroupCapitulo");
+    el.subModeUnicaPanel = document.getElementById("subModeUnicaPanel");
+    el.subModeCapituloPanel = document.getElementById("subModeCapituloPanel");
     el.voiceModeBtns = document.querySelectorAll(".voice-mode-btn");
+    el.voiceSubmodeBtns = document.querySelectorAll(".voice-submode-btn");
     el.outputFormatBtns = document.querySelectorAll(".output-format-btn");
     el.voiceFilterBtns = document.querySelectorAll(".voice-filter-btn");
     el.chapterVoiceMapper = document.getElementById("chapterVoiceMapper");
@@ -1931,30 +3226,50 @@
     el.catalogLangCounter = document.getElementById("catalogLangCounter");
     el.selectedVoiceBadge = document.getElementById("selectedVoiceBadge");
     el.voicesGrid = document.getElementById("voicesGrid");
+    el.voicesCarouselNavBtns = document.querySelectorAll(".voices-carousel-nav");
     el.audioSourceStatusText = document.getElementById("audioSourceStatusText");
     el.orderForm = document.getElementById("orderForm");
     el.clientName = document.getElementById("clientName");
     el.clientEmail = document.getElementById("clientEmail");
+    el.quotaStatusBox = document.getElementById("quotaStatusBox");
+    el.quotaStatusTitle = document.getElementById("quotaStatusTitle");
+    el.quotaBalanceBadge = document.getElementById("quotaBalanceBadge");
+    el.quotaBalanceBar = document.getElementById("quotaBalanceBar");
+    el.quotaStatusHint = document.getElementById("quotaStatusHint");
     el.clientWhatsapp = document.getElementById("clientWhatsapp");
     el.waClickToChatBtn = document.getElementById("waClickToChatBtn");
     el.waActivatedBadge = document.getElementById("waActivatedBadge");
+    el.termsBox = document.getElementById("termsBox");
     el.termsCheckbox = document.getElementById("termsCheckbox");
     el.formValidationError = document.getElementById("formValidationError");
     el.generatePixBtn = document.getElementById("generatePixBtn");
+    el.summaryPriceLabel = document.getElementById("summaryPriceLabel");
     el.priceDisplay = document.getElementById("priceDisplay");
+    el.estEngineSummary = document.getElementById("estEngineSummary");
     el.summaryDocStatus = document.getElementById("summaryDocStatus");
+    el.summaryQuotaLabel = document.getElementById("summaryQuotaLabel");
+    el.summaryQuotaStatus = document.getElementById("summaryQuotaStatus");
     el.priceFormulaHint = document.getElementById("priceFormulaHint");
     el.estConversionTime = document.getElementById("estConversionTime");
     el.estQueueStatus = document.getElementById("estQueueStatus");
     el.estConfigSummary = document.getElementById("estConfigSummary");
+    el.estEngineCompareBox = document.getElementById("estEngineCompareBox");
+    el.estEngineCompareHint = document.getElementById("estEngineCompareHint");
+    el.quickSwitchEngineBtn = document.getElementById("quickSwitchEngineBtn");
+    el.estDeliveryBox = document.getElementById("estDeliveryBox");
+    el.estDeliveryLabel = document.getElementById("estDeliveryLabel");
     el.estDeliveryClock = document.getElementById("estDeliveryClock");
     el.estDeliverySubtext = document.getElementById("estDeliverySubtext");
     el.heartbeatBadge = document.getElementById("heartbeatBadge");
     el.heartbeatDot = document.getElementById("heartbeatDot");
     el.heartbeatText = document.getElementById("heartbeatText");
+    el.auroraMotionToggleBtn = document.getElementById("auroraMotionToggleBtn");
+    el.auroraMotionIcon = document.getElementById("auroraMotionIcon");
+    el.auroraMotionLabel = document.getElementById("auroraMotionLabel");
     el.pixModal = document.getElementById("pixModal");
     el.closePixModalBtn = document.getElementById("closePixModalBtn");
     el.pixModalOrderId = document.getElementById("pixModalOrderId");
+    el.pixModalTitle = document.getElementById("pixModalTitle");
     el.pixPendingStage = document.getElementById("pixPendingStage");
     el.pixApprovedStage = document.getElementById("pixApprovedStage");
     el.pixQrImage = document.getElementById("pixQrImage");
@@ -1963,10 +3278,57 @@
     el.pixModalAmount = document.getElementById("pixModalAmount");
     el.simulatePixApprovedBtn = document.getElementById("simulatePixApprovedBtn");
     el.downloadOrderJsonBtn = document.getElementById("downloadOrderJsonBtn");
+    el.approvedStageTitle = document.getElementById("approvedStageTitle");
     el.approvedOrderIdText = document.getElementById("approvedOrderIdText");
+    el.approvedEngineLabel = document.getElementById("approvedEngineLabel");
     el.approvedEtaText = document.getElementById("approvedEtaText");
+    el.approvedQuotaSummary = document.getElementById("approvedQuotaSummary");
+    el.localApprovedActions = document.getElementById("localApprovedActions");
+    el.approvedDownloadOrderJsonBtn = document.getElementById("approvedDownloadOrderJsonBtn");
     el.modalWaClickToChatBtn = document.getElementById("modalWaClickToChatBtn");
     el.voicePreviewAudio = document.getElementById("voicePreviewAudio");
+  }
+
+  const CHAVE_STORAGE_AURORA_PAUSADA = "tocatexto_aurora_pausada_v1";
+
+  function aplicarEstadoAnimacaoAurora(pausada, salvar = false) {
+    const ehPausada = Boolean(pausada);
+    if (document.body) {
+      document.body.dataset.auroraPaused = ehPausada ? "true" : "false";
+    }
+    if (el.auroraMotionIcon) {
+      el.auroraMotionIcon.textContent = ehPausada ? "▶" : "⏸";
+    }
+    if (el.auroraMotionLabel) {
+      el.auroraMotionLabel.textContent = ehPausada ? "Animar fundo" : "Pausar fundo";
+    }
+    if (el.auroraMotionToggleBtn) {
+      const acao = ehPausada ? "Ativar animação do fundo" : "Pausar animação do fundo";
+      el.auroraMotionToggleBtn.setAttribute("aria-label", acao);
+      el.auroraMotionToggleBtn.setAttribute("title", acao);
+    }
+    if (salvar) {
+      try {
+        localStorage.setItem(CHAVE_STORAGE_AURORA_PAUSADA, ehPausada ? "1" : "0");
+      } catch (_err) {
+        // Ignora indisponibilidade de localStorage (ex.: aba privada/file:// restrito)
+      }
+    }
+  }
+
+  function inicializarControleAurora() {
+    let pausada = false;
+    try {
+      const salvo = localStorage.getItem(CHAVE_STORAGE_AURORA_PAUSADA);
+      if (salvo === "1" || salvo === "0") {
+        pausada = salvo === "1";
+      } else if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        pausada = true;
+      }
+    } catch (_err) {
+      pausada = Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    }
+    aplicarEstadoAnimacaoAurora(pausada, false);
   }
 
   let _initialized = false;
@@ -1975,11 +3337,15 @@
     revalidarReferenciasDom();
     if (!el.dropzone || !el.fileInput) return;
     _initialized = true;
-    renderizarCatalogoVozes();
-    atualizarVelocidade(1.0, false);
+    inicializarControleAurora();
+    atualizarUiSeletorMotor();
+    renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
+    atualizarUiModoVoz();
+    atualizarVelocidade(1.0, false, false);
     atualizarLinkWhatsappClickToChat();
     atualizarFluxoEtapas(1);
-    atualizarResumoPedido();
+    atualizarSaldoCotaPorEmail(false);
+    sincronizarStatusMotor();
     registrarEventos();
     configurarScrollSpyStepper();
   }

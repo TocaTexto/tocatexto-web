@@ -3,25 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>TocaTexto — Você envia o texto. A gente dá o play.</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com" referrerpolicy="no-referrer"></script>
   <!-- PDF.js (leitura client-side de PDF, sumário/outline e verificação anti-OCR) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+    integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
   <!-- Mammoth.js (leitura client-side de DOCX com estrutura de capítulos H1..H4) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"
+    integrity="sha384-nFoSjZIoH3CCp8W639jJyQkuPHinJ2NHe7on1xvlUA7SuGfJAfvMldrsoAVm6ECz"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200">
+<body data-engine="xttsv2" class="aurora-page bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200">
 
+  <!-- FUNDO AURORA SONORA VIVO (web_v08_00_fundo_aurora_sonora) -->
+  <div class="aurora-backdrop" aria-hidden="true">
+    <div class="aurora-layer aurora-layer-xtts">
+      <span class="aurora-orb aurora-orb-1"></span>
+      <span class="aurora-orb aurora-orb-2"></span>
+      <span class="aurora-orb aurora-orb-3"></span>
+      <span class="aurora-orb aurora-orb-4"></span>
+    </div>
+    <div class="aurora-layer aurora-layer-edge">
+      <span class="aurora-orb aurora-orb-1"></span>
+      <span class="aurora-orb aurora-orb-2"></span>
+      <span class="aurora-orb aurora-orb-3"></span>
+      <span class="aurora-orb aurora-orb-4"></span>
+    </div>
+    <div class="aurora-grain"></div>
+  </div>
+
+  <!-- Skip link para navegação por teclado -->
+  <a href="#mainContent" class="skip-link visually-hidden">Pular para o conteúdo principal</a>
 
   <!-- BARRA SUPERIOR DE STATUS DO MOTOR -->
   <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
       <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold text-lg">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold text-lg" aria-hidden="true">
           ▶
         </div>
         <div>
@@ -35,17 +66,30 @@
         </div>
       </div>
 
+      <div class="flex items-center gap-2">
+        <!-- Controle acessível para pausar/retomar a animação contínua do fundo (WCAG 2.2.2) -->
+        <button
+          id="auroraMotionToggleBtn"
+          type="button"
+          class="aurora-motion-btn inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-amber-400/50 hover:text-white"
+          aria-label="Pausar animação do fundo"
+          title="Pausar animação do fundo"
+        >
+          <span id="auroraMotionIcon" aria-hidden="true">⏸</span>
+          <span id="auroraMotionLabel" class="hidden sm:inline">Pausar fundo</span>
+        </button>
 
-      <!-- Indicador de Heartbeat em tempo real -->
-      <div id="heartbeatBadge" class="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-xs font-medium text-slate-300">
-        <span id="heartbeatDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span id="heartbeatText">Motor neural online · Fila livre</span>
+        <!-- Indicador de Heartbeat em tempo real -->
+        <div id="heartbeatBadge" class="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-xs font-medium text-slate-300" role="status">
+          <span id="heartbeatDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse" aria-hidden="true"></span>
+          <span id="heartbeatText">Motor online · XTTSv2 &amp; Edge TTS prontos</span>
+        </div>
       </div>
     </div>
   </header>
 
 
-  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+  <main id="mainContent" tabindex="-1" class="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
 
 
     <!-- HERO SECTION -->
@@ -54,12 +98,13 @@
         Transforme apostilas, livros e artigos em <span class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Audiobooks MP3</span> definitivos
       </h1>
       <p class="mx-auto mt-3 max-w-3xl text-sm text-slate-300 sm:text-base">
-        Sem assinatura e sem aplicativo exclusivo. Higienização automática de textos em <strong class="text-white">Português e Inglês</strong> (cabeçalhos, rodapés, siglas, números, fórmulas e leis) para seu áudio ficar perfeito, com entrega direta no seu E-mail ou WhatsApp.
+        Sem assinatura e sem aplicativo exclusivo. Escolha entre a <strong class="text-amber-300">qualidade de estúdio (XTTSv2)</strong> ou a <strong class="text-cyan-300">síntese ultrarrápida e 100% gratuita (Edge TTS)</strong>, com higienização automática em <strong class="text-white">Português e Inglês</strong> e entrega direta no seu E-mail ou WhatsApp.
       </p>
       <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs text-slate-300">
-        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">💰 R$ 0,05 a cada 1.000 caracteres (mín. R$ 1,00)</span>
-        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">🎧 44 vozes neurais XTTSv2 (18 PT-BR · 26 EN)</span>
-        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">🧹 Higienização inteligente PT-BR &amp; Inglês</span>
+        <span class="rounded-lg border border-cyan-500/40 bg-cyan-950/35 px-3 py-1.5 font-semibold text-cyan-300">⚡ Edge TTS: 100% grátis e ultrarrápido</span>
+        <span class="rounded-lg border border-emerald-500/40 bg-emerald-950/35 px-3 py-1.5 font-semibold text-emerald-300">🎁 XTTSv2 Estúdio: 100 pág. grátis (200.000 chars) no 1º uso</span>
+        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">💰 Excedente XTTSv2: R$ 0,05 / 1.000 chars (mín. R$ 1,00)</span>
+        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">🎧 44 vozes XTTSv2 + 12 vozes Edge TTS (PT-BR &amp; EN)</span>
         <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">⚡ Posse real do arquivo (.mp3 ou .zip)</span>
       </div>
     </section>
@@ -68,7 +113,7 @@
     <!-- BARRA DE JORNADA GUIADA CONGELADA NO TOPO AO ROLAR (STICKY STEPPER 01 -> 02 -> 03) -->
     <nav id="flowStepper" aria-label="Etapas do pedido" class="sticky top-[61px] z-30 mb-8 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-3.5 shadow-xl backdrop-blur-md transition-all duration-200">
       <div class="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-        <a href="#stepCard01" id="stepperItem01" class="stepper-pill stepper-pill-active flex items-center justify-between rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 transition">
+        <a href="#stepCard01" id="stepperItem01" aria-current="step" class="stepper-pill stepper-pill-active flex items-center justify-between rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 transition">
           <div class="flex items-center gap-3">
             <span id="stepperBadge01" class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950">01</span>
             <div>
@@ -79,25 +124,23 @@
           <span id="stepperState01" class="step-arrow-cue text-xs font-semibold text-amber-300">Comece aqui ↓</span>
         </a>
 
-
         <a href="#stepCard02" id="stepperItem02" class="stepper-pill flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 transition hover:border-slate-700">
           <div class="flex items-center gap-3">
             <span id="stepperBadge02" class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300">02</span>
             <div>
               <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 2</span>
-              <span class="text-sm font-bold text-white">Escolha Voz, Idioma e Ritmo</span>
+              <span class="text-sm font-bold text-white">Motor, Voz e Ritmo</span>
             </div>
           </div>
-          <span id="stepperState02" class="text-xs font-medium text-slate-400">44 vozes →</span>
+          <span id="stepperState02" class="text-xs font-medium text-slate-400">XTTSv2 ou Edge →</span>
         </a>
-
 
         <a href="#stepCard03" id="stepperItem03" class="stepper-pill flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 transition hover:border-slate-700">
           <div class="flex items-center gap-3">
             <span id="stepperBadge03" class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300">03</span>
             <div>
               <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 3</span>
-              <span class="text-sm font-bold text-white">Recebimento e PIX</span>
+              <span class="text-sm font-bold text-white">Recebimento e Envio</span>
             </div>
           </div>
           <span id="stepperState03" class="text-xs font-medium text-slate-400">E-mail &amp; WhatsApp</span>
@@ -107,7 +150,7 @@
 
 
     <!-- ====================================================================== -->
-    <!-- PASSO 01: UPLOAD MULTI-ARQUIVOS, VALIDAÇÃO DE TEXTO E CÁLCULO PIX     -->
+    <!-- PASSO 01: UPLOAD MULTI-ARQUIVOS, VALIDAÇÃO DE TEXTO E CÁLCULO          -->
     <!-- ====================================================================== -->
     <section id="stepCard01" class="step-section step-card-active scroll-mt-36 rounded-2xl border border-amber-400/60 bg-slate-900/65 p-6 shadow-xl transition-all duration-300">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -115,7 +158,7 @@
           <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950 shadow">01</span>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-white">Envie seu(s) documento(s) para calcular o valor</h2>
+              <h2 class="text-lg font-bold text-white">Envie seu(s) documento(s) para calcular o prazo e o valor</h2>
               <span id="step01LivePill" class="step-live-indicator rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                 ● Etapa atual
               </span>
@@ -123,8 +166,8 @@
             <p class="text-xs text-slate-400">Você pode anexar 1 ou vários documentos de uma só vez (.PDF, .DOCX, .TXT e .MD) · Higienização automática em PT-BR ou EN</p>
           </div>
         </div>
-        <span class="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-1 text-xs text-slate-300">
-          Piso mínimo: <strong class="font-mono text-emerald-400">R$ 1,00</strong> (cobre até 20.000 caracteres)
+        <span id="step01QuotaPill" class="rounded-lg border border-emerald-500/35 bg-emerald-950/30 px-3 py-1 text-xs text-slate-300">
+          🎁 XTTSv2: <strong class="font-mono text-emerald-400">200k chars grátis</strong> · ⚡ Edge TTS: <strong class="font-mono text-cyan-300">100% grátis</strong>
         </span>
       </div>
 
@@ -137,9 +180,9 @@
         aria-label="Selecionar ou arrastar documentos PDF, DOCX, TXT ou MD"
         class="group relative flex cursor-pointer select-none flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-700 bg-slate-950/60 px-6 py-7 text-center transition hover:border-amber-400/70 hover:bg-slate-900/80"
       >
-        <input id="fileInput" type="file" multiple accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" class="sr-only" />
-        <div class="pointer-events-none mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-amber-400 transition group-hover:scale-110 group-hover:bg-amber-500/20">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <input id="fileInput" name="documentos" type="file" multiple accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" class="sr-only" />
+        <div class="pointer-events-none mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-amber-400 transition group-hover:scale-110 group-hover:bg-amber-500/20" aria-hidden="true">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
           </svg>
         </div>
@@ -147,27 +190,25 @@
           Clique para selecionar ou arraste seus arquivos (.PDF, .DOCX, .TXT ou .MD)
         </p>
         <p class="pointer-events-none mt-1 text-xs text-slate-400">
-          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres e valor PIX no navegador
+          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres, prazo (XTTSv2 e Edge TTS) e valor no navegador
         </p>
       </label>
 
 
-      <!-- Barra de leitura do arquivo -->
+      <!-- Barra de leitura do arquivo (nativa <progress>) -->
       <div id="readingProgressBox" class="mt-4 hidden">
         <div class="flex items-center justify-between text-xs text-slate-300 mb-1.5">
-          <span id="readingStatusText">Analisando camada de texto...</span>
+          <label for="readingProgressBar" id="readingStatusText">Analisando camada de texto...</label>
           <span id="readingPercentText" class="font-mono">0%</span>
         </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800">
-          <div id="readingProgressBar" class="h-full w-0 bg-amber-400 transition-all duration-200"></div>
-        </div>
+        <progress id="readingProgressBar" class="reading-progress w-full" max="100" value="0"></progress>
       </div>
 
 
       <!-- Alerta de erro Anti-OCR (PDF escaneado) -->
-      <div id="ocrErrorAlert" class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-950/40 p-4 text-xs text-red-200">
+      <div id="ocrErrorAlert" role="alert" class="mt-4 hidden rounded-xl border border-red-500/40 bg-red-950/40 p-4 text-xs text-red-200">
         <div class="flex items-start gap-3">
-          <span class="text-base">⚠️</span>
+          <span class="text-base" aria-hidden="true">⚠️</span>
           <div>
             <p class="font-bold text-red-300">Documento sem camada de texto suficiente (Possível PDF Escaneado)</p>
             <p id="ocrErrorDetail" class="mt-1 text-red-200/90"></p>
@@ -180,12 +221,12 @@
       <div id="docSummaryCard" class="mt-4 hidden rounded-xl border border-emerald-500/35 bg-emerald-950/20 p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2.5">
-            <span class="text-lg">📚</span>
+            <span class="text-lg" aria-hidden="true">📚</span>
             <div>
               <div class="flex flex-wrap items-center gap-2">
                 <p id="docFileName" class="text-sm font-bold text-white break-all"></p>
-                <span id="docDetectedLangBadge" class="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
-                  🇧🇷 Idioma: Português
+                <span id="docDetectedLangBadge" class="rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+                  ⚠️ Escolha o idioma de cada documento abaixo
                 </span>
               </div>
               <p id="docQualityBadge" class="text-xs text-emerald-300 mt-0.5">Camada de texto e seções validadas com sucesso</p>
@@ -196,8 +237,8 @@
               <span>+ Anexar mais arquivos</span>
             </button>
             <a href="#stepCard02" class="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-extrabold text-slate-950 shadow hover:bg-amber-300 transition">
-              <span>Ir para Passo 02: Escolher Voz</span>
-              <span class="step-arrow-cue">↓</span>
+              <span>Ir para Passo 02: Motor e Voz</span>
+              <span class="step-arrow-cue" aria-hidden="true">↓</span>
             </a>
             <button id="clearFileBtn" type="button" class="rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700">
               Limpar tudo
@@ -208,6 +249,7 @@
 
         <!-- Lista individual de arquivos anexados no lote -->
         <div id="attachedFilesList" class="mt-3 space-y-1.5 border-t border-slate-800/70 pt-3"></div>
+        <div id="docLangValidationError" role="alert" class="mt-2.5 hidden rounded-xl border border-red-500/45 bg-red-950/40 px-3.5 py-2.5 text-xs font-medium text-red-200"></div>
 
 
         <div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800/80 pt-3 text-center sm:grid-cols-4">
@@ -225,9 +267,9 @@
             <span id="docChaptersSubnote" class="block text-[10px] text-slate-400 mt-0.5">Detectados na estrutura</span>
           </div>
           <div id="docPriceBox" class="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-2.5">
-            <span class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Valor PIX Calculado</span>
-            <span id="docPriceCount" class="font-mono text-lg font-extrabold text-emerald-400">R$ 1,00</span>
-            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">Piso mínimo até 20 mil chars</span>
+            <span id="docPriceLabel" class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Valor Estimado</span>
+            <span id="docPriceCount" class="font-mono text-lg font-extrabold text-emerald-400">GRÁTIS</span>
+            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">Coberto pela cota grátis (200 mil chars)</span>
           </div>
         </div>
       </div>
@@ -238,14 +280,14 @@
     <div class="my-3 flex flex-col items-center justify-center" aria-hidden="true">
       <div id="connector01to02" class="step-connector flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-4 py-1 text-xs font-semibold text-slate-400">
         <span class="step-arrow-cue text-amber-400">↓</span>
-        <span id="connector01Text">Próximo passo: escolha o idioma, o narrador e a velocidade</span>
+        <span id="connector01Text">Próximo passo: escolha o motor (XTTSv2 ou Edge TTS), narrador e velocidade</span>
         <span class="step-arrow-cue text-amber-400">↓</span>
       </div>
     </div>
 
 
     <!-- ====================================================================== -->
-    <!-- PASSO 02: CATÁLOGO EXPANDIDO DE VOZES (LARGURA TOTAL + AVATARES)      -->
+    <!-- PASSO 02: SELETOR DE MOTOR (XTTSv2 vs EDGE TTS) + CATÁLOGO DE VOZES    -->
     <!-- ====================================================================== -->
     <section id="stepCard02" class="step-section scroll-mt-36 rounded-2xl border border-slate-800 bg-slate-900/65 p-6 shadow-xl transition-all duration-300">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -253,88 +295,168 @@
           <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">02</span>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-white">Catálogo de Vozes Neurais XTTSv2, Modo e Velocidade</h2>
+              <h2 id="step02Heading" class="text-lg font-bold text-white">Escolha o Serviço de Áudio, Voz e Velocidade</h2>
               <span id="step02LivePill" class="hidden rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                 ● Etapa atual
               </span>
             </div>
-            <p class="text-xs text-slate-400">
-              Clique em <strong class="text-slate-200">▶ Ouvir</strong> em qualquer avatar para escutar a voz real sintetizada no XTTSv2 e ajuste a velocidade ao vivo no MP3
+            <p id="step02Subtitle" class="text-xs text-slate-400">
+              Compare o motor <strong class="text-amber-300">XTTSv2 (estúdio)</strong> com o <strong class="text-cyan-300">Edge TTS (rápido e gratuito)</strong> e clique em <strong class="text-slate-200">▶ Ouvir</strong> para testar a voz real em tempo real
             </p>
-          </div>
-        </div>
-
-
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Seletor de Idioma da Higienização e Narração (PT-BR vs EN) -->
-          <div class="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-950 p-1.5">
-            <button
-              type="button"
-              id="langBtnPt"
-              data-lang="pt"
-              class="lang-tab-btn active-lang inline-flex items-center gap-2 rounded-lg bg-amber-400 px-3.5 py-1.5 text-xs font-extrabold text-slate-950 shadow transition"
-            >
-              <span>🇧🇷</span>
-              <span>Português (18 vozes)</span>
-            </button>
-            <button
-              type="button"
-              id="langBtnEn"
-              data-lang="en"
-              class="lang-tab-btn inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition"
-            >
-              <span>🇺🇸</span>
-              <span>Inglês (26 vozes)</span>
-            </button>
           </div>
         </div>
       </div>
 
 
+      <!-- SELETOR DE SERVIÇO DE ÁUDIO: XTTSv2 vs EDGE TTS (NATIVO <fieldset> + <input type="radio">) -->
+      <fieldset id="engineSelectorFieldset" class="mb-6 rounded-2xl border border-slate-800 bg-slate-950/75 p-4 sm:p-5">
+        <legend class="px-2 text-xs font-extrabold uppercase tracking-wider text-amber-300">
+          Serviço de Síntese de Áudio — Qualidade vs. Velocidade &amp; Custo
+        </legend>
+
+        <div class="mt-2 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <!-- OPÇÃO 1: XTTSv2 (ESTÚDIO) -->
+          <label
+            id="engineCardXtts"
+            for="engineRadioXtts"
+            class="engine-choice-card engine-card-xtts engine-active flex cursor-pointer flex-col justify-between rounded-xl border border-amber-400/75 bg-amber-500/10 p-4 transition"
+          >
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-2.5">
+                  <input
+                    id="engineRadioXtts"
+                    type="radio"
+                    name="audioEngine"
+                    value="xttsv2"
+                    checked
+                    class="engine-radio mt-1 h-4 w-4 shrink-0"
+                  />
+                  <div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span class="text-sm font-extrabold text-white">🎙️ XTTSv2 — Qualidade Estúdio</span>
+                      <span class="rounded-full border border-amber-400/50 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                        ⭐ Voz mais natural
+                      </span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] font-medium text-amber-200/90">
+                      44 vozes neurais realistas (18 PT-BR · 26 EN) · Entonação humana
+                    </p>
+                  </div>
+                </div>
+                <span class="shrink-0 rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] font-bold text-emerald-300">
+                  200k grátis
+                </span>
+              </div>
+
+              <p class="mt-3 text-xs leading-relaxed text-slate-300">
+                Entrega <strong class="text-white">a maior naturalidade e qualidade de áudio</strong>, ideal para livros longos e escuta imersiva. Por rodar redes neurais pesadas, <strong class="text-amber-300">demora mais para sintetizar</strong>. As primeiras 100 páginas (200.000 chars) são grátis; excedente cobrado via PIX.
+              </p>
+            </div>
+
+            <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-3 text-[11px]">
+              <span id="engineXttsEtaBadge" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700/80 bg-slate-900/90 px-2.5 py-1 font-mono font-semibold text-slate-200">
+                ⏱️ Envie um texto p/ estimar
+              </span>
+              <span id="engineXttsPriceBadge" class="font-mono font-bold text-emerald-300">
+                💰 GRÁTIS (cota 200k)
+              </span>
+            </div>
+          </label>
+
+          <!-- OPÇÃO 2: EDGE TTS (RÁPIDO E GRATUITO) -->
+          <label
+            id="engineCardEdge"
+            for="engineRadioEdge"
+            class="engine-choice-card engine-card-edge flex cursor-pointer flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-4 transition hover:border-cyan-400/60"
+          >
+            <div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-2.5">
+                  <input
+                    id="engineRadioEdge"
+                    type="radio"
+                    name="audioEngine"
+                    value="edge"
+                    class="engine-radio mt-1 h-4 w-4 shrink-0"
+                  />
+                  <div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span class="text-sm font-extrabold text-white">⚡ Edge TTS — Rápido e 100% Gratuito</span>
+                      <span class="rounded-full border border-cyan-400/50 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                        ⚡ Muito mais rápido
+                      </span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] font-medium text-cyan-200/90">
+                      12 vozes (3 PT-BR · 9 EN) · Síntese muito ágil
+                    </p>
+                  </div>
+                </div>
+                <span class="shrink-0 rounded-lg border border-cyan-500/45 bg-cyan-950/50 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
+                  100% GRÁTIS
+                </span>
+              </div>
+
+              <p class="mt-3 text-xs leading-relaxed text-slate-300">
+                Síntese <strong class="text-cyan-300">bem mais rápida e 100% gratuita</strong> (não consome sua cota e não exige PIX). <strong class="text-white">A voz é mais robótica</strong> em comparação ao XTTSv2, <strong class="text-emerald-300">porém continua muito boa, clara e agradável para ouvir e estudar</strong>.
+              </p>
+            </div>
+
+            <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-3 text-[11px]">
+              <span id="engineEdgeEtaBadge" class="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-950/35 px-2.5 py-1 font-mono font-semibold text-cyan-200">
+                ⚡ Envie um texto p/ estimar
+              </span>
+              <span id="engineEdgePriceBadge" class="font-mono font-bold text-cyan-300">
+                🆓 R$ 0,00 (Grátis ilimitado)
+              </span>
+            </div>
+          </label>
+        </div>
+      </fieldset>
+
+
       <!-- PAINEL SUPERIOR: SELETOR GRANULAR DE VELOCIDADE + MODOS DE DISTRIBUIÇÃO LADO A LADO -->
       <div class="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-
 
         <!-- Controle Granular de Velocidade (7 colunas) -->
         <div class="rounded-xl border border-amber-500/25 bg-slate-950/80 p-4 sm:p-5 lg:col-span-7">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
-              <span class="text-xs font-bold uppercase tracking-wider text-amber-300">Controle de Velocidade em Tempo Real (Sobre o MP3)</span>
+              <label for="speedSlider" class="text-xs font-bold uppercase tracking-wider text-amber-300">Controle de Velocidade em Tempo Real (Sobre o MP3)</label>
               <p class="text-xs text-slate-400 mt-0.5">
                 Arraste de <strong class="text-slate-200">0.50x a 2.00x</strong> com ímã nos pontos <strong class="text-slate-200">0.85x</strong>, <strong class="text-slate-200">1.00x</strong> e <strong class="text-slate-200">1.25x</strong>.
               </p>
             </div>
             <div class="flex items-center gap-1.5">
-              <button type="button" id="speedMinusBtn" class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-xs font-bold text-slate-200 hover:border-amber-400" title="Diminuir 0.05x">
-                −
+              <button type="button" id="speedMinusBtn" aria-label="Diminuir velocidade em 0.05x" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Diminuir 0.05x">
+                <span aria-hidden="true">−</span>
               </button>
-              <div class="min-w-[84px] rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1 text-center font-mono text-base font-extrabold text-amber-300" id="speedDisplayBadge">
+              <div class="min-w-[84px] rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-center font-mono text-base font-extrabold text-amber-300" id="speedDisplayBadge" aria-live="off">
                 1.00x
               </div>
-              <button type="button" id="speedPlusBtn" class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-xs font-bold text-slate-200 hover:border-amber-400" title="Aumentar 0.05x">
-                +
+              <button type="button" id="speedPlusBtn" aria-label="Aumentar velocidade em 0.05x" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Aumentar 0.05x">
+                <span aria-hidden="true">+</span>
               </button>
             </div>
           </div>
 
-
           <div class="relative pt-1 pb-2">
             <input
               id="speedSlider"
+              name="velocidade"
               type="range"
               min="0.50"
               max="2.00"
               step="0.01"
               value="1.00"
-              aria-label="Seletor granular de velocidade de narração"
               class="speed-range-slider w-full cursor-grab active:cursor-grabbing"
             />
-
 
             <div class="mt-3 grid grid-cols-3 gap-2">
               <button
                 type="button"
                 data-speed-preset="0.85"
+                aria-pressed="false"
                 class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2.5 py-2 text-center transition hover:border-amber-400/60"
               >
                 <span class="font-mono text-xs font-bold text-white">🐢 0.85x · Lenta</span>
@@ -343,6 +465,7 @@
               <button
                 type="button"
                 data-speed-preset="1.00"
+                aria-pressed="true"
                 class="speed-preset-btn active-preset flex flex-col items-center rounded-lg border border-amber-400/60 bg-amber-500/10 px-2.5 py-2 text-center transition hover:border-amber-400"
               >
                 <span class="font-mono text-xs font-bold text-amber-300">🚶 1.00x · Normal</span>
@@ -351,6 +474,7 @@
               <button
                 type="button"
                 data-speed-preset="1.25"
+                aria-pressed="false"
                 class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2.5 py-2 text-center transition hover:border-amber-400/60"
               >
                 <span class="font-mono text-xs font-bold text-white">🐇 1.25x · Rápida</span>
@@ -359,9 +483,8 @@
             </div>
           </div>
 
-
           <p id="speedHintText" class="mt-2 text-xs text-slate-300">
-            Ritmo selecionado: <strong class="text-amber-300">1.00x (Normal)</strong> — Dê play em qualquer voz abaixo e arraste a barra para sentir a mudança de velocidade instantaneamente.
+            Ritmo selecionado: <strong class="text-amber-300">1.00x (Normal)</strong> — Mexa no controle acima para ouvir automaticamente uma voz aleatória nesta velocidade.
           </p>
         </div>
 
@@ -369,65 +492,103 @@
         <!-- Modos de Voz e Formato de Saída (5 colunas) -->
         <div class="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/75 p-4 sm:p-5 lg:col-span-5">
           <div>
-            <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">Modo de distribuição das vozes</label>
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-              <button
-                type="button"
-                data-voice-mode="unica"
-                class="voice-mode-btn active-mode rounded-xl border border-amber-400 bg-amber-500/10 px-3 py-2 text-left transition"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white">🎙️ Voz Única</span>
-                  <span class="font-mono text-[10px] text-amber-300">1 narrador fixo</span>
+            <p class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">Modo de distribuição das vozes</p>
+            <div class="space-y-2.5" role="group" aria-label="Modo de distribuição das vozes">
+              <!-- MODO 1: VOZ ÚNICA + SUBBOTÕES -->
+              <div id="voiceModeGroupUnica" class="voice-mode-group rounded-xl border border-amber-400 bg-amber-500/10 p-2.5 transition">
+                <button
+                  type="button"
+                  data-voice-mode="unica"
+                  aria-pressed="true"
+                  class="voice-mode-btn active-mode w-full text-left"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white">🎙️ Voz Única</span>
+                    <span class="font-mono text-[10px] text-amber-300">1 narrador fixo</span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] text-slate-300">Um único locutor narra todo o documento do início ao fim.</p>
+                </button>
+                <div id="subModeUnicaPanel" class="mt-2 grid grid-cols-2 gap-1.5 border-t border-amber-400/25 pt-2">
+                  <button
+                    type="button"
+                    data-voice-parent="unica"
+                    data-voice-submode="escolher"
+                    aria-pressed="true"
+                    class="voice-submode-btn active-submode rounded-lg border border-amber-400 bg-amber-400/20 px-2.5 py-1.5 text-left transition"
+                  >
+                    <span class="block text-[11px] font-bold text-white">🎯 Escolher voz</span>
+                    <span class="block text-[10px] text-slate-300">Seleciono no catálogo</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-voice-parent="unica"
+                    data-voice-submode="aleatoria"
+                    aria-pressed="false"
+                    class="voice-submode-btn rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-1.5 text-left transition hover:border-slate-600"
+                  >
+                    <span class="block text-[11px] font-bold text-white">🎲 Voz única aleatória</span>
+                    <span class="block text-[10px] text-slate-400">1 voz sorteada p/ tudo</span>
+                  </button>
                 </div>
-                <p class="mt-0.5 text-[11px] text-slate-300">O locutor escolhido abaixo narra todo o documento.</p>
-              </button>
+              </div>
 
-
-              <button
-                type="button"
-                data-voice-mode="por_capitulo"
-                class="voice-mode-btn rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-left transition hover:border-slate-700"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white">📑 Voz por Capítulo</span>
-                  <span class="font-mono text-[10px] text-slate-400">personalizado</span>
+              <!-- MODO 2: VOZ POR CAPÍTULO + SUBBOTÕES -->
+              <div id="voiceModeGroupCapitulo" class="voice-mode-group rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 transition hover:border-slate-700">
+                <button
+                  type="button"
+                  data-voice-mode="por_capitulo"
+                  aria-pressed="false"
+                  class="voice-mode-btn w-full text-left"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white">📑 Voz por Capítulo</span>
+                    <span class="font-mono text-[10px] text-slate-400">múltiplos narradores</span>
+                  </div>
+                  <p class="mt-0.5 text-[11px] text-slate-400">Alterne narradores entre os capítulos/documentos detectados.</p>
+                </button>
+                <div id="subModeCapituloPanel" class="mt-2 hidden grid-cols-2 gap-1.5 border-t border-slate-700/60 pt-2">
+                  <button
+                    type="button"
+                    data-voice-parent="por_capitulo"
+                    data-voice-submode="escolher"
+                    aria-pressed="false"
+                    class="voice-submode-btn rounded-lg border border-amber-400 bg-amber-400/20 px-2.5 py-1.5 text-left transition"
+                  >
+                    <span class="block text-[11px] font-bold text-white">🎯 Escolher por capítulo</span>
+                    <span class="block text-[10px] text-slate-300">Defino cada capítulo</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-voice-parent="por_capitulo"
+                    data-voice-submode="aleatoria"
+                    aria-pressed="false"
+                    class="voice-submode-btn rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-1.5 text-left transition hover:border-slate-600"
+                  >
+                    <span class="block text-[11px] font-bold text-white">🎲 Aleatórias p/ capítulo</span>
+                    <span class="block text-[10px] text-slate-400">Rodízio sem repetição</span>
+                  </button>
                 </div>
-                <p class="mt-0.5 text-[11px] text-slate-400">Escolha qual locutor narra cada capítulo/documento detectado.</p>
-              </button>
-
-
-              <button
-                type="button"
-                data-voice-mode="aleatoria"
-                class="voice-mode-btn rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2 text-left transition hover:border-slate-700"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-white">🎲 Vozes Aleatórias</span>
-                  <span class="font-mono text-[10px] text-slate-400">rodízio dinâmico</span>
-                </div>
-                <p class="mt-0.5 text-[11px] text-slate-400">Sorteio inteligente sem repetição entre capítulos.</p>
-              </button>
+              </div>
             </div>
           </div>
 
-
           <div class="mt-4 border-t border-slate-800/80 pt-3">
-            <label class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">Formato de entrega do arquivo</label>
-            <div class="grid grid-cols-2 gap-2">
+            <p class="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-300">Formato de entrega do arquivo</p>
+            <div class="grid grid-cols-2 gap-2" role="group" aria-label="Formato de entrega do arquivo">
               <button
                 type="button"
                 data-output-format="unico"
+                aria-pressed="true"
                 class="output-format-btn active-format rounded-xl border border-amber-400 bg-amber-500/10 p-2.5 text-left transition"
               >
                 <div class="text-xs font-bold text-white">🎵 Áudio Único (<span class="font-mono text-amber-300">.mp3</span>)</div>
                 <p class="mt-0.5 text-[10px] text-slate-300">1 arquivo MP3 contínuo.</p>
               </button>
 
-
               <button
                 type="button"
                 data-output-format="capitulos"
+                aria-pressed="false"
                 class="output-format-btn rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 text-left transition hover:border-slate-700"
               >
                 <div class="text-xs font-bold text-white">🗂️ Por Capítulos (<span class="font-mono text-slate-400">.zip</span>)</div>
@@ -451,30 +612,32 @@
 
       <!-- BARRA DE FILTROS E STATUS DO CATÁLOGO DE VOZES -->
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-        <div class="flex flex-wrap items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar vozes por gênero ou estilo">
           <span class="mr-1 text-xs font-bold uppercase tracking-wider text-slate-400">Filtrar:</span>
-          <button type="button" data-voice-filter="todas" class="voice-filter-btn active-filter rounded-full border border-amber-400/60 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300 transition">
+          <button type="button" data-voice-filter="todas" aria-pressed="true" class="voice-filter-btn active-filter rounded-full border border-amber-400/60 bg-amber-500/15 px-3 py-1 text-xs font-bold text-amber-300 transition">
             Todas
           </button>
-          <button type="button" data-voice-filter="F" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
+          <button type="button" data-voice-filter="F" aria-pressed="false" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
             👩 Femininas
           </button>
-          <button type="button" data-voice-filter="M" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
+          <button type="button" data-voice-filter="M" aria-pressed="false" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
             👨 Masculinas
           </button>
-          <button type="button" data-voice-filter="densa" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
+          <button type="button" data-voice-filter="densa" aria-pressed="false" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
             ⚖️ Leis &amp; Leitura Densa
           </button>
-          <button type="button" data-voice-filter="dinamica" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
+          <button type="button" data-voice-filter="dinamica" aria-pressed="false" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
             ⚡ Dinâmica &amp; Revisão
           </button>
-          <button type="button" data-voice-filter="narrativa" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
+          <button type="button" data-voice-filter="narrativa" aria-pressed="false" class="voice-filter-btn rounded-full border border-slate-800 bg-slate-950/80 px-3 py-1 text-xs font-medium text-slate-300 hover:border-slate-700 transition">
             📖 Narrativa &amp; Fluida
           </button>
         </div>
 
-
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="catalogEnginePill" class="rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-300">
+            🎙️ XTTSv2 Estúdio
+          </span>
           <span id="catalogLangCounter" class="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 font-mono text-xs text-slate-300">
             18 vozes PT-BR
           </span>
@@ -485,9 +648,57 @@
       </div>
 
 
-      <!-- GRADE AMPLA DE VOZES COM AVATARES (LARGURA TOTAL: ATÉ 4 COLUNAS) -->
-      <div id="voicesGrid" class="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <!-- Preenchido dinamicamente por app.js com avatares animados e MP3s do XTTSv2 -->
+      <!-- CARROSSEL HORIZONTAL DE VOZES COM AVATARES (ROLAGEM HORIZONTAL + SETAS) -->
+      <div id="voicesCarouselWrap" class="voices-carousel-wrap relative">
+        <button
+          type="button"
+          id="voicesCarouselPrev"
+          data-carousel-dir="-1"
+          aria-label="Rolar catálogo de vozes para a esquerda"
+          class="voices-carousel-nav voices-carousel-edge-btn hidden md:flex items-center justify-center absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-lg backdrop-blur-sm transition hover:border-amber-400 hover:text-amber-300"
+          title="Vozes anteriores"
+        >
+          <span aria-hidden="true" class="text-lg font-extrabold leading-none">‹</span>
+        </button>
+
+        <div
+          id="voicesGrid"
+          class="voices-carousel-track"
+          role="region"
+          aria-label="Carrossel de vozes disponíveis"
+          tabindex="0"
+        >
+          <!-- Preenchido dinamicamente por app.js com avatares animados e MP3s do XTTSv2 ou Edge TTS -->
+        </div>
+
+        <button
+          type="button"
+          id="voicesCarouselNext"
+          data-carousel-dir="1"
+          aria-label="Rolar catálogo de vozes para a direita"
+          class="voices-carousel-nav voices-carousel-edge-btn hidden md:flex items-center justify-center absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-lg backdrop-blur-sm transition hover:border-amber-400 hover:text-amber-300"
+          title="Próximas vozes"
+        >
+          <span aria-hidden="true" class="text-lg font-extrabold leading-none">›</span>
+        </button>
+      </div>
+
+      <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+        <span>↔️ Role horizontalmente ou use as setas para navegar pelas vozes</span>
+        <div class="flex items-center gap-1.5 md:hidden">
+          <button
+            type="button"
+            data-carousel-dir="-1"
+            aria-label="Vozes anteriores"
+            class="voices-carousel-nav inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-slate-200 transition hover:border-amber-400 hover:text-amber-300"
+          ><span aria-hidden="true">‹</span></button>
+          <button
+            type="button"
+            data-carousel-dir="1"
+            aria-label="Próximas vozes"
+            class="voices-carousel-nav inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-xs font-bold text-slate-200 transition hover:border-amber-400 hover:text-amber-300"
+          ><span aria-hidden="true">›</span></button>
+        </div>
       </div>
 
 
@@ -495,9 +706,9 @@
         <span id="audioSourceStatusText">
           🔊 Reprodução real em cima dos arquivos MP3 das vozes (controle de velocidade com preservação de tom ativa).
         </span>
-        <a href="#stepCard03" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/15 border border-amber-400/40 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
-          <span>Avançar para Passo 03: Entrega e PIX</span>
-          <span class="step-arrow-cue">↓</span>
+        <a href="#stepCard03" id="step02NextBtn" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/15 border border-amber-400/40 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
+          <span>Avançar para Passo 03: Entrega</span>
+          <span class="step-arrow-cue" aria-hidden="true">↓</span>
         </a>
       </div>
     </section>
@@ -507,17 +718,16 @@
     <div class="my-3 flex flex-col items-center justify-center" aria-hidden="true">
       <div id="connector02to03" class="step-connector flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-4 py-1 text-xs font-semibold text-slate-400">
         <span class="step-arrow-cue text-amber-400">↓</span>
-        <span id="connector02Text">Último passo: informe onde entregar seu audiobook e gere o PIX</span>
+        <span id="connector02Text">Último passo: informe onde entregar seu audiobook e confirme o pedido</span>
         <span class="step-arrow-cue text-amber-400">↓</span>
       </div>
     </div>
 
 
     <!-- ====================================================================== -->
-    <!-- PASSO 03 + RESUMO DE PREVISÃO E PIX (LADO A LADO)                      -->
+    <!-- PASSO 03 + RESUMO DE PREVISÃO E ENVIO (LADO A LADO)                    -->
     <!-- ====================================================================== -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
-
 
       <!-- COLUNA ESQUERDA: PASSO 03 (FORMULÁRIO DE ENTREGA + WHATSAPP + TERMOS) -->
       <section id="stepCard03" class="step-section scroll-mt-36 rounded-2xl border border-slate-800 bg-slate-900/65 p-6 shadow-xl transition-all duration-300 lg:col-span-7">
@@ -526,7 +736,7 @@
             <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">03</span>
             <div>
               <div class="flex items-center gap-2">
-                <h2 class="text-lg font-bold text-white">Onde devemos entregar o seu audiobook?</h2>
+                <h2 id="step03Heading" class="text-lg font-bold text-white">Onde devemos entregar o seu audiobook?</h2>
                 <span id="step03LivePill" class="hidden rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                   ● Etapa atual
                 </span>
@@ -537,45 +747,77 @@
         </div>
 
 
-        <form id="orderForm" class="space-y-4" novalidate>
-          <div>
+        <form id="orderForm" aria-labelledby="step03Heading" class="space-y-4" novalidate>
+          <div class="form-field">
             <div class="mb-1 flex items-center justify-between">
               <label for="clientName" class="text-xs font-semibold text-slate-200">Seu Nome</label>
               <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
             </div>
             <input
               id="clientName"
+              name="client_name"
               type="text"
+              autocomplete="name"
+              enterkeyhint="next"
               required
+              data-error="clientNameError"
               placeholder="Ex.: Carlos Eduardo"
-              class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+              class="form-text-input w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500"
             />
+            <p id="clientNameError" class="field-error-msg mt-1.5 text-xs text-red-300">
+              <span role="img" aria-label="Erro">❌</span> Informe seu nome completo para identificar a entrega.
+            </p>
           </div>
 
 
-          <div>
+          <div class="form-field">
             <div class="mb-1 flex items-center justify-between">
               <label for="clientEmail" class="text-xs font-semibold text-slate-200">
                 E-mail para receber o seu audiobook (link de download)
               </label>
               <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
             </div>
-            <input
-              id="clientEmail"
-              type="email"
-              required
-              placeholder="seu.email@gmail.com"
-              class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
-            />
-            <p class="mt-1 text-[11px] text-slate-400">
+            <p id="clientEmailHint" class="mb-1.5 text-[11px] text-slate-400">
               Enviamos um link de download direto (disponível por 7 dias) e, para arquivos de até 15 MB, o áudio também vai anexado no próprio e-mail.
             </p>
+            <input
+              id="clientEmail"
+              name="client_email"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              enterkeyhint="next"
+              required
+              aria-describedby="clientEmailHint"
+              data-error="clientEmailError"
+              placeholder="seu.email@gmail.com"
+              class="form-text-input w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500"
+            />
+            <p id="clientEmailError" class="field-error-msg mt-1.5 text-xs text-red-300">
+              <span role="img" aria-label="Erro">❌</span> Digite um endereço de e-mail válido no formato nome@dominio.com.
+            </p>
+
+            <div id="quotaStatusBox" class="mt-2.5 rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-2.5 text-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span id="quotaStatusTitle" class="font-semibold text-emerald-300">🎁 Cota Gratuita XTTSv2 (100 páginas / 200.000 chars)</span>
+                <span id="quotaBalanceBadge" class="font-mono font-bold text-emerald-300">200.000 chars disponíveis</span>
+              </div>
+              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div id="quotaBalanceBar" class="h-full w-full bg-emerald-400 transition-all duration-300"></div>
+              </div>
+              <p id="quotaStatusHint" class="mt-1.5 text-[11px] text-slate-300">
+                O saldo gratuito do XTTSv2 é vinculado ao seu e-mail. No modo Edge TTS, a conversão é sempre 100% gratuita e não consome esta cota.
+              </p>
+            </div>
           </div>
 
 
           <!-- CAMPO DE WHATSAPP COM BOTÃO CLICK-TO-CHAT INTEGRADO -->
           <div class="rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-3.5">
-            <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+            <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
               <label for="clientWhatsapp" class="text-xs font-semibold text-emerald-300">
                 WhatsApp (com DDD) para receber o seu audiobook (link de download)
               </label>
@@ -586,14 +828,21 @@
                 </span>
               </div>
             </div>
-
+            <p id="clientWhatsappHint" class="mb-2 text-[11px] leading-relaxed text-slate-300">
+              <strong class="text-emerald-300">Como ativar:</strong> Para receber o áudio também no WhatsApp, clique em <strong class="text-white">"Enviar 'Oi' p/ Receber"</strong> e mande uma mensagem curta (como um <em>"Oi"</em>) para liberar o envio automático.
+            </p>
 
             <div class="flex flex-col gap-2 sm:flex-row">
               <input
                 id="clientWhatsapp"
+                name="client_whatsapp"
                 type="tel"
+                inputmode="tel"
+                autocomplete="tel"
+                enterkeyhint="done"
+                aria-describedby="clientWhatsappHint"
                 placeholder="(19) 99876-5432"
-                class="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:border-emerald-400 focus:outline-none"
+                class="form-text-input flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm text-white placeholder-slate-500"
               />
               <a
                 id="waClickToChatBtn"
@@ -602,41 +851,41 @@
                 rel="noopener noreferrer"
                 class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-500 whitespace-nowrap"
               >
-                <span>💬</span>
+                <span aria-hidden="true">💬</span>
                 <span>Enviar "Oi" p/ Receber</span>
               </a>
             </div>
-
-
-            <p class="mt-2 text-[11px] leading-relaxed text-slate-300">
-              <strong class="text-emerald-300">Como ativar:</strong> Para receber o áudio também no WhatsApp, clique em <strong class="text-white">"Enviar 'Oi' p/ Receber"</strong> e mande uma mensagem curta (como um <em>"Oi"</em>) para liberar o envio automático para o seu número.
-            </p>
           </div>
 
 
           <!-- TERMOS E CONDIÇÕES (BLINDAGEM JURÍDICA) -->
-          <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
-            <label class="flex items-start gap-2.5 cursor-pointer">
+          <div id="termsBox" class="form-field rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 transition">
+            <label for="termsCheckbox" class="terms-check-label flex items-start gap-2.5 cursor-pointer">
               <input
                 id="termsCheckbox"
+                name="terms_accepted"
                 type="checkbox"
                 required
-                class="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-amber-500 focus:ring-amber-400"
+                data-error="termsCheckboxError"
+                class="terms-checkbox mt-1 h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-900"
               />
               <span class="text-[11px] leading-relaxed text-slate-300">
                 <strong class="text-white">Li e concordo com os Termos e Condições de Uso do TocaTexto (Obrigatório):</strong>
                 <span class="block mt-1 text-slate-400">
-                  1. <strong>Natureza Tecnológica:</strong> Conversão por redes neurais de IA (TTS), sujeita a variações pontuais de entonação e siglas.<br />
+                  1. <strong>Natureza Tecnológica:</strong> Conversão por síntese neural (XTTSv2 ou Edge TTS), sujeita a variações pontuais de entonação e siglas.<br />
                   2. <strong>Responsabilidade do Conteúdo:</strong> Declaro possuir titularidade ou fazer uso privado para estudo pessoal (art. 46, Lei 9.610/98).<br />
                   3. <strong>Prazo e Validade:</strong> Entrega assíncrona por E-mail e WhatsApp no prazo estimado. Link de download ativo por 7 dias.<br />
-                  4. <strong>Produtos Digitais:</strong> Serviço computacional sob demanda imediata, sem cancelamento após confirmação do PIX.
+                  4. <strong>Produtos Digitais:</strong> Serviço sob demanda imediata (gratuito no Edge TTS, via cota inicial de 200.000 caracteres no XTTSv2 ou pagamento via PIX no excedente), sem cancelamento após confirmação.
                 </span>
               </span>
             </label>
+            <p id="termsCheckboxError" class="field-error-msg mt-2 text-xs text-red-300">
+              <span role="img" aria-label="Erro">❌</span> Marque a caixa acima para concordar com os Termos e Condições de Uso.
+            </p>
           </div>
 
 
-          <div id="formValidationError" class="hidden rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-200"></div>
+          <div id="formValidationError" role="alert" class="hidden rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-200"></div>
 
 
           <button
@@ -644,84 +893,97 @@
             type="submit"
             class="w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Gerar QR Code PIX (R$ 1,00) e Iniciar Conversão
+            Iniciar Conversão Gratuita (Cota Inicial)
           </button>
         </form>
       </section>
 
 
       <!-- COLUNA DIREITA: CARD DE RESUMO FINANCEIRO & PREVISÃO DINÂMICA DE ENTREGA -->
-      <div class="lg:col-span-5">
+      <aside class="lg:col-span-5" aria-label="Resumo do pedido e previsão de entrega">
         <section id="summaryStickyCard" class="sticky top-36 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-2xl">
           <div class="flex items-start justify-between border-b border-slate-800 pb-4">
             <div>
               <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Resumo &amp; Previsão Dinâmica</span>
-              <h3 class="text-lg font-extrabold text-white">⏱️ Seu Audiobook Sob Demanda</h3>
+              <h2 class="text-lg font-extrabold text-white">⏱️ Seu Audiobook Sob Demanda</h2>
             </div>
             <div class="text-right">
-              <span class="block text-[11px] text-slate-400">Valor Total PIX</span>
-              <span id="priceDisplay" class="inline-block font-mono text-2xl font-extrabold text-emerald-400 transition-transform duration-300">R$ 1,00</span>
+              <span id="summaryPriceLabel" class="block text-[11px] text-slate-400">Valor do Pedido</span>
+              <span id="priceDisplay" class="inline-block font-mono text-2xl font-extrabold text-emerald-400 transition-transform duration-300">GRÁTIS</span>
             </div>
           </div>
 
-
-          <!-- Memória de Cálculo Transparente do PIX -->
+          <!-- Memória de Cálculo Transparente (Serviço + Cota Grátis + Excedente PIX) -->
           <div class="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 px-3.5 py-2.5 text-xs">
-            <div class="flex items-center justify-between text-slate-300">
+            <div class="flex items-center justify-between gap-2 text-slate-300">
+              <span>• Serviço de áudio:</span>
+              <span id="estEngineSummary" class="font-mono font-bold text-amber-300">🎙️ XTTSv2 (Estúdio)</span>
+            </div>
+            <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
               <span>• Documento(s) no pedido:</span>
               <span id="summaryDocStatus" class="font-mono font-semibold text-slate-400">Aguardando arquivo...</span>
             </div>
-            <div class="mt-1 flex items-center justify-between text-slate-300">
-              <span>• Cálculo de caracteres:</span>
-              <span id="priceFormulaHint" class="font-mono text-[11px] text-emerald-300">Mín. R$ 1,00 (até 20.000 chars)</span>
+            <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
+              <span id="summaryQuotaLabel">• Cota grátis XTTSv2 (100 pág.):</span>
+              <span id="summaryQuotaStatus" class="font-mono text-[11px] font-semibold text-emerald-300">200.000 chars disponíveis</span>
+            </div>
+            <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
+              <span>• Cálculo de cobrança:</span>
+              <span id="priceFormulaHint" class="font-mono text-[11px] text-emerald-300">100% coberto pela cota grátis</span>
             </div>
           </div>
-
 
           <div class="mt-4 space-y-2.5 text-xs">
             <div class="flex items-center justify-between text-slate-300">
               <span>• Tempo estimado de conversão:</span>
-              <span id="estConversionTime" class="font-mono font-semibold text-white">~25 min</span>
+              <span id="estConversionTime" class="font-mono font-semibold text-white">--</span>
             </div>
             <div class="flex items-center justify-between text-slate-300">
               <span>• Fila de espera atual:</span>
               <span id="estQueueStatus" class="font-mono font-semibold text-emerald-300">Livre (0 pedidos na frente)</span>
             </div>
-            <div class="flex items-center justify-between text-slate-300">
-              <span>• Configuração escolhida:</span>
-              <span id="estConfigSummary" class="font-mono text-amber-300">PT-BR · Voz: borges · 1.00x · .mp3</span>
+            <div class="flex items-center justify-between gap-2 text-slate-300">
+              <span class="shrink-0">• Configuração escolhida:</span>
+              <span id="estConfigSummary" class="font-mono text-right text-amber-300">XTTSv2 · PT-BR · Voz: borges · 1.00x · .mp3</span>
             </div>
           </div>
 
+          <!-- Comparativo instantâneo com o outro serviço -->
+          <div id="estEngineCompareBox" class="mt-3 hidden rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-3 py-2 text-[11px] text-slate-300">
+            <div class="flex items-center justify-between gap-2">
+              <span id="estEngineCompareHint"></span>
+              <button type="button" id="quickSwitchEngineBtn" class="shrink-0 rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-bold text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition">
+                Trocar
+              </button>
+            </div>
+          </div>
 
-          <div class="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-300">🚀 Seu áudio será entregue até</p>
-            <p id="estDeliveryClock" class="mt-0.5 font-mono text-xl font-extrabold text-white">--:--</p>
+          <div id="estDeliveryBox" class="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
+            <p id="estDeliveryLabel" class="text-[11px] font-semibold uppercase tracking-wider text-amber-300">🚀 Seu áudio será entregue até</p>
+            <p id="estDeliveryClock" class="mt-0.5 font-mono text-xl font-extrabold text-white">Aguardando documento...</p>
             <p id="estDeliverySubtext" class="mt-0.5 text-[11px] text-slate-300">Entrega simultânea por E-mail e WhatsApp (link ativo por 7 dias)</p>
           </div>
         </section>
-      </div>
-
+      </aside>
 
     </div>
   </main>
 
 
   <!-- RODAPÉ DE CONFIANÇA, SEGURANÇA E CONTATO -->
-  <footer class="mt-14 border-t border-slate-800/80 bg-slate-950/90 py-8 text-xs text-slate-400">
+  <footer class="relative z-10 mt-14 border-t border-slate-800/80 bg-slate-950/90 py-8 text-xs text-slate-400">
     <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
       <div class="flex items-center gap-2.5">
-        <span class="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400" title="Ambiente Seguro">
+        <span class="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400" aria-hidden="true">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </span>
         <div>
-          <p class="font-semibold text-slate-200">Ambiente Seguro · Pagamento Instantâneo via PIX &amp; Processamento Isolado</p>
+          <p class="font-semibold text-slate-200">Ambiente Seguro · XTTSv2 Estúdio, Edge TTS Gratuito &amp; Processamento Isolado</p>
           <p class="text-[11px] text-slate-400">© 2026 TocaTexto — Todos os direitos reservados. Você envia o texto. A gente dá o play.</p>
         </div>
       </div>
-
 
       <div class="flex flex-wrap items-center gap-3">
         <span class="text-slate-400">Dúvidas ou suporte:</span>
@@ -729,7 +991,7 @@
           href="mailto:tocatexto@gmail.com"
           class="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono text-xs font-semibold text-amber-300 hover:border-amber-400/50 transition"
         >
-          <span>✉️</span>
+          <span aria-hidden="true">✉️</span>
           <span>tocatexto@gmail.com</span>
         </a>
       </div>
@@ -737,19 +999,18 @@
   </footer>
 
 
-  <!-- MODAL DE PAGAMENTO PIX & CONFIRMAÇÃO -->
-  <div id="pixModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-    <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+  <!-- MODAL NATIVO (<dialog>) DE PAGAMENTO PIX & CONFIRMAÇÃO -->
+  <dialog id="pixModal" closedby="any" aria-labelledby="pixModalTitle" class="pix-dialog w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl">
+    <div class="p-6">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400" id="pixModalOrderId">PED-000000</span>
-          <h3 class="text-lg font-extrabold text-white">Pagamento Instantâneo via PIX</h3>
+          <h1 id="pixModalTitle" class="text-lg font-extrabold text-white">Pagamento Instantâneo via PIX</h1>
         </div>
-        <button id="closePixModalBtn" type="button" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
-          ✕
+        <button id="closePixModalBtn" type="button" autofocus aria-label="Fechar janela de confirmação" class="inline-flex h-9 w-9 items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <span aria-hidden="true">✕</span>
         </button>
       </div>
-
 
       <!-- Etapa Aguardando PIX -->
       <div id="pixPendingStage" class="mt-4 space-y-4 text-center">
@@ -757,17 +1018,16 @@
           Escaneie o QR Code abaixo ou use o código <strong>PIX Copia e Cola</strong>. Assim que o pagamento for confirmado, a esteira inicia imediatamente.
         </p>
 
-
         <div class="mx-auto flex h-48 w-48 items-center justify-center rounded-xl border border-slate-700 bg-white p-3">
-          <img id="pixQrImage" alt="QR Code PIX" class="h-full w-full object-contain" src="" />
+          <img id="pixQrImage" alt="QR Code para pagamento PIX do pedido" class="h-full w-full object-contain" src="" />
         </div>
 
-
         <div class="text-left">
-          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">PIX Copia e Cola</label>
+          <label for="pixCopyPasteInput" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">PIX Copia e Cola</label>
           <div class="flex gap-2">
             <input
               id="pixCopyPasteInput"
+              name="pix_copy_paste"
               type="text"
               readonly
               class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-200"
@@ -782,12 +1042,10 @@
           </div>
         </div>
 
-
         <div class="rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-xs text-slate-300 flex items-center justify-between">
           <span>Valor a pagar: <strong id="pixModalAmount" class="font-mono text-emerald-400">R$ 1,00</strong></span>
-          <span id="pixPollingStatus" class="text-amber-300 animate-pulse">Aguardando confirmação...</span>
+          <span id="pixPollingStatus" class="text-amber-300 motion-pulse">Aguardando confirmação...</span>
         </div>
-
 
         <!-- Ações de Simulação / Download do Contrato pedido.json (Modo Local/Piloto) -->
         <div id="localSimulationActions" class="border-t border-slate-800 pt-3 text-left">
@@ -813,17 +1071,28 @@
         </div>
       </div>
 
-
-      <!-- Etapa PIX Confirmado -->
+      <!-- Etapa PIX / Pedido Gratuito Confirmado -->
       <div id="pixApprovedStage" class="mt-4 hidden space-y-4 text-center">
-        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-2xl text-emerald-400">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-2xl text-emerald-400" aria-hidden="true">
           ✓
         </div>
-        <h4 class="text-base font-extrabold text-white">Pagamento Confirmado!</h4>
+        <h2 id="approvedStageTitle" class="text-base font-extrabold text-white">Pagamento Confirmado!</h2>
         <p class="text-xs text-slate-300">
-          Seu pedido <strong id="approvedOrderIdText" class="font-mono text-amber-300"></strong> já entrou na fila do motor TocaTexto. Você receberá o audiobook pronto até <strong id="approvedEtaText" class="text-white"></strong>.
+          Seu pedido <strong id="approvedOrderIdText" class="font-mono text-amber-300"></strong> já entrou na fila do motor TocaTexto (<strong id="approvedEngineLabel" class="text-white">XTTSv2</strong>). Você receberá o audiobook pronto até <strong id="approvedEtaText" class="text-white"></strong>.
         </p>
-
+        <p id="approvedQuotaSummary" class="hidden rounded-lg border border-emerald-500/35 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200"></p>
+        <div id="localApprovedActions" class="hidden border-t border-slate-800 pt-3 text-left">
+          <p class="text-[11px] text-slate-400 mb-2">
+            Modo de Homologação Local: baixe o contrato <code class="text-amber-300">pedido.json</code> deste pedido gratuito.
+          </p>
+          <button
+            id="approvedDownloadOrderJsonBtn"
+            type="button"
+            class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+          >
+            ⬇ Baixar pedido.json
+          </button>
+        </div>
 
         <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-4 text-left">
           <p class="text-xs font-bold text-emerald-300">💬 Já enviou o "Oi" no nosso WhatsApp?</p>
@@ -842,7 +1111,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </dialog>
 
 
   <!-- Player de áudio HTML5 para reprodução real-time dos MP3s das vozes -->
