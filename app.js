@@ -43,7 +43,7 @@
     COM_LINK_DIAS_EXPIRA: 7,
     COM_LIMITE_ANEXO_MB: 15,
     COM_WHATSAPP_NUMERO_PUBLICO: "5519999999999",
-    API_BASE_URL: "",
+    API_BASE_URL: "https://tocatexto-api.onrender.com",
     // [web_v07_02] Baseline autocalibrado pelos logs centrais do XTTSv2 (22 fatias / 60 itens CPU)
     // alinhado à frota CPU completa ociosa (9 contas × 5 fatias = 45 fatias / 135 workers: 3 tocatexto* + 3 audiobook* + 3 GPU-como-CPU)
     CPU_AUTOCALIBRADO: true,
@@ -65,6 +65,24 @@
     EDGE_MARGEM_SEGURANCA: 1.25,
     EDGE_PISO_MIN: 2,
   };
+
+  // [web_v09_00] Permite apontar a API FastAPI por meta tag ou query string (?api=http://127.0.0.1:8000)
+  (function resolverApiBaseUrlInicial() {
+    if (CONFIG_COMERCIAL.API_BASE_URL) return;
+    try {
+      const metaApi = document.querySelector('meta[name="tocatexto-api-url"]')?.getAttribute("content")?.trim() || "";
+      const params = new URLSearchParams(window.location.search);
+      const paramApi = (params.get("api") || "").trim();
+      const candidata = paramApi || metaApi;
+      if (!candidata) return;
+      const parsed = new URL(candidata);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        CONFIG_COMERCIAL.API_BASE_URL = parsed.origin + parsed.pathname.replace(/\/+$/, "");
+      }
+    } catch (_err) {
+      // Mantém API_BASE_URL vazia em caso de URL malformada
+    }
+  })();
 
   // Velocidades preferenciais com atração magnética no slider granular
   const SNAP_SPEEDS = [0.85, 1.0, 1.25];
@@ -2633,12 +2651,176 @@
     }${valorFmt}5802BR5909TOCATEXTO6008CAMPINAS62070503***6304ABCD`;
   }
 
-  function abrirModalPix(pedido) {
-    state.ultimoPedidoCriado = pedido;
-    const ehGratuito = Number(pedido.documento.valor_pago || 0) <= 0;
-    const ehEdge = pedido.configuracoes?.motor_tts === "edge";
+  let pixPollingTimerId = null;
+  let pixPollingAbortController = null;
 
-    if (el.pixModalOrderId) el.pixModalOrderId.textContent = pedido.id_pedido;
+  function criarSignalComDeadline(userSignal, timeoutMs) {
+    if (
+      typeof AbortSignal !== "undefined" &&
+      typeof AbortSignal.timeout === "function" &&
+      typeof AbortSignal.any === "function"
+    ) {
+      const timeoutSig = AbortSignal.timeout(timeoutMs);
+      return {
+        signal: userSignal ? AbortSignal.any([userSignal, timeoutSig]) : timeoutSig,
+        cleanup: () => {},
+      };
+    }
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const onUserAbort = () => ctrl.abort();
+    if (userSignal) {
+      if (userSignal.aborted) ctrl.abort();
+      else userSignal.addEventListener("abort", onUserAbort, { once: true });
+    }
+    return {
+      signal: ctrl.signal,
+      cleanup: () => {
+        clearTimeout(timer);
+        if (userSignal) userSignal.removeEventListener("abort", onUserAbort);
+      },
+    };
+  }
+
+  function pararPollingPix() {
+    if (pixPollingTimerId !== null) {
+      clearTimeout(pixPollingTimerId);
+      pixPollingTimerId = null;
+    }
+    if (pixPollingAbortController) {
+      pixPollingAbortController.abort();
+      pixPollingAbortController = null;
+    }
+  }
+
+  async function enviarPedidoParaApi(pedidoRascunho) {
+    const endpoint = new URL("/api/pedidos", CONFIG_COMERCIAL.API_BASE_URL);
+    const formData = new FormData();
+    formData.append("payload_json", JSON.stringify(pedidoRascunho));
+    for (const item of state.arquivos) {
+      if (item?.file) {
+        formData.append("files", item.file, item.nome);
+      }
+    }
+
+    const { signal, cleanup } = criarSignalComDeadline(null, 45000);
+    try {
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: formData,
+        signal,
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        const detalhe = data?.detail || `Erro HTTP ${resp.status} ao enviar o pedido.`;
+        throw new Error(detalhe);
+      }
+      return data;
+    } catch (err) {
+      if (err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError")) {
+        throw new Error("Tempo limite excedido ao enviar os arquivos para o servidor. Tente novamente.", { cause: err });
+      }
+      throw new Error(err?.message || "Falha de comunicação com a API do TocaTexto.", { cause: err });
+    } finally {
+      cleanup();
+    }
+  }
+
+  function iniciarPollingPix(idPedido) {
+    pararPollingPix();
+    if (!CONFIG_COMERCIAL.API_BASE_URL || !idPedido) return;
+
+    pixPollingAbortController = new AbortController();
+    const userSignal = pixPollingAbortController.signal;
+    const statusEl = document.getElementById("pixPollingStatus");
+
+    const checar = async () => {
+      if (userSignal.aborted) return;
+      const { signal, cleanup } = criarSignalComDeadline(userSignal, 5000);
+      try {
+        const endpoint = new URL(`/api/pedidos/${encodeURIComponent(idPedido)}`, CONFIG_COMERCIAL.API_BASE_URL);
+        const resp = await fetch(endpoint, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal,
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data?.status === "na_fila" || data?.status === "em_processamento" || data?.status === "concluido") {
+            pararPollingPix();
+            if (statusEl) statusEl.textContent = "Pagamento confirmado!";
+            confirmarPixNoModal(false);
+            atualizarSaldoCotaPorEmail(true);
+            return;
+          }
+        }
+      } catch (err) {
+        if (userSignal.aborted) return;
+        if (err?.name !== "TimeoutError" && err?.name !== "AbortError") {
+          // Mantém tentativa silenciosa no próximo ciclo
+        }
+      } finally {
+        cleanup();
+      }
+      if (!userSignal.aborted) {
+        pixPollingTimerId = setTimeout(checar, 4000);
+      }
+    };
+
+    pixPollingTimerId = setTimeout(checar, 3500);
+  }
+
+  async function confirmarPixSimuladoNaApi(idPedido) {
+    if (!CONFIG_COMERCIAL.API_BASE_URL || !idPedido) {
+      confirmarPixNoModal(false);
+      return;
+    }
+    const { signal, cleanup } = criarSignalComDeadline(null, 15000);
+    try {
+      const endpoint = new URL(
+        `/api/pedidos/${encodeURIComponent(idPedido)}/confirmar-simulado`,
+        CONFIG_COMERCIAL.API_BASE_URL
+      );
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        signal,
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data?.detail || `Erro HTTP ${resp.status}`);
+      }
+      pararPollingPix();
+      confirmarPixNoModal(false);
+      atualizarSaldoCotaPorEmail(true);
+    } catch (err) {
+      const statusEl = document.getElementById("pixPollingStatus");
+      if (statusEl) statusEl.textContent = err?.message || "Erro ao confirmar PIX simulado.";
+    } finally {
+      cleanup();
+    }
+  }
+
+  function abrirModalPix(pedido, respostaApi = null) {
+    pararPollingPix();
+    const pedidoFinal = respostaApi?.pedido || pedido;
+    state.ultimoPedidoCriado = pedidoFinal;
+    state.ultimoPixInfo = respostaApi?.pix || null;
+
+    if (typeof respostaApi?.cota?.cota_restante_apos === "number") {
+      state.cotaRestanteChars = Math.max(0, respostaApi.cota.cota_restante_apos);
+      state.cotaConsumidaChars = Math.max(0, state.cotaTotalChars - state.cotaRestanteChars);
+      atualizarResumoPedido();
+    }
+
+    const ehGratuito =
+      respostaApi?.status === "na_fila" ||
+      respostaApi?.pedido_gratuito === true ||
+      Number(pedidoFinal.documento.valor_pago || 0) <= 0;
+    const ehEdge = pedidoFinal.configuracoes?.motor_tts === "edge";
+
+    if (el.pixModalOrderId) el.pixModalOrderId.textContent = pedidoFinal.id_pedido;
 
     if (ehGratuito) {
       if (el.pixModalTitle) {
@@ -2649,18 +2831,42 @@
       confirmarPixNoModal(true);
     } else {
       if (el.pixModalTitle) el.pixModalTitle.textContent = "Pagamento Instantâneo via PIX";
-      const codigoPix = gerarPayloadPixSimulado(pedido);
-      if (el.pixModalAmount) el.pixModalAmount.textContent = formatarBRL(pedido.documento.valor_pago);
+      const pixApi = respostaApi?.pix || null;
+      const codigoPix = pixApi?.qr_code || gerarPayloadPixSimulado(pedidoFinal);
+      const valorFinal =
+        typeof respostaApi?.valor_pago === "number" ? respostaApi.valor_pago : pedidoFinal.documento.valor_pago;
+      if (el.pixModalAmount) el.pixModalAmount.textContent = formatarBRL(valorFinal);
       if (el.pixCopyPasteInput) el.pixCopyPasteInput.value = codigoPix;
 
       if (el.pixQrImage) {
-        const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
-        qrUrl.searchParams.set("size", "220x220");
-        qrUrl.searchParams.set("data", codigoPix);
-        el.pixQrImage.src = qrUrl.toString();
+        if (pixApi?.qr_code_base64) {
+          el.pixQrImage.src = `data:image/png;base64,${pixApi.qr_code_base64}`;
+        } else {
+          const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
+          qrUrl.searchParams.set("size", "220x220");
+          qrUrl.searchParams.set("data", codigoPix);
+          el.pixQrImage.src = qrUrl.toString();
+        }
       }
+
+      if (el.simulatePixApprovedBtn) {
+        const esconderSimulador = Boolean(CONFIG_COMERCIAL.API_BASE_URL && pixApi && pixApi.modo_simulado === false);
+        el.simulatePixApprovedBtn.classList.toggle("hidden", esconderSimulador);
+      }
+
+      const statusEl = document.getElementById("pixPollingStatus");
+      if (statusEl) {
+        statusEl.textContent = CONFIG_COMERCIAL.API_BASE_URL
+          ? "Aguardando confirmação automática..."
+          : "Aguardando confirmação...";
+      }
+
       if (el.pixPendingStage) el.pixPendingStage.classList.remove("hidden");
       if (el.pixApprovedStage) el.pixApprovedStage.classList.add("hidden");
+
+      if (CONFIG_COMERCIAL.API_BASE_URL && respostaApi?.status === "aguardando_pix") {
+        iniciarPollingPix(pedidoFinal.id_pedido);
+      }
     }
 
     if (el.pixModal && !el.pixModal.open) {
@@ -2670,6 +2876,7 @@
   }
 
   function fecharModalPix() {
+    pararPollingPix();
     if (!el.pixModal || !el.pixModal.open) return;
     closeTopLayerDialog(el.pixModal);
   }
@@ -3026,7 +3233,7 @@
     if (el.orderForm) {
       inicializarValidacaoAcessivelFormulario(el.orderForm);
 
-      el.orderForm.addEventListener("submit", (e) => {
+      el.orderForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (el.formValidationError) {
           el.formValidationError.classList.add("hidden");
@@ -3103,7 +3310,31 @@
 
         pararPreviewVoz();
         const pedido = construirContratoPedidoJson();
-        abrirModalPix(pedido);
+
+        if (!CONFIG_COMERCIAL.API_BASE_URL) {
+          abrirModalPix(pedido, null);
+          return;
+        }
+
+        const textoOriginalBtn = el.generatePixBtn?.textContent || "";
+        if (el.generatePixBtn) {
+          el.generatePixBtn.disabled = true;
+          el.generatePixBtn.textContent = "Enviando e validando documentos...";
+        }
+        try {
+          const respostaApi = await enviarPedidoParaApi(pedido);
+          abrirModalPix(pedido, respostaApi);
+        } catch (err) {
+          if (el.formValidationError) {
+            el.formValidationError.textContent = err?.message || "Não foi possível enviar o pedido. Tente novamente.";
+            el.formValidationError.classList.remove("hidden");
+          }
+        } finally {
+          if (el.generatePixBtn) {
+            el.generatePixBtn.disabled = false;
+            el.generatePixBtn.textContent = textoOriginalBtn;
+          }
+        }
       });
     }
 
@@ -3119,6 +3350,7 @@
       });
 
       el.pixModal.addEventListener("close", () => {
+        pararPollingPix();
         el.pixModal.removeAttribute("data-closing");
         el.pixModal.returnValue = "";
       });
@@ -3141,7 +3373,13 @@
     }
 
     if (el.simulatePixApprovedBtn) {
-      el.simulatePixApprovedBtn.addEventListener("click", () => confirmarPixNoModal(false));
+      el.simulatePixApprovedBtn.addEventListener("click", () => {
+        if (CONFIG_COMERCIAL.API_BASE_URL && state.ultimoPedidoCriado?.id_pedido) {
+          confirmarPixSimuladoNaApi(state.ultimoPedidoCriado.id_pedido);
+        } else {
+          confirmarPixNoModal(false);
+        }
+      });
     }
 
     if (el.downloadOrderJsonBtn) {
