@@ -28,21 +28,16 @@
 </head>
 <body data-engine="xttsv2" class="aurora-page bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 transition-colors duration-200">
 
-  <!-- FUNDO AURORA SONORA VIVO (web_v08_00_fundo_aurora_sonora) -->
+  <!-- FUNDO AURORA LEVE COM FADE ESTÁTICO (web_v11_00_aurora_leve_fade) -->
   <div class="aurora-backdrop" aria-hidden="true">
     <div class="aurora-layer aurora-layer-xtts">
-      <span class="aurora-orb aurora-orb-1"></span>
-      <span class="aurora-orb aurora-orb-2"></span>
-      <span class="aurora-orb aurora-orb-3"></span>
-      <span class="aurora-orb aurora-orb-4"></span>
+      <div class="aurora-frame aurora-frame-a"></div>
+      <div class="aurora-frame aurora-frame-b"></div>
     </div>
     <div class="aurora-layer aurora-layer-edge">
-      <span class="aurora-orb aurora-orb-1"></span>
-      <span class="aurora-orb aurora-orb-2"></span>
-      <span class="aurora-orb aurora-orb-3"></span>
-      <span class="aurora-orb aurora-orb-4"></span>
+      <div class="aurora-frame aurora-frame-a"></div>
+      <div class="aurora-frame aurora-frame-b"></div>
     </div>
-    <div class="aurora-grain"></div>
   </div>
 
   <!-- Skip link para navegação por teclado -->
@@ -66,24 +61,10 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <!-- Controle acessível para pausar/retomar a animação contínua do fundo (WCAG 2.2.2) -->
-        <button
-          id="auroraMotionToggleBtn"
-          type="button"
-          class="aurora-motion-btn inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-amber-400/50 hover:text-white"
-          aria-label="Pausar animação do fundo"
-          title="Pausar animação do fundo"
-        >
-          <span id="auroraMotionIcon" aria-hidden="true">⏸</span>
-          <span id="auroraMotionLabel" class="hidden sm:inline">Pausar fundo</span>
-        </button>
-
-        <!-- Indicador de Heartbeat em tempo real -->
-        <div id="heartbeatBadge" class="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-xs font-medium text-slate-300" role="status">
-          <span id="heartbeatDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse" aria-hidden="true"></span>
-          <span id="heartbeatText">Motor online · XTTSv2 &amp; Edge TTS prontos</span>
-        </div>
+      <!-- Indicador de Heartbeat em tempo real -->
+      <div id="heartbeatBadge" class="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-xs font-medium text-slate-300" role="status">
+        <span id="heartbeatDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse" aria-hidden="true"></span>
+        <span id="heartbeatText">Motor online · XTTSv2 &amp; Edge TTS prontos</span>
       </div>
     </div>
   </header>
@@ -799,8 +780,43 @@
             <p id="clientEmailError" class="field-error-msg mt-1.5 text-xs text-red-300">
               <span role="img" aria-label="Erro">❌</span> Digite um endereço de e-mail válido no formato nome@dominio.com.
             </p>
+          </div>
 
-            <div id="quotaStatusBox" class="mt-2.5 rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-2.5 text-xs">
+
+          <div class="form-field">
+            <div class="mb-1 flex items-center justify-between">
+              <label for="clientEmailConfirm" class="text-xs font-semibold text-slate-200">
+                Confirme seu e-mail
+              </label>
+              <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
+            </div>
+            <p id="clientEmailConfirmHint" class="mb-1.5 text-[11px] text-slate-400">
+              Digite o mesmo endereço novamente para evitar erros de digitação na entrega do seu audiobook.
+            </p>
+            <input
+              id="clientEmailConfirm"
+              name="client_email_confirm"
+              type="email"
+              inputmode="email"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              enterkeyhint="next"
+              required
+              aria-describedby="clientEmailConfirmHint"
+              data-error="clientEmailConfirmError"
+              placeholder="Repita seu.email@gmail.com"
+              class="form-text-input w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-white placeholder-slate-500"
+            />
+            <p id="clientEmailConfirmError" class="field-error-msg mt-1.5 text-xs text-red-300">
+              <span role="img" aria-label="Erro">❌</span> <span id="clientEmailConfirmErrorText">Digite o mesmo e-mail novamente para confirmar.</span>
+            </p>
+            <p id="clientEmailConfirmMatch" class="mt-1.5 hidden items-center gap-1.5 text-xs font-medium text-emerald-300">
+              <span aria-hidden="true">✓</span> <span>E-mails conferem.</span>
+            </p>
+
+            <div id="quotaStatusBox" class="mt-3 rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-2.5 text-xs">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <span id="quotaStatusTitle" class="font-semibold text-emerald-300">🎁 Cota Gratuita XTTSv2 (100 páginas / 200.000 chars)</span>
                 <span id="quotaBalanceBadge" class="font-mono font-bold text-emerald-300">200.000 chars disponíveis</span>
@@ -1000,21 +1016,21 @@
 
 
   <!-- MODAL NATIVO (<dialog>) DE PAGAMENTO PIX & CONFIRMAÇÃO -->
-  <dialog id="pixModal" closedby="any" aria-labelledby="pixModalTitle" class="pix-dialog w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl">
-    <div class="p-6">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400" id="pixModalOrderId">PED-000000</span>
-          <h1 id="pixModalTitle" class="text-lg font-extrabold text-white">Pagamento Instantâneo via PIX</h1>
+  <dialog id="pixModal" closedby="any" aria-labelledby="pixModalTitle" class="pix-dialog w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl">
+    <div class="p-6 sm:p-7">
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
+        <div class="min-w-0">
+          <span class="inline-block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400" id="pixModalOrderId">PED-000000</span>
+          <h1 id="pixModalTitle" class="mt-0.5 text-lg font-extrabold tracking-tight text-white">Pagamento Instantâneo via PIX</h1>
         </div>
-        <button id="closePixModalBtn" type="button" autofocus aria-label="Fechar janela de confirmação" class="inline-flex h-9 w-9 items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+        <button id="closePixModalBtn" type="button" autofocus aria-label="Fechar janela de confirmação" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white">
           <span aria-hidden="true">✕</span>
         </button>
       </div>
 
       <!-- Etapa Aguardando PIX -->
-      <div id="pixPendingStage" class="mt-4 space-y-4 text-center">
-        <p class="text-xs text-slate-300">
+      <div id="pixPendingStage" class="mt-5 space-y-4 text-center">
+        <p class="text-xs leading-relaxed text-slate-300">
           Escaneie o QR Code abaixo ou use o código <strong>PIX Copia e Cola</strong>. Assim que o pagamento for confirmado, a esteira inicia imediatamente.
         </p>
 
@@ -1071,16 +1087,77 @@
         </div>
       </div>
 
-      <!-- Etapa PIX / Pedido Gratuito Confirmado -->
-      <div id="pixApprovedStage" class="mt-4 hidden space-y-4 text-center">
-        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-2xl text-emerald-400" aria-hidden="true">
-          ✓
+      <!-- Etapa PIX / Pedido Gratuito Confirmado (web_v10_00: layout limpo e tranquilo) -->
+      <div id="pixApprovedStage" class="confirm-stage mt-5 hidden space-y-5">
+        <div class="space-y-2.5 text-center">
+          <div class="confirm-check-badge mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/15 text-2xl font-bold text-emerald-400" aria-hidden="true">
+            ✓
+          </div>
+          <p id="approvedStageSubtitle" class="mx-auto max-w-sm text-sm leading-relaxed text-slate-300">
+            Seu pedido já entrou na fila de conversão. Você pode fechar esta página com tranquilidade.
+          </p>
+          <div class="pt-0.5">
+            <span id="approvedEngineLabel" class="confirm-engine-pill inline-flex items-center rounded-full border border-slate-700/80 bg-slate-950/75 px-3 py-1 text-xs font-medium text-slate-300">
+              XTTSv2 · Qualidade Estúdio
+            </span>
+          </div>
         </div>
-        <h2 id="approvedStageTitle" class="text-base font-extrabold text-white">Pagamento Confirmado!</h2>
-        <p class="text-xs text-slate-300">
-          Seu pedido <strong id="approvedOrderIdText" class="font-mono text-amber-300"></strong> já entrou na fila do motor TocaTexto (<strong id="approvedEngineLabel" class="text-white">XTTSv2</strong>). Você receberá o audiobook pronto até <strong id="approvedEtaText" class="text-white"></strong>.
-        </p>
-        <p id="approvedQuotaSummary" class="hidden rounded-lg border border-emerald-500/35 bg-emerald-950/30 px-3 py-2 text-[11px] text-emerald-200"></p>
+
+        <!-- Bloco central limpo: prazo estimado + e-mail de destino + aviso de spam -->
+        <div class="confirm-email-card rounded-2xl border border-slate-800 bg-slate-950/70 p-5 text-left space-y-4">
+          <div class="flex items-start gap-3.5">
+            <span class="confirm-icon-pill mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-500/10 text-lg" aria-hidden="true">
+              ✉️
+            </span>
+            <div class="min-w-0 space-y-1.5">
+              <p class="text-sm font-bold leading-snug text-white">
+                Verifique seu e-mail em até <span id="approvedWaitDuration" class="text-amber-300">-- minutos</span>
+              </p>
+              <p class="text-xs leading-relaxed text-slate-300">
+                Previsão de envio: <strong id="approvedEtaText" class="font-semibold text-white">--</strong>
+              </p>
+              <p class="text-xs leading-relaxed text-slate-400">
+                Enviaremos para: <strong id="approvedEmailDisplay" class="font-mono font-medium text-slate-200 break-all">--</strong>
+              </p>
+            </div>
+          </div>
+
+          <div class="confirm-spam-notice rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-xs leading-relaxed">
+            <p class="font-semibold text-amber-300">
+              Confira também a caixa de Spam
+            </p>
+            <p class="mt-1 text-slate-300">
+              Caso o e-mail não apareça diretamente na sua <strong class="text-white">caixa de entrada</strong>, verifique a pasta de <strong class="text-white">Spam / Lixo Eletrônico</strong> (ou a aba <strong class="text-white">Promoções</strong>).
+            </p>
+          </div>
+        </div>
+
+        <p id="approvedQuotaSummary" class="hidden text-center text-xs leading-relaxed text-slate-400"></p>
+
+        <!-- Aviso discreto de WhatsApp (exibido apenas se o usuário informou WhatsApp) -->
+        <div id="approvedWhatsappNotice" class="hidden rounded-xl border border-emerald-500/30 bg-emerald-950/20 px-4 py-3 text-left text-xs leading-relaxed text-slate-300">
+          <div id="approvedWhatsappPending" class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="font-semibold text-emerald-300">💬 Receber também no WhatsApp</p>
+              <p class="mt-0.5 text-[11px] text-slate-300">
+                Se ainda não enviou, mande um <strong>"Oi"</strong> agora para liberar o envio automático por lá também.
+              </p>
+            </div>
+            <a
+              id="modalWaClickToChatBtn"
+              href="https://wa.me/?text=Oi!%20Acabei%20de%20confirmar%20o%20pedido%20no%20TocaTexto."
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-emerald-500"
+            >
+              Enviar "Oi"
+            </a>
+          </div>
+          <p id="approvedWhatsappDone" class="hidden text-center font-medium text-emerald-300">
+            ✓ WhatsApp ativado — também enviaremos o link de download por lá.
+          </p>
+        </div>
+
         <div id="localApprovedActions" class="hidden border-t border-slate-800 pt-3 text-left">
           <p class="text-[11px] text-slate-400 mb-2">
             Modo de Homologação Local: baixe o contrato <code class="text-amber-300">pedido.json</code> deste pedido gratuito.
@@ -1094,21 +1171,13 @@
           </button>
         </div>
 
-        <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-4 text-left">
-          <p class="text-xs font-bold text-emerald-300">💬 Já enviou o "Oi" no nosso WhatsApp?</p>
-          <p class="mt-1 text-[11px] text-slate-300">
-            Se você ainda não mandou uma mensagem inicial, clique abaixo e envie um <strong>"Oi"</strong> agora para garantir que o arquivo chegue também no seu WhatsApp:
-          </p>
-          <a
-            id="modalWaClickToChatBtn"
-            href="https://wa.me/?text=Oi!%20Acabei%20de%20confirmar%20o%20pedido%20no%20TocaTexto."
-            target="_blank"
-            rel="noopener noreferrer"
-            class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-500"
-          >
-            <span>Abrir WhatsApp e Enviar "Oi"</span>
-          </a>
-        </div>
+        <button
+          id="approvedCloseBtn"
+          type="button"
+          class="confirm-close-btn w-full rounded-xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-sm font-semibold text-white transition hover:border-slate-600 hover:bg-slate-700"
+        >
+          Entendi, fechar
+        </button>
       </div>
     </div>
   </dialog>

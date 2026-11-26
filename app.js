@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v08_01_fundo_aurora_sonora)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v10_00_confirmacao_email_modal)
  * ============================================================================
  * Serviços de Síntese Disponíveis:
  * 1. XTTSv2 (Qualidade Estúdio): 44 vozes neurais realistas (18 PT-BR · 26 EN),
@@ -2399,6 +2399,67 @@
     return `${h} ${hLabel} e ${resto} ${mLabel}`;
   }
 
+  function formatarPrazoExtenso(totalMinutos) {
+    const m = Math.max(1, Math.round(Number(totalMinutos) || 0));
+    if (m === 1) {
+      return "1 minuto";
+    }
+    if (m < 60) {
+      return `${m} minutos`;
+    }
+    const h = Math.floor(m / 60);
+    const resto = m % 60;
+    const hLabel = h === 1 ? "hora" : "horas";
+    if (resto === 0) {
+      return `${h} ${hLabel}`;
+    }
+    const mLabel = resto === 1 ? "minuto" : "minutos";
+    return `${h} ${hLabel} e ${resto} ${mLabel}`;
+  }
+
+  function validarConfirmacaoEmail() {
+    if (!el.clientEmailConfirm) return true;
+    const emailRaw = (el.clientEmail?.value || "").trim();
+    const confirmRaw = (el.clientEmailConfirm.value || "").trim();
+    const emailNorm = normalizarEmailCota(emailRaw);
+    const confirmNorm = normalizarEmailCota(confirmRaw);
+
+    let divergente = false;
+    if (!confirmRaw) {
+      el.clientEmailConfirm.setCustomValidity("");
+      if (el.clientEmailConfirmErrorText) {
+        el.clientEmailConfirmErrorText.textContent = "Digite o mesmo e-mail novamente para confirmar.";
+      }
+    } else if (emailNorm && confirmNorm !== emailNorm) {
+      divergente = true;
+      el.clientEmailConfirm.setCustomValidity("Os endereços de e-mail não coincidem.");
+      if (el.clientEmailConfirmErrorText) {
+        el.clientEmailConfirmErrorText.textContent =
+          "Os e-mails digitados não coincidem. Verifique se há algum erro de digitação.";
+      }
+    } else {
+      el.clientEmailConfirm.setCustomValidity("");
+      if (el.clientEmailConfirmErrorText) {
+        el.clientEmailConfirmErrorText.textContent = el.clientEmailConfirm.validity.typeMismatch
+          ? "Digite um endereço de e-mail válido no formato nome@dominio.com."
+          : "Digite o mesmo e-mail novamente para confirmar.";
+      }
+    }
+
+    const matchValido = Boolean(
+      emailNorm &&
+        confirmNorm &&
+        emailNorm === confirmNorm &&
+        el.clientEmail?.validity?.valid &&
+        el.clientEmailConfirm.validity.valid
+    );
+    if (el.clientEmailConfirmMatch) {
+      el.clientEmailConfirmMatch.classList.toggle("hidden", !matchValido);
+      el.clientEmailConfirmMatch.classList.toggle("flex", matchValido);
+    }
+    return !divergente && Boolean(confirmRaw) && el.clientEmailConfirm.validity.valid;
+  }
+
   function formatarRotuloEntrega(agora, entregaDate, minuscula = false) {
     const hh = String(entregaDate.getHours()).padStart(2, "0");
     const mm = String(entregaDate.getMinutes()).padStart(2, "0");
@@ -2824,9 +2885,7 @@
 
     if (ehGratuito) {
       if (el.pixModalTitle) {
-        el.pixModalTitle.textContent = ehEdge
-          ? "Confirmação — Edge TTS Gratuito"
-          : "Confirmação do Pedido Gratuito";
+        el.pixModalTitle.textContent = "Pedido confirmado!";
       }
       confirmarPixNoModal(true);
     } else {
@@ -2849,9 +2908,12 @@
         }
       }
 
+      const modoProducaoPix = Boolean(CONFIG_COMERCIAL.API_BASE_URL && pixApi && pixApi.modo_simulado === false);
+      if (el.localSimulationActions) {
+        el.localSimulationActions.classList.toggle("hidden", modoProducaoPix);
+      }
       if (el.simulatePixApprovedBtn) {
-        const esconderSimulador = Boolean(CONFIG_COMERCIAL.API_BASE_URL && pixApi && pixApi.modo_simulado === false);
-        el.simulatePixApprovedBtn.classList.toggle("hidden", esconderSimulador);
+        el.simulatePixApprovedBtn.classList.toggle("hidden", modoProducaoPix);
       }
 
       const statusEl = document.getElementById("pixPollingStatus");
@@ -2872,6 +2934,11 @@
     if (el.pixModal && !el.pixModal.open) {
       el.pixModal.removeAttribute("data-closing");
       el.pixModal.showModal();
+    }
+    if (ehGratuito && el.approvedCloseBtn) {
+      requestAnimationFrame(() => {
+        if (el.pixModal?.open) el.approvedCloseBtn.focus();
+      });
     }
   }
 
@@ -2896,38 +2963,63 @@
 
     if (el.pixPendingStage) el.pixPendingStage.classList.add("hidden");
     if (el.pixApprovedStage) el.pixApprovedStage.classList.remove("hidden");
-    if (el.approvedStageTitle) {
-      el.approvedStageTitle.textContent = ehEdge
-        ? "Pedido Edge TTS Gratuito Confirmado!"
-        : gratuito
-        ? "Pedido Gratuito Confirmado!"
-        : "Pagamento Confirmado!";
+    if (el.pixModalTitle) {
+      el.pixModalTitle.textContent = gratuito ? "Pedido confirmado!" : "Pagamento confirmado!";
     }
-    if (el.approvedOrderIdText) el.approvedOrderIdText.textContent = ped.id_pedido;
     if (el.approvedEngineLabel) {
       el.approvedEngineLabel.textContent = ehEdge
-        ? "Edge TTS · Rápido e Gratuito"
-        : "XTTSv2 · Qualidade Estúdio";
+        ? "⚡ Edge TTS · Rápido e Gratuito"
+        : "🎙️ XTTSv2 · Qualidade Estúdio";
+    }
+
+    const prazoMin = Number(ped.prazos?.prazo_estimado_minutos || state.prazoEstimadoMinutos || (ehEdge ? 2 : 15));
+    if (el.approvedWaitDuration) {
+      el.approvedWaitDuration.textContent = formatarPrazoExtenso(prazoMin);
     }
     if (el.approvedEtaText) {
-      const rotulo = ped.prazos.previsao_entrega_rotulo || `hoje às ${ped.prazos.horario_estimado_entrega}`;
-      el.approvedEtaText.textContent = `${rotulo} (~${formatarDuracaoHorasMinutos(ped.prazos.prazo_estimado_minutos)})`;
+      const rotulo =
+        ped.prazos?.previsao_entrega_rotulo ||
+        (ped.prazos?.horario_estimado_entrega ? `hoje às ${ped.prazos.horario_estimado_entrega}` : "--");
+      el.approvedEtaText.textContent = rotulo;
     }
+    if (el.approvedEmailDisplay) {
+      el.approvedEmailDisplay.textContent = ped.cliente?.email || (el.clientEmail?.value || "").trim() || "--";
+    }
+
     if (el.approvedQuotaSummary) {
       if (ehEdge) {
-        el.approvedQuotaSummary.textContent = `Serviço Edge TTS 100% gratuito selecionado · Sua cota XTTSv2 (${formatarInteiro(state.cotaRestanteChars)} chars) permanece intacta.`;
+        el.approvedQuotaSummary.textContent = `Sua cota gratuita XTTSv2 (${formatarInteiro(state.cotaRestanteChars)} chars) permanece intacta.`;
         el.approvedQuotaSummary.classList.remove("hidden");
       } else if (charsCobertos > 0) {
-        el.approvedQuotaSummary.textContent = `Cota gratuita XTTSv2 aplicada: ${formatarInteiro(
+        el.approvedQuotaSummary.textContent = `Cota gratuita XTTSv2: ${formatarInteiro(
           charsCobertos
-        )} chars usados neste pedido · Saldo restante: ${formatarInteiro(state.cotaRestanteChars)} chars.`;
+        )} chars usados · restam ${formatarInteiro(state.cotaRestanteChars)} chars.`;
         el.approvedQuotaSummary.classList.remove("hidden");
       } else {
         el.approvedQuotaSummary.classList.add("hidden");
       }
     }
+
+    const temWhatsapp = Boolean((ped.cliente?.whatsapp || "").trim());
+    const waAtivado = Boolean(ped.cliente?.janela_whatsapp_ativa || state.janelaWhatsappAtiva);
+    if (el.approvedWhatsappNotice) {
+      el.approvedWhatsappNotice.classList.toggle("hidden", !temWhatsapp);
+    }
+    if (el.approvedWhatsappPending) {
+      el.approvedWhatsappPending.classList.toggle("hidden", !temWhatsapp || waAtivado);
+    }
+    if (el.approvedWhatsappDone) {
+      el.approvedWhatsappDone.classList.toggle("hidden", !temWhatsapp || !waAtivado);
+    }
+
     if (el.localApprovedActions) {
-      el.localApprovedActions.classList.toggle("hidden", !gratuito);
+      el.localApprovedActions.classList.toggle("hidden", Boolean(CONFIG_COMERCIAL.API_BASE_URL) || !gratuito);
+    }
+
+    if (el.pixModal?.open && el.approvedCloseBtn) {
+      requestAnimationFrame(() => {
+        if (el.pixModal?.open) el.approvedCloseBtn.focus();
+      });
     }
   }
 
@@ -3067,14 +3159,6 @@
       });
     }
 
-    // Controle de pausa/retomada da animação da Aurora Sonora (WCAG 2.2.2)
-    if (el.auroraMotionToggleBtn) {
-      el.auroraMotionToggleBtn.addEventListener("click", () => {
-        const pausadaAtual = document.body?.dataset.auroraPaused === "true";
-        aplicarEstadoAnimacaoAurora(!pausadaAtual, true);
-      });
-    }
-
     // Seletor nativo de serviço de áudio (XTTSv2 vs Edge TTS)
     [el.engineRadioXtts, el.engineRadioEdge].forEach((radio) => {
       if (!radio) return;
@@ -3208,9 +3292,29 @@
       el.clientEmail.addEventListener("input", () => {
         el.clientEmail.classList.remove("field-validation-error");
         atualizarSaldoCotaPorEmail(false);
+        validarConfirmacaoEmail();
+        if (el.clientEmailConfirm && el.clientEmailConfirm.value.trim()) {
+          syncFieldAria(el.clientEmailConfirm, false);
+        }
       });
       el.clientEmail.addEventListener("blur", () => {
         atualizarSaldoCotaPorEmail(true);
+        validarConfirmacaoEmail();
+        if (el.clientEmailConfirm && el.clientEmailConfirm.value.trim()) {
+          syncFieldAria(el.clientEmailConfirm, true);
+        }
+      });
+    }
+
+    if (el.clientEmailConfirm) {
+      el.clientEmailConfirm.addEventListener("input", () => {
+        el.clientEmailConfirm.classList.remove("field-validation-error");
+        validarConfirmacaoEmail();
+        syncFieldAria(el.clientEmailConfirm, false);
+      });
+      el.clientEmailConfirm.addEventListener("blur", () => {
+        validarConfirmacaoEmail();
+        syncFieldAria(el.clientEmailConfirm, true);
       });
     }
 
@@ -3229,6 +3333,15 @@
       });
     }
 
+    if (el.modalWaClickToChatBtn) {
+      el.modalWaClickToChatBtn.addEventListener("click", () => {
+        state.janelaWhatsappAtiva = true;
+        if (el.waActivatedBadge) el.waActivatedBadge.classList.remove("hidden");
+        if (el.approvedWhatsappPending) el.approvedWhatsappPending.classList.add("hidden");
+        if (el.approvedWhatsappDone) el.approvedWhatsappDone.classList.remove("hidden");
+      });
+    }
+
     // Submissão do formulário e abertura do <dialog> nativo
     if (el.orderForm) {
       inicializarValidacaoAcessivelFormulario(el.orderForm);
@@ -3241,7 +3354,10 @@
         }
         el.clientName?.classList.remove("field-validation-error");
         el.clientEmail?.classList.remove("field-validation-error");
+        el.clientEmailConfirm?.classList.remove("field-validation-error");
         el.termsBox?.classList.remove("field-validation-error");
+
+        validarConfirmacaoEmail();
 
         const semArquivo = !state.arquivos.length || state.totalCaracteres <= 0;
         const arquivosSemIdioma = semArquivo
@@ -3249,8 +3365,17 @@
           : state.arquivos.filter((a) => a.idioma !== "pt" && a.idioma !== "en");
         const nome = (el.clientName?.value || "").trim();
         const email = (el.clientEmail?.value || "").trim();
+        const emailConfirm = (el.clientEmailConfirm?.value || "").trim();
         const nomeInvalido = !nome;
         const emailInvalido = !email || !email.includes("@") || (el.clientEmail && !el.clientEmail.validity.valid);
+        const emailConfirmVazio = !emailConfirm;
+        const emailConfirmDivergente = Boolean(
+          email && emailConfirm && normalizarEmailCota(email) !== normalizarEmailCota(emailConfirm)
+        );
+        const emailConfirmInvalido =
+          emailConfirmVazio ||
+          emailConfirmDivergente ||
+          (el.clientEmailConfirm && !el.clientEmailConfirm.validity.valid);
         const termosNaoAceitos = !el.termsCheckbox?.checked;
 
         const pendencias = [];
@@ -3277,6 +3402,15 @@
           if (el.clientEmail) syncFieldAria(el.clientEmail, false, true);
           pendencias.push("informar um e-mail válido");
         }
+        if (emailConfirmInvalido) {
+          el.clientEmailConfirm?.classList.add("field-validation-error");
+          if (el.clientEmailConfirm) syncFieldAria(el.clientEmailConfirm, false, true);
+          pendencias.push(
+            emailConfirmDivergente
+              ? "corrigir a confirmação de e-mail (os dois campos precisam ser idênticos)"
+              : "confirmar seu e-mail"
+          );
+        }
         if (termosNaoAceitos) {
           el.termsBox?.classList.add("field-validation-error");
           if (el.termsCheckbox) syncFieldAria(el.termsCheckbox, false, true);
@@ -3287,7 +3421,14 @@
           if (el.formValidationError) {
             el.formValidationError.textContent = `Preencha os campos obrigatórios antes de continuar: ${pendencias.join("; ")}.`;
             el.formValidationError.classList.remove("hidden");
-            if (!semArquivo && arquivosSemIdioma.length > 0 && !nomeInvalido && !emailInvalido && !termosNaoAceitos) {
+            if (
+              !semArquivo &&
+              arquivosSemIdioma.length > 0 &&
+              !nomeInvalido &&
+              !emailInvalido &&
+              !emailConfirmInvalido &&
+              !termosNaoAceitos
+            ) {
               el.formValidationError.dataset.langOnly = "true";
             }
           }
@@ -3302,6 +3443,8 @@
             el.clientName?.focus();
           } else if (emailInvalido) {
             el.clientEmail?.focus();
+          } else if (emailConfirmInvalido) {
+            el.clientEmailConfirm?.focus();
           } else if (termosNaoAceitos) {
             el.termsCheckbox?.focus();
           }
@@ -3358,6 +3501,10 @@
 
     if (el.closePixModalBtn) {
       el.closePixModalBtn.addEventListener("click", fecharModalPix);
+    }
+
+    if (el.approvedCloseBtn) {
+      el.approvedCloseBtn.addEventListener("click", fecharModalPix);
     }
 
     if (el.copyPixCodeBtn) {
@@ -3469,6 +3616,9 @@
     el.orderForm = document.getElementById("orderForm");
     el.clientName = document.getElementById("clientName");
     el.clientEmail = document.getElementById("clientEmail");
+    el.clientEmailConfirm = document.getElementById("clientEmailConfirm");
+    el.clientEmailConfirmErrorText = document.getElementById("clientEmailConfirmErrorText");
+    el.clientEmailConfirmMatch = document.getElementById("clientEmailConfirmMatch");
     el.quotaStatusBox = document.getElementById("quotaStatusBox");
     el.quotaStatusTitle = document.getElementById("quotaStatusTitle");
     el.quotaBalanceBadge = document.getElementById("quotaBalanceBadge");
@@ -3501,9 +3651,6 @@
     el.heartbeatBadge = document.getElementById("heartbeatBadge");
     el.heartbeatDot = document.getElementById("heartbeatDot");
     el.heartbeatText = document.getElementById("heartbeatText");
-    el.auroraMotionToggleBtn = document.getElementById("auroraMotionToggleBtn");
-    el.auroraMotionIcon = document.getElementById("auroraMotionIcon");
-    el.auroraMotionLabel = document.getElementById("auroraMotionLabel");
     el.pixModal = document.getElementById("pixModal");
     el.closePixModalBtn = document.getElementById("closePixModalBtn");
     el.pixModalOrderId = document.getElementById("pixModalOrderId");
@@ -3514,59 +3661,22 @@
     el.pixCopyPasteInput = document.getElementById("pixCopyPasteInput");
     el.copyPixCodeBtn = document.getElementById("copyPixCodeBtn");
     el.pixModalAmount = document.getElementById("pixModalAmount");
+    el.localSimulationActions = document.getElementById("localSimulationActions");
     el.simulatePixApprovedBtn = document.getElementById("simulatePixApprovedBtn");
     el.downloadOrderJsonBtn = document.getElementById("downloadOrderJsonBtn");
-    el.approvedStageTitle = document.getElementById("approvedStageTitle");
-    el.approvedOrderIdText = document.getElementById("approvedOrderIdText");
     el.approvedEngineLabel = document.getElementById("approvedEngineLabel");
+    el.approvedWaitDuration = document.getElementById("approvedWaitDuration");
     el.approvedEtaText = document.getElementById("approvedEtaText");
+    el.approvedEmailDisplay = document.getElementById("approvedEmailDisplay");
     el.approvedQuotaSummary = document.getElementById("approvedQuotaSummary");
+    el.approvedWhatsappNotice = document.getElementById("approvedWhatsappNotice");
+    el.approvedWhatsappPending = document.getElementById("approvedWhatsappPending");
+    el.approvedWhatsappDone = document.getElementById("approvedWhatsappDone");
     el.localApprovedActions = document.getElementById("localApprovedActions");
     el.approvedDownloadOrderJsonBtn = document.getElementById("approvedDownloadOrderJsonBtn");
+    el.approvedCloseBtn = document.getElementById("approvedCloseBtn");
     el.modalWaClickToChatBtn = document.getElementById("modalWaClickToChatBtn");
     el.voicePreviewAudio = document.getElementById("voicePreviewAudio");
-  }
-
-  const CHAVE_STORAGE_AURORA_PAUSADA = "tocatexto_aurora_pausada_v1";
-
-  function aplicarEstadoAnimacaoAurora(pausada, salvar = false) {
-    const ehPausada = Boolean(pausada);
-    if (document.body) {
-      document.body.dataset.auroraPaused = ehPausada ? "true" : "false";
-    }
-    if (el.auroraMotionIcon) {
-      el.auroraMotionIcon.textContent = ehPausada ? "▶" : "⏸";
-    }
-    if (el.auroraMotionLabel) {
-      el.auroraMotionLabel.textContent = ehPausada ? "Animar fundo" : "Pausar fundo";
-    }
-    if (el.auroraMotionToggleBtn) {
-      const acao = ehPausada ? "Ativar animação do fundo" : "Pausar animação do fundo";
-      el.auroraMotionToggleBtn.setAttribute("aria-label", acao);
-      el.auroraMotionToggleBtn.setAttribute("title", acao);
-    }
-    if (salvar) {
-      try {
-        localStorage.setItem(CHAVE_STORAGE_AURORA_PAUSADA, ehPausada ? "1" : "0");
-      } catch (_err) {
-        // Ignora indisponibilidade de localStorage (ex.: aba privada/file:// restrito)
-      }
-    }
-  }
-
-  function inicializarControleAurora() {
-    let pausada = false;
-    try {
-      const salvo = localStorage.getItem(CHAVE_STORAGE_AURORA_PAUSADA);
-      if (salvo === "1" || salvo === "0") {
-        pausada = salvo === "1";
-      } else if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        pausada = true;
-      }
-    } catch (_err) {
-      pausada = Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    }
-    aplicarEstadoAnimacaoAurora(pausada, false);
   }
 
   let _initialized = false;
@@ -3575,7 +3685,6 @@
     revalidarReferenciasDom();
     if (!el.dropzone || !el.fileInput) return;
     _initialized = true;
-    inicializarControleAurora();
     atualizarUiSeletorMotor();
     renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
     atualizarUiModoVoz();

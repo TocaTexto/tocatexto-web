@@ -1,5 +1,5 @@
 /* ==========================================================================
-   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v08_01_fundo_aurora_sonora)
+   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v11_01_aurora_leve_fade)
    Modern Web Guidance: light-dark(), native <dialog> + @starting-style,
    prefers-reduced-motion opt-in, :user-invalid, accent-color, scrollbar-color,
    in oklab gradient interpolation & compositor-only Aurora backdrop
@@ -84,10 +84,10 @@ body {
 }
 
 /* ==========================================================================
-   0.5 FUNDO AURORA SONORA VIVO & ELEVAÇÃO DOS CARDS (web_v08_00)
-   - Interpolação perceptualmente uniforme via `in oklab` (com fallback seguro)
-   - Animação estritamente no compositor (apenas `transform` e `opacity`)
-   - Opt-in de movimento em `prefers-reduced-motion: no-preference` + botão pausar
+   0.5 FUNDO AURORA LEVE COM FADE ESTÁTICO & ELEVAÇÃO DOS CARDS (web_v11_00)
+   - Zero `filter: blur(...)`, zero SVG `feTurbulence`, zero `backdrop-filter` nos cards
+   - Duas cenas estáticas por motor rasterizadas uma única vez; transição apenas em `opacity`
+   - Opt-in de fade em `prefers-reduced-motion: no-preference` + botão pausar
    ========================================================================== */
 body.aurora-page {
   position: relative;
@@ -106,15 +106,14 @@ body.aurora-page[data-engine="edge"] {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  contain: strict;
   isolation: isolate;
 }
 
 .aurora-layer {
   position: absolute;
-  inset: -18%;
-  filter: blur(76px);
+  inset: 0;
   transition: opacity 0.85s ease;
-  will-change: opacity;
 }
 
 .aurora-layer-xtts {
@@ -133,177 +132,100 @@ body.aurora-page[data-engine="edge"] .aurora-layer-edge {
   opacity: 1;
 }
 
-.aurora-orb {
-  position: absolute;
-  border-radius: 9999px;
-  will-change: transform;
-}
-
-.aurora-orb-1 {
-  width: 56vw;
-  height: 56vw;
-  max-width: 780px;
-  max-height: 780px;
-  min-width: 340px;
-  min-height: 340px;
-  top: -10%;
-  left: -8%;
-}
-
-.aurora-orb-2 {
-  width: 52vw;
-  height: 52vw;
-  max-width: 740px;
-  max-height: 740px;
-  min-width: 320px;
-  min-height: 320px;
-  bottom: -14%;
-  right: -6%;
-}
-
-.aurora-orb-3 {
-  width: 44vw;
-  height: 44vw;
-  max-width: 620px;
-  max-height: 620px;
-  min-width: 280px;
-  min-height: 280px;
-  top: 24%;
-  left: 34%;
-}
-
-.aurora-orb-4 {
-  width: 40vw;
-  height: 40vw;
-  max-width: 560px;
-  max-height: 560px;
-  min-width: 260px;
-  min-height: 260px;
-  top: -4%;
-  right: 12%;
-}
-
-/* Paleta XTTSv2 Estúdio (quente: âmbar, ciano complementar, laranja e violeta profundo) */
-.aurora-layer-xtts .aurora-orb-1 {
-  background: radial-gradient(circle var(--in-oklab), rgba(245, 158, 11, 0.34) 0%, transparent 70%);
-}
-.aurora-layer-xtts .aurora-orb-2 {
-  background: radial-gradient(circle var(--in-oklab), rgba(6, 182, 212, 0.28) 0%, transparent 70%);
-}
-.aurora-layer-xtts .aurora-orb-3 {
-  background: radial-gradient(circle var(--in-oklab), rgba(249, 115, 22, 0.24) 0%, transparent 70%);
-}
-.aurora-layer-xtts .aurora-orb-4 {
-  background: radial-gradient(circle var(--in-oklab), rgba(139, 92, 246, 0.26) 0%, transparent 70%);
-}
-
-/* Paleta Edge TTS (fria e veloz: ciano elétrico, esmeralda, azul e violeta) */
-.aurora-layer-edge .aurora-orb-1 {
-  background: radial-gradient(circle var(--in-oklab), rgba(6, 182, 212, 0.38) 0%, transparent 70%);
-}
-.aurora-layer-edge .aurora-orb-2 {
-  background: radial-gradient(circle var(--in-oklab), rgba(16, 185, 129, 0.28) 0%, transparent 70%);
-}
-.aurora-layer-edge .aurora-orb-3 {
-  background: radial-gradient(circle var(--in-oklab), rgba(59, 130, 246, 0.30) 0%, transparent 70%);
-}
-.aurora-layer-edge .aurora-orb-4 {
-  background: radial-gradient(circle var(--in-oklab), rgba(139, 92, 246, 0.24) 0%, transparent 70%);
-}
-
-/* Textura ultra-sutil anti-banding dentro do backdrop isolado */
-.aurora-grain {
+.aurora-frame {
   position: absolute;
   inset: 0;
-  opacity: 0.045;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.aurora-frame-a {
+  opacity: 1;
+}
+
+.aurora-frame-b {
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Paleta XTTSv2 Estúdio — Cena A e Cena B estáticas (fade suave sem blur em tempo real) */
+.aurora-layer-xtts .aurora-frame-a {
+  background:
+    radial-gradient(ellipse 58% 52% at 14% 12%, rgba(245, 158, 11, 0.28) 0%, rgba(245, 158, 11, 0.10) 42%, transparent 74%),
+    radial-gradient(ellipse 54% 48% at 86% 84%, rgba(6, 182, 212, 0.24) 0%, rgba(6, 182, 212, 0.08) 44%, transparent 74%),
+    radial-gradient(ellipse 46% 44% at 54% 48%, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0.05) 45%, transparent 74%),
+    radial-gradient(ellipse 48% 42% at 82% 16%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.06) 44%, transparent 74%);
+}
+
+.aurora-layer-xtts .aurora-frame-b {
+  background:
+    radial-gradient(ellipse 56% 50% at 28% 28%, rgba(249, 115, 22, 0.26) 0%, rgba(249, 115, 22, 0.09) 42%, transparent 74%),
+    radial-gradient(ellipse 52% 48% at 72% 70%, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.07) 44%, transparent 74%),
+    radial-gradient(ellipse 50% 46% at 80% 30%, rgba(245, 158, 11, 0.24) 0%, rgba(245, 158, 11, 0.08) 44%, transparent 74%),
+    radial-gradient(ellipse 46% 44% at 18% 82%, rgba(139, 92, 246, 0.24) 0%, rgba(139, 92, 246, 0.07) 44%, transparent 74%);
+}
+
+/* Paleta Edge TTS — Cena A e Cena B estáticas */
+.aurora-layer-edge .aurora-frame-a {
+  background:
+    radial-gradient(ellipse 58% 52% at 16% 14%, rgba(6, 182, 212, 0.30) 0%, rgba(6, 182, 212, 0.10) 42%, transparent 74%),
+    radial-gradient(ellipse 54% 48% at 84% 82%, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.08) 44%, transparent 74%),
+    radial-gradient(ellipse 48% 44% at 52% 46%, rgba(59, 130, 246, 0.24) 0%, rgba(59, 130, 246, 0.08) 44%, transparent 74%),
+    radial-gradient(ellipse 46% 42% at 84% 18%, rgba(139, 92, 246, 0.20) 0%, rgba(139, 92, 246, 0.06) 44%, transparent 74%);
+}
+
+.aurora-layer-edge .aurora-frame-b {
+  background:
+    radial-gradient(ellipse 56% 50% at 30% 26%, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.09) 42%, transparent 74%),
+    radial-gradient(ellipse 52% 48% at 72% 72%, rgba(6, 182, 212, 0.28) 0%, rgba(6, 182, 212, 0.09) 44%, transparent 74%),
+    radial-gradient(ellipse 48% 44% at 78% 26%, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.08) 44%, transparent 74%),
+    radial-gradient(ellipse 46% 44% at 20% 80%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.07) 44%, transparent 74%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .aurora-orb-1 {
-    animation: auroraDriftA 18s ease-in-out infinite alternate;
-  }
-  .aurora-orb-2 {
-    animation: auroraDriftB 21s ease-in-out infinite alternate;
-  }
-  .aurora-orb-3 {
-    animation: auroraDriftC 16s ease-in-out infinite alternate;
-  }
-  .aurora-orb-4 {
-    animation: auroraDriftD 24s ease-in-out infinite alternate;
+  .aurora-frame-b {
+    animation: auroraCrossfade 16s ease-in-out infinite alternate;
   }
 }
 
-body.aurora-page[data-aurora-paused="true"] .aurora-orb {
-  animation-play-state: paused !important;
+@keyframes auroraCrossfade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-@keyframes auroraDriftA {
-  0%   { transform: translate3d(0%, 0%, 0) scale(1); }
-  50%  { transform: translate3d(14%, 10%, 0) scale(1.1); }
-  100% { transform: translate3d(5%, 18%, 0) scale(0.95); }
-}
-
-@keyframes auroraDriftB {
-  0%   { transform: translate3d(0%, 0%, 0) scale(1); }
-  50%  { transform: translate3d(-16%, -9%, 0) scale(1.12); }
-  100% { transform: translate3d(-7%, -18%, 0) scale(0.96); }
-}
-
-@keyframes auroraDriftC {
-  0%   { transform: translate3d(0%, 0%, 0) scale(0.95); }
-  50%  { transform: translate3d(-12%, 12%, 0) scale(1.14); }
-  100% { transform: translate3d(12%, -9%, 0) scale(1.02); }
-}
-
-@keyframes auroraDriftD {
-  0%   { transform: translate3d(0%, 0%, 0) scale(1); }
-  50%  { transform: translate3d(-10%, 15%, 0) scale(1.08); }
-  100% { transform: translate3d(9%, 6%, 0) scale(0.93); }
-}
-
-/* Separação nítida em camadas (Fundo Aurora -> Cards vidro fosco -> Áreas internas) no modo escuro */
+/* Separação nítida em camadas (Fundo Aurora -> Cards -> Áreas internas) sem backdrop-filter pesado */
 body.aurora-page header.bg-slate-950\/90,
 body.aurora-page footer.bg-slate-950\/90 {
-  background-color: rgba(9, 13, 28, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(9, 13, 28, 0.90);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.aurora-page #flowStepper {
-  background-color: rgba(13, 20, 38, 0.80);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(13, 20, 38, 0.92);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 36px -14px rgba(2, 6, 23, 0.75), 0 4px 12px -2px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 14px 32px -12px rgba(2, 6, 23, 0.72), 0 4px 10px -2px rgba(2, 6, 23, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 body.aurora-page .step-section {
-  background-color: rgba(13, 20, 38, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(13, 20, 38, 0.86);
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 20px 44px -16px rgba(2, 6, 23, 0.78), 0 6px 16px -4px rgba(2, 6, 23, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 40px -14px rgba(2, 6, 23, 0.76), 0 4px 14px -4px rgba(2, 6, 23, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 body.aurora-page #summaryStickyCard {
-  background: linear-gradient(180deg var(--in-oklab), rgba(15, 23, 42, 0.84) 0%, rgba(9, 14, 28, 0.90) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 22px 46px -14px rgba(2, 6, 23, 0.82), 0 6px 18px -4px rgba(2, 6, 23, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg var(--in-oklab), rgba(15, 23, 42, 0.90) 0%, rgba(9, 14, 28, 0.94) 100%);
+  box-shadow: 0 20px 42px -14px rgba(2, 6, 23, 0.80), 0 6px 16px -4px rgba(2, 6, 23, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 body.aurora-page #dropzone {
-  background-color: rgba(5, 9, 20, 0.58);
+  background-color: rgba(5, 9, 20, 0.62);
   border-color: rgba(148, 163, 184, 0.34);
 }
 
 body.aurora-page .step-connector {
-  background-color: rgba(13, 20, 38, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(13, 20, 38, 0.90);
   border-color: rgba(255, 255, 255, 0.12);
 }
 
@@ -797,16 +719,18 @@ progress.reading-progress::-moz-progress-bar {
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.22);
 }
 
-:is(input[type="text"], input[type="email"], input[type="tel"]):is(:user-invalid, .user-invalid-fallback) + .field-error-msg {
+:is(input[type="text"], input[type="email"], input[type="tel"]):is(:user-invalid, .user-invalid-fallback, .field-validation-error) + .field-error-msg {
   display: flex;
 }
 
-.form-field:has(input[type="checkbox"]:is(:user-invalid, .user-invalid-fallback)) {
+.form-field:has(input[type="checkbox"]:is(:user-invalid, .user-invalid-fallback)),
+.form-field.field-validation-error {
   border-color: rgba(248, 113, 113, 0.85) !important;
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2);
 }
 
-.form-field:has(input[type="checkbox"]:is(:user-invalid, .user-invalid-fallback)) .field-error-msg {
+.form-field:has(input[type="checkbox"]:is(:user-invalid, .user-invalid-fallback)) .field-error-msg,
+.form-field.field-validation-error .field-error-msg {
   display: flex;
 }
 
@@ -975,51 +899,49 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     background-color: #eef8fb !important;
   }
 
-  /* Paleta Aurora luminosa para modo claro (contraste confortável c/ texto escuro >= 4.5:1) */
-  .aurora-layer {
-    filter: blur(78px);
+  /* Paleta Aurora leve para modo claro — cenas estáticas com fade suave */
+  .aurora-layer-xtts .aurora-frame-a {
+    background:
+      radial-gradient(ellipse 58% 52% at 14% 12%, rgba(251, 191, 36, 0.34) 0%, rgba(251, 191, 36, 0.12) 42%, transparent 74%),
+      radial-gradient(ellipse 54% 48% at 86% 84%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0.09) 44%, transparent 74%),
+      radial-gradient(ellipse 46% 44% at 54% 48%, rgba(251, 146, 60, 0.22) 0%, rgba(251, 146, 60, 0.07) 45%, transparent 74%),
+      radial-gradient(ellipse 48% 42% at 82% 16%, rgba(192, 132, 252, 0.20) 0%, rgba(192, 132, 252, 0.06) 44%, transparent 74%);
   }
 
-  .aurora-layer-xtts .aurora-orb-1 {
-    background: radial-gradient(circle var(--in-oklab), rgba(251, 191, 36, 0.42) 0%, transparent 70%);
-  }
-  .aurora-layer-xtts .aurora-orb-2 {
-    background: radial-gradient(circle var(--in-oklab), rgba(56, 189, 248, 0.34) 0%, transparent 70%);
-  }
-  .aurora-layer-xtts .aurora-orb-3 {
-    background: radial-gradient(circle var(--in-oklab), rgba(251, 146, 60, 0.30) 0%, transparent 70%);
-  }
-  .aurora-layer-xtts .aurora-orb-4 {
-    background: radial-gradient(circle var(--in-oklab), rgba(192, 132, 252, 0.25) 0%, transparent 70%);
+  .aurora-layer-xtts .aurora-frame-b {
+    background:
+      radial-gradient(ellipse 56% 50% at 28% 28%, rgba(251, 146, 60, 0.30) 0%, rgba(251, 146, 60, 0.10) 42%, transparent 74%),
+      radial-gradient(ellipse 52% 48% at 72% 70%, rgba(56, 189, 248, 0.26) 0%, rgba(56, 189, 248, 0.08) 44%, transparent 74%),
+      radial-gradient(ellipse 50% 46% at 80% 30%, rgba(251, 191, 36, 0.30) 0%, rgba(251, 191, 36, 0.10) 44%, transparent 74%),
+      radial-gradient(ellipse 46% 44% at 18% 82%, rgba(192, 132, 252, 0.22) 0%, rgba(192, 132, 252, 0.06) 44%, transparent 74%);
   }
 
-  .aurora-layer-edge .aurora-orb-1 {
-    background: radial-gradient(circle var(--in-oklab), rgba(6, 182, 212, 0.36) 0%, transparent 70%);
-  }
-  .aurora-layer-edge .aurora-orb-2 {
-    background: radial-gradient(circle var(--in-oklab), rgba(16, 185, 129, 0.28) 0%, transparent 70%);
-  }
-  .aurora-layer-edge .aurora-orb-3 {
-    background: radial-gradient(circle var(--in-oklab), rgba(99, 102, 241, 0.22) 0%, transparent 70%);
-  }
-  .aurora-layer-edge .aurora-orb-4 {
-    background: radial-gradient(circle var(--in-oklab), rgba(34, 211, 238, 0.26) 0%, transparent 70%);
+  .aurora-layer-edge .aurora-frame-a {
+    background:
+      radial-gradient(ellipse 58% 52% at 16% 14%, rgba(6, 182, 212, 0.28) 0%, rgba(6, 182, 212, 0.09) 42%, transparent 74%),
+      radial-gradient(ellipse 54% 48% at 84% 82%, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.07) 44%, transparent 74%),
+      radial-gradient(ellipse 48% 44% at 52% 46%, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0.05) 44%, transparent 74%),
+      radial-gradient(ellipse 46% 42% at 84% 18%, rgba(34, 211, 238, 0.22) 0%, rgba(34, 211, 238, 0.06) 44%, transparent 74%);
   }
 
-  .aurora-grain {
-    opacity: 0.025;
+  .aurora-layer-edge .aurora-frame-b {
+    background:
+      radial-gradient(ellipse 56% 50% at 30% 26%, rgba(99, 102, 241, 0.20) 0%, rgba(99, 102, 241, 0.06) 42%, transparent 74%),
+      radial-gradient(ellipse 52% 48% at 72% 72%, rgba(6, 182, 212, 0.26) 0%, rgba(6, 182, 212, 0.08) 44%, transparent 74%),
+      radial-gradient(ellipse 48% 44% at 78% 26%, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.07) 44%, transparent 74%),
+      radial-gradient(ellipse 46% 44% at 20% 80%, rgba(34, 211, 238, 0.22) 0%, rgba(34, 211, 238, 0.06) 44%, transparent 74%);
   }
 
   header.bg-slate-950\/90,
   footer.bg-slate-950\/90 {
-    background-color: rgba(255, 255, 255, 0.78) !important;
+    background-color: rgba(255, 255, 255, 0.92) !important;
     border-color: rgba(15, 23, 42, 0.10) !important;
   }
 
   #flowStepper {
-    background-color: rgba(255, 255, 255, 0.86) !important;
+    background-color: rgba(255, 255, 255, 0.94) !important;
     border-color: rgba(15, 23, 42, 0.11) !important;
-    box-shadow: 0 14px 32px -10px rgba(15, 23, 42, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
   }
 
   .bg-slate-900\/65,
@@ -1030,18 +952,6 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     background-color: rgba(255, 255, 255, 0.88) !important;
     border-color: #cbd5e1 !important;
     box-shadow: 0 8px 24px -6px rgba(15, 23, 42, 0.08) !important;
-  }
-
-  body.aurora-page .aurora-motion-btn {
-    background-color: rgba(255, 255, 255, 0.88) !important;
-    border-color: #cbd5e1 !important;
-    color: #334155 !important;
-    box-shadow: none !important;
-  }
-
-  body.aurora-page .aurora-motion-btn:hover {
-    border-color: #d97706 !important;
-    color: #0f172a !important;
   }
 
   body.aurora-page .step-section {
@@ -1063,6 +973,33 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     background-color: #ffffff !important;
     border-color: #cbd5e1 !important;
     color: #0f172a !important;
+  }
+
+  .confirm-email-card {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .confirm-spam-notice {
+    background-color: rgba(245, 158, 11, 0.11) !important;
+    border-color: rgba(217, 119, 6, 0.34) !important;
+  }
+
+  .confirm-engine-pill {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+  }
+
+  .confirm-close-btn {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  .confirm-close-btn:hover {
+    background-color: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
   }
 
   #summaryStickyCard {
