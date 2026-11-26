@@ -1785,11 +1785,42 @@
       }
     } catch (_) {}
 
+    const paginasLinhas = [];
+    const imagensPorPagina = [];
+    const pdfOps = (window.pdfjsLib && window.pdfjsLib.OPS) || {};
+    const opsImagem = new Set(
+      [
+        pdfOps.paintImageXObject,
+        pdfOps.paintInlineImageXObject,
+        pdfOps.paintImageXObjectRepeat,
+        pdfOps.paintJpegXObject,
+      ].filter((v) => typeof v === "number")
+    );
+
     for (let p = 1; p <= numPages; p++) {
       const page = await pdf.getPage(p);
       const content = await page.getTextContent();
       const { textoPagina, candidatosTitulo } = reconstruirLinhasPaginaPdf(content.items || []);
       textoAcumulado += textoPagina + "\n\n";
+      const linhasPag = (textoPagina || "")
+        .split(/\r?\n/)
+        .map((l) => l.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+      paginasLinhas.push(linhasPag);
+
+      let qtdImgs = 0;
+      const charsBrutosPag = linhasPag.join(" ").length;
+      if (charsBrutosPag < 500 && opsImagem.size > 0 && typeof page.getOperatorList === "function") {
+        try {
+          const opList = await page.getOperatorList();
+          const fns = (opList && opList.fnArray) || [];
+          for (let k = 0; k < fns.length; k++) {
+            if (opsImagem.has(fns[k])) qtdImgs++;
+          }
+        } catch (_) {}
+      }
+      imagensPorPagina.push(qtdImgs);
+
       for (const cand of candidatosTitulo) {
         titulosPorLayout.push(cand);
       }
@@ -1821,7 +1852,68 @@
       texto: textoAcumulado.trim(),
       paginas: numPages,
       capitulos,
+      paginasLinhas,
+      imagensPorPagina,
     };
+  }
+
+  // [web_v12_01] Detecta PDFs híbridos (cabeçalho/rodapé em texto + miolo em imagem/print)
+  function avaliarPdfHibridoAntiOcr(resultado, minCharsPagina) {
+    const linhasPorPag = Array.isArray(resultado && resultado.paginasLinhas) ? resultado.paginasLinhas : [];
+    const imgsPorPag = Array.isArray(resultado && resultado.imagensPorPagina) ? resultado.imagensPorPagina : [];
+    const numPages = Math.max(1, linhasPorPag.length || (resultado && resultado.paginas) || 1);
+    if (!linhasPorPag.length) return { bloqueado: false };
+
+    const minChars = Math.max(1, Number(minCharsPagina) || 80);
+    const limiarComImagem = Math.max(150, Math.round(minChars * 1.85));
+
+    const repetidas = new Set();
+    if (numPages >= 3) {
+      const freq = new Map();
+      for (const ls of linhasPorPag) {
+        const chaves = new Set(ls.map((l) => l.toLowerCase().replace(/\d+/g, "#").trim()));
+        for (const k of chaves) {
+          if (k.length >= 4) freq.set(k, (freq.get(k) || 0) + 1);
+        }
+      }
+      const corte = Math.max(2, Math.ceil(numPages * 0.5));
+      for (const [k, c] of freq.entries()) {
+        if (c >= corte) repetidas.add(k);
+      }
+    }
+
+    const charsUteisPorPag = linhasPorPag.map((ls) => {
+      const filtradas = ls.filter((l) => !repetidas.has(l.toLowerCase().replace(/\d+/g, "#").trim()));
+      return filtradas.join(" ").replace(/\s+/g, " ").trim().length;
+    });
+    const mediaUteis = charsUteisPorPag.reduce((acc, n) => acc + n, 0) / numPages;
+
+    let pagsPobres = 0;
+    for (let i = 0; i < charsUteisPorPag.length; i++) {
+      const u = charsUteisPorPag[i];
+      const nImgs = imgsPorPag[i] || 0;
+      if (u < minChars || (u < limiarComImagem && nImgs >= 1)) {
+        pagsPobres++;
+      }
+    }
+
+    if (numPages >= 3 && mediaUteis < minChars) {
+      return {
+        bloqueado: true,
+        motivo: `Texto útil insuficiente após descontar cabeçalhos/rodapés repetidos (média útil de ${Math.round(
+          mediaUteis
+        )} chars/pág., mínimo exigido: ${minChars}). Parece conter conteúdo em imagem/print sem OCR.`,
+      };
+    }
+    if (numPages >= 2 && pagsPobres / numPages >= 0.5) {
+      return {
+        bloqueado: true,
+        motivo: `O PDF parece ter conteúdo majoritariamente em imagem/print (${pagsPobres} de ${numPages} páginas sem texto selecionável suficiente; média útil de ${Math.round(
+          mediaUteis
+        )} chars/pág.). Converta com OCR antes de enviar.`,
+      };
+    }
+    return { bloqueado: false };
   }
 
   async function extrairDocxNoNavegador(file) {
@@ -2214,6 +2306,14 @@
             )} chars/pág., mínimo exigido: ${CONFIG_COMERCIAL.COM_MIN_CHARS_PAGINA}). Parece ser um PDF escaneado (imagem sem texto selecionável).`
           );
           continue;
+        }
+
+        if (ext === ".pdf") {
+          const checkHibrido = avaliarPdfHibridoAntiOcr(resultado, CONFIG_COMERCIAL.COM_MIN_CHARS_PAGINA);
+          if (checkHibrido.bloqueado) {
+            errosOcr.push(`"${nome}": ${checkHibrido.motivo}`);
+            continue;
+          }
         }
 
         const idiomaDetectado = detectarIdiomaTexto(resultado.texto, nome);
