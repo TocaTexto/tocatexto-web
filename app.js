@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v10_00_confirmacao_email_modal)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v12_00_config_comercial_dinamica)
  * ============================================================================
  * Serviços de Síntese Disponíveis:
  * 1. XTTSv2 (Qualidade Estúdio): 44 vozes neurais realistas (18 PT-BR · 26 EN),
@@ -504,8 +504,89 @@
     return { signal: undefined, cleanup: () => {} };
   }
 
+  // [web_v12_00] Atualiza textos comerciais estáticos da interface a partir de CONFIG_COMERCIAL
+  function formatarTagCotaCurta(totalChars) {
+    const n = Math.max(0, Math.round(Number(totalChars) || 0));
+    if (n <= 0) return "PIX";
+    if (n >= 1000) {
+      const k = n / 1000;
+      const kFmt = Number.isInteger(k) ? String(k) : k.toFixed(1).replace(".", ",");
+      return `${kFmt}k grátis`;
+    }
+    return `${formatarInteiro(n)} ch grátis`;
+  }
+
+  function atualizarTextosComerciaisNaUI() {
+    const ativa = Boolean(CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA);
+    const total = ativa ? Math.max(0, Math.round(Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS) || 0)) : 0;
+    const charsPorPag = Math.max(100, Math.round(Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000));
+    const pags = Math.max(0, Math.round(total / charsPorPag));
+    const totalFmt = formatarInteiro(total);
+    const precoMil = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
+    const minBrl = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
+    const diasExpira = Math.max(1, Math.round(Number(CONFIG_COMERCIAL.COM_LINK_DIAS_EXPIRA) || 7));
+
+    const heroQuota = document.getElementById("heroXttsQuotaBadge");
+    if (heroQuota) {
+      heroQuota.textContent =
+        ativa && total > 0
+          ? `🎁 XTTSv2 Estúdio: ${pags} pág. grátis (${totalFmt} chars) no 1º uso`
+          : "🎙️ XTTSv2 Estúdio: sob demanda via PIX";
+    }
+    const heroPrice = document.getElementById("heroXttsPriceBadge");
+    if (heroPrice) {
+      heroPrice.textContent = `💰 Excedente XTTSv2: ${precoMil} / 1.000 chars (mín. ${minBrl})`;
+    }
+    const engineTag = document.getElementById("engineXttsQuotaTag");
+    if (engineTag) {
+      engineTag.textContent = ativa && total > 0 ? formatarTagCotaCurta(total) : "Sob demanda";
+    }
+    const engineInline = document.getElementById("engineXttsQuotaInline");
+    if (engineInline) {
+      engineInline.textContent =
+        ativa && total > 0
+          ? `As primeiras ${pags} páginas (${totalFmt} chars) são grátis; excedente cobrado via PIX.`
+          : `Cobrança sob demanda via PIX (${precoMil} / 1.000 chars, mín. ${minBrl}).`;
+    }
+    const termsDias = document.getElementById("termsLinkDias");
+    if (termsDias) termsDias.textContent = String(diasExpira);
+    const termsQuota = document.getElementById("termsQuotaChars");
+    if (termsQuota) termsQuota.textContent = totalFmt;
+  }
+
+  function aplicarConfigComercialRemota(cfgRemota) {
+    if (!cfgRemota || typeof cfgRemota !== "object") return false;
+    let alterou = false;
+    if (typeof cfgRemota.COM_COTA_GRATIS_ATIVA === "boolean") {
+      if (CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA !== cfgRemota.COM_COTA_GRATIS_ATIVA) alterou = true;
+      CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA = cfgRemota.COM_COTA_GRATIS_ATIVA;
+    }
+    const numKeys = [
+      ["COM_COTA_GRATIS_CHARS", 0],
+      ["COM_VALOR_CARACTERE", 0.000001],
+      ["COM_VALOR_MINIMO", 0],
+      ["COM_MIN_CHARS_PAGINA", 1],
+      ["COM_CHARS_POR_PAGINA", 100],
+      ["COM_LINK_DIAS_EXPIRA", 1],
+    ];
+    for (const [k, minVal] of numKeys) {
+      if (typeof cfgRemota[k] === "number" && Number.isFinite(cfgRemota[k]) && cfgRemota[k] >= minVal) {
+        if (CONFIG_COMERCIAL[k] !== cfgRemota[k]) alterou = true;
+        CONFIG_COMERCIAL[k] = cfgRemota[k];
+      }
+    }
+    const novoTotal = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS : 0;
+    state.cotaTotalChars = novoTotal;
+    state.cotaRestanteChars = Math.max(0, novoTotal - state.cotaConsumidaChars);
+    atualizarTextosComerciaisNaUI();
+    recalcularAgregadosDocumentos();
+    atualizarCardsComparacaoMotores();
+    atualizarResumoPedido();
+    return alterou;
+  }
+
   async function atualizarSaldoCotaPorEmail(consultarApi = false) {
-    const total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS : 0;
+    let total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS : 0;
     const emailNorm = normalizarEmailCota(el.clientEmail?.value || "");
     let consumido = lerConsumidoCotaLocal(emailNorm);
 
@@ -521,6 +602,14 @@
         });
         if (resp.ok) {
           const data = await resp.json();
+          if (typeof data?.cota_ativa === "boolean") {
+            CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA = data.cota_ativa;
+          }
+          if (typeof data?.cota_total_chars === "number" && data.cota_total_chars >= 0) {
+            CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS = data.cota_total_chars;
+            total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? data.cota_total_chars : 0;
+            atualizarTextosComerciaisNaUI();
+          }
           if (typeof data?.chars_consumidos === "number") {
             consumido = Math.max(0, Math.min(total, data.chars_consumidos));
           }
@@ -536,6 +625,7 @@
     state.cotaConsumidaChars = consumido;
     state.cotaRestanteChars = Math.max(0, total - consumido);
     recalcularAgregadosDocumentos();
+    atualizarCardsComparacaoMotores();
     atualizarResumoPedido();
     if (state.arquivos.length > 0) {
       atualizarFluxoEtapas(state.etapaAtiva, true);
@@ -544,7 +634,7 @@
 
   async function sincronizarStatusMotor() {
     if (!CONFIG_COMERCIAL.API_BASE_URL) return;
-    const { signal, cleanup } = criarSignalTimeout(3000);
+    const { signal, cleanup } = criarSignalTimeout(5000);
     try {
       const endpoint = new URL("/api/status", CONFIG_COMERCIAL.API_BASE_URL);
       const resp = await fetch(endpoint, {
@@ -554,6 +644,9 @@
       });
       if (!resp.ok) return;
       const data = await resp.json();
+      if (data?.config_comercial && typeof data.config_comercial === "object") {
+        aplicarConfigComercialRemota(data.config_comercial);
+      }
       const hb = data?.heartbeat || data;
       if (hb && typeof hb === "object") {
         if (typeof hb.timestamp_epoch === "number") {
@@ -862,9 +955,10 @@
 
     if (el.engineXttsPriceBadge) {
       if (!temDoc) {
+        const precoMil = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
         el.engineXttsPriceBadge.textContent = state.cotaRestanteChars > 0
           ? `💰 Grátis até ${formatarInteiro(state.cotaRestanteChars)} ch`
-          : "💰 R$ 0,05 / 1.000 chars";
+          : `💰 ${precoMil} / 1.000 chars`;
       } else {
         el.engineXttsPriceBadge.textContent = xttsPreco.preco <= 0
           ? "💰 GRÁTIS (usa cota)"
@@ -2292,10 +2386,19 @@
         : "Valor Total PIX";
     }
 
+    const pagsCotaTotal = Math.max(
+      0,
+      Math.round(cotaTotal / Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000))
+    );
+    const precoMilFmt = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
+    const valorMinFmt = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
+
     if (el.quotaStatusTitle) {
       el.quotaStatusTitle.textContent = isEdge
         ? "⚡ Edge TTS Ativo (100% Gratuito · Cota XTTSv2 intacta)"
-        : "🎁 Cota Gratuita XTTSv2 (100 páginas / 200.000 chars)";
+        : cotaTotal > 0
+        ? `🎁 Cota Gratuita XTTSv2 (${pagsCotaTotal} páginas / ${formatarInteiro(cotaTotal)} chars)`
+        : "🎙️ XTTSv2 Sob Demanda (sem cota gratuita ativa)";
     }
     if (el.quotaBalanceBadge) {
       el.quotaBalanceBadge.textContent = isEdge
@@ -2308,11 +2411,16 @@
     }
     if (el.quotaStatusHint) {
       if (isEdge) {
-        el.quotaStatusHint.textContent =
-          "O serviço Edge TTS é 100% gratuito e sem limite de caracteres. Sua cota gratuita do XTTSv2 (200.000 chars) permanece preservada para quando você quiser qualidade de estúdio.";
+        el.quotaStatusHint.textContent = `O serviço Edge TTS é 100% gratuito e sem limite de caracteres. Sua cota gratuita do XTTSv2 (${formatarInteiro(
+          cotaTotal
+        )} chars) permanece preservada para quando você quiser qualidade de estúdio.`;
       } else if (cotaRest <= 0) {
         el.quotaStatusHint.textContent =
-          "Cota gratuita inicial de 200.000 caracteres do XTTSv2 já consumida para este e-mail. Cobrança padrão de R$ 0,05 / 1.000 chars (mín. R$ 1,00) — ou troque para Edge TTS no Passo 02 para converter grátis.";
+          cotaTotal > 0
+            ? `Cota gratuita inicial de ${formatarInteiro(
+                cotaTotal
+              )} caracteres do XTTSv2 já consumida para este e-mail. Cobrança padrão de ${precoMilFmt} / 1.000 chars (mín. ${valorMinFmt}) — ou troque para Edge TTS no Passo 02 para converter grátis.`
+            : `Cobrança padrão de ${precoMilFmt} / 1.000 chars (mín. ${valorMinFmt}) no XTTSv2 — ou troque para Edge TTS no Passo 02 para converter grátis.`;
       } else if (temDoc && cobraveis > 0) {
         el.quotaStatusHint.textContent = `Este pedido XTTSv2 consome seus últimos ${formatarInteiro(
           cobertos
@@ -2329,7 +2437,9 @@
     }
 
     if (el.summaryQuotaLabel) {
-      el.summaryQuotaLabel.textContent = isEdge ? "• Cota XTTSv2:" : "• Cota grátis XTTSv2 (100 pág.):";
+      el.summaryQuotaLabel.textContent = isEdge
+        ? "• Cota XTTSv2:"
+        : `• Cota grátis XTTSv2 (${pagsCotaTotal} pág.):`;
     }
     if (el.summaryQuotaStatus) {
       if (isEdge) {
@@ -3691,6 +3801,7 @@
     atualizarVelocidade(1.0, false, false);
     atualizarLinkWhatsappClickToChat();
     atualizarFluxoEtapas(1);
+    atualizarTextosComerciaisNaUI();
     atualizarSaldoCotaPorEmail(false);
     sincronizarStatusMotor();
     registrarEventos();
