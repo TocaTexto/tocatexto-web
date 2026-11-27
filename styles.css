@@ -1485,6 +1485,22 @@ dialog.pix-dialog:modal {
   color: #6ee7b7;
 }
 
+.donation-amount-input {
+  color: #f8fafc;
+}
+
+.donation-amount-input.donation-amount-zero {
+  color: #64748b !important;
+}
+
+.donation-amount-wrap:has(.donation-amount-zero) .donation-currency-prefix {
+  color: #64748b;
+}
+
+.donation-amount-wrap:not(:has(.donation-amount-zero)) .donation-currency-prefix {
+  color: #34d399;
+}
+
 dialog.pix-dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
@@ -2122,6 +2138,24 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     background-color: #d1fae5 !important;
     border-color: #059669 !important;
     color: #065f46 !important;
+  }
+
+  .donation-amount-wrap {
+    background-color: #ffffff !important;
+    border-color: #94a3b8 !important;
+  }
+
+  .donation-amount-input {
+    color: #0f172a !important;
+  }
+
+  .donation-amount-input.donation-amount-zero,
+  .donation-amount-wrap:has(.donation-amount-zero) .donation-currency-prefix {
+    color: #94a3b8 !important;
+  }
+
+  .donation-amount-wrap:not(:has(.donation-amount-zero)) .donation-currency-prefix {
+    color: #059669 !important;
   }
 
   .field-validation-error,

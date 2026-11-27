@@ -1470,18 +1470,24 @@
 
           <div>
             <label for="donationAmountInput" class="mb-1 block text-xs font-semibold text-slate-200">
-              Valor da doação em R$ (opcional — deixe vazio para valor livre no app do banco)
+              Valor da doação em R$
             </label>
             <div class="flex gap-2">
-              <input
-                id="donationAmountInput"
-                name="donation_amount"
-                type="text"
-                inputmode="decimal"
-                autofocus
-                placeholder="Ex.: 5,00 (ou vazio = valor livre)"
-                class="form-text-input flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm font-mono text-white placeholder-slate-500"
-              />
+              <div id="donationAmountWrap" class="donation-amount-wrap flex flex-1 items-center rounded-xl border border-slate-700 bg-slate-950 px-3 transition focus-within:border-emerald-400">
+                <span id="donationCurrencyPrefix" class="donation-currency-prefix mr-2 select-none font-mono text-sm font-bold text-slate-500" aria-hidden="true">R$</span>
+                <input
+                  id="donationAmountInput"
+                  name="donation_amount"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  spellcheck="false"
+                  autofocus
+                  value="0,00"
+                  aria-describedby="donationAmountHint"
+                  class="form-text-input donation-amount-input donation-amount-zero w-full bg-transparent py-2 text-sm font-mono font-bold text-slate-500 focus:outline-none"
+                />
+              </div>
               <button
                 id="generateDonationPixBtn"
                 type="submit"
@@ -1490,12 +1496,24 @@
                 Gerar PIX
               </button>
             </div>
+            <p id="donationAmountHint" class="mt-1 text-[11px] text-slate-400">
+              Digite apenas números (ex.: <strong class="font-mono text-slate-300">565</strong> → <strong class="font-mono text-slate-300">R$ 5,65</strong>) ou deixe <strong class="font-mono text-slate-300">R$ 0,00</strong> para valor livre no app do banco.
+            </p>
             <p id="donationAmountError" role="alert" class="mt-1.5 hidden text-xs text-red-300"></p>
           </div>
         </form>
 
         <div id="donationNotConfiguredNotice" class="hidden rounded-xl border border-amber-500/40 bg-amber-950/30 p-3.5 text-xs text-amber-200">
-          A chave PIX de doações ainda não foi configurada pelo administrador. Assim que configurada, o QR Code aparecerá aqui automaticamente.
+          <p id="donationNoticeText">
+            A chave PIX de doações ainda não foi configurada pelo administrador. Assim que configurada, o QR Code aparecerá aqui automaticamente.
+          </p>
+          <button
+            id="retryDonationSyncBtn"
+            type="button"
+            class="mt-2.5 hidden rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-400 hover:text-slate-950 transition"
+          >
+            ↻ Tentar carregar novamente
+          </button>
         </div>
 
         <div id="donationPixResult" class="hidden space-y-3.5 border-t border-slate-800/80 pt-4 text-center">

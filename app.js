@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v17_00_gratuito_doacao_pix)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v17_01_gratuito_doacao_pix)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
@@ -958,9 +958,11 @@
     }
   }
 
-  async function sincronizarStatusMotor() {
-    if (!CONFIG_COMERCIAL.API_BASE_URL) return;
-    const { signal, cleanup } = criarSignalTimeout(5000);
+  let _promessaSyncStatus = null;
+  let _statusSincronizadoOk = false;
+
+  async function _executarSyncStatusUnico(timeoutMs) {
+    const { signal, cleanup } = criarSignalTimeout(timeoutMs);
     try {
       const endpoint = new URL("/api/status", CONFIG_COMERCIAL.API_BASE_URL);
       const resp = await fetch(endpoint, {
@@ -968,7 +970,7 @@
         headers: { Accept: "application/json" },
         signal,
       });
-      if (!resp.ok) return;
+      if (!resp.ok) return false;
       const data = await resp.json();
       if (data?.config_comercial && typeof data.config_comercial === "object") {
         aplicarConfigComercialRemota(data.config_comercial);
@@ -1008,12 +1010,32 @@
         }
         atualizarResumoPedido();
       }
-    } catch (err) {
-      if (err?.name !== "TimeoutError" && err?.name !== "AbortError") {
-        // Fallback silencioso para constantes locais calibradas
-      }
+      _statusSincronizadoOk = true;
+      return true;
+    } catch (_err) {
+      return false;
     } finally {
       cleanup();
+    }
+  }
+
+  async function sincronizarStatusMotor(forcar = false) {
+    if (!CONFIG_COMERCIAL.API_BASE_URL) return false;
+    if (_promessaSyncStatus && !forcar) return _promessaSyncStatus;
+    const promessa = (async () => {
+      // [web_v17_01] Timeout de 30s + 1 retry para suportar cold start do Render Free sem perder a chave PIX
+      const ok1 = await _executarSyncStatusUnico(30000);
+      if (ok1) return true;
+      await new Promise((r) => setTimeout(r, 2000));
+      return _executarSyncStatusUnico(30000);
+    })();
+    _promessaSyncStatus = promessa;
+    try {
+      return await promessa;
+    } finally {
+      if (_promessaSyncStatus === promessa) {
+        _promessaSyncStatus = null;
+      }
     }
   }
 
@@ -3510,27 +3532,50 @@
       }
     }
 
-    const { signal, cleanup } = criarSignalComDeadline(null, 45000);
+    const tentarEnvio = async () => {
+      const { signal, cleanup } = criarSignalComDeadline(null, 70000);
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: { Accept: "application/json" },
+          body: formData,
+          signal,
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          const detalhe = data?.detail || `Erro HTTP ${resp.status} ao enviar os arquivos.`;
+          const httpErr = new Error(detalhe);
+          httpErr.isHttp = true;
+          throw httpErr;
+        }
+        return data;
+      } finally {
+        cleanup();
+      }
+    };
+
     try {
-      const resp = await fetch(endpoint, {
-        method: "POST",
-        headers: { Accept: "application/json" },
-        body: formData,
-        signal,
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        const detalhe = data?.detail || `Erro HTTP ${resp.status} ao enviar o pedido.`;
-        throw new Error(detalhe);
-      }
-      return data;
+      return await tentarEnvio();
     } catch (err) {
-      if (err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError")) {
-        throw new Error("Tempo limite excedido ao enviar os arquivos para o servidor. Tente novamente.", { cause: err });
+      // [web_v17_01] 1 retry automático em erro transitório de rede/cold start do Render Free
+      if (!err?.isHttp && !(err instanceof DOMException && err.name === "AbortError")) {
+        if (el.generatePixBtn) {
+          el.generatePixBtn.textContent = "Conectando ao servidor (aguarde alguns segundos)...";
+        }
+        await new Promise((r) => setTimeout(r, 2500));
+        try {
+          return await tentarEnvio();
+        } catch (err2) {
+          err = err2;
+        }
       }
-      throw new Error(err?.message || "Falha de comunicação com a API do TocaTexto.", { cause: err });
-    } finally {
-      cleanup();
+      if (err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError")) {
+        throw new Error("Tempo limite excedido ao enviar os arquivos para o servidor. Tente novamente em instantes.", { cause: err });
+      }
+      if (err instanceof TypeError) {
+        throw new Error("Não foi possível conectar ao servidor agora (ele pode estar iniciando). Aguarde 10 segundos e tente novamente.", { cause: err });
+      }
+      throw new Error(err?.message || "Falha de comunicação com o servidor do TocaTexto.", { cause: err });
     }
   }
 
@@ -3830,6 +3875,35 @@
     URL.revokeObjectURL(url);
   }
 
+  const DONATION_MAX_CENTS = 9999999; // R$ 99.999,99
+  let _donationInputCents = 0;
+
+  function formatarCentavosBRL(centavos) {
+    const c = Math.max(0, Math.min(DONATION_MAX_CENTS, Math.round(Number(centavos) || 0)));
+    const reais = Math.floor(c / 100);
+    const resto = c % 100;
+    const reaisFmt = reais.toLocaleString("pt-BR");
+    return `${reaisFmt},${String(resto).padStart(2, "0")}`;
+  }
+
+  function definirCentavosDoacaoInput(centavos) {
+    const c = Math.max(0, Math.min(DONATION_MAX_CENTS, Math.round(Number(centavos) || 0)));
+    _donationInputCents = c;
+    if (el.donationAmountInput) {
+      el.donationAmountInput.value = formatarCentavosBRL(c);
+      el.donationAmountInput.classList.toggle("donation-amount-zero", c === 0);
+      const len = el.donationAmountInput.value.length;
+      try {
+        el.donationAmountInput.setSelectionRange(len, len);
+      } catch (_e) {}
+    }
+  }
+
+  function extrairCentavosDeTexto(texto) {
+    const digitos = String(texto || "").replace(/\D/g, "").slice(0, 7);
+    return digitos ? Math.min(DONATION_MAX_CENTS, parseInt(digitos, 10)) : 0;
+  }
+
   function atualizarChipsDoacaoAtivo(valorOuModo) {
     if (!el.donationChipBtns) return;
     el.donationChipBtns.forEach((btn) => {
@@ -3842,14 +3916,30 @@
     });
   }
 
+  function exibirAvisoChaveDoacao(mensagem, mostrarRetry = false) {
+    if (el.donationNoticeText) el.donationNoticeText.textContent = mensagem;
+    if (el.retryDonationSyncBtn) el.retryDonationSyncBtn.classList.toggle("hidden", !mostrarRetry);
+    if (el.donationNotConfiguredNotice) el.donationNotConfiguredNotice.classList.remove("hidden");
+    if (el.donationPixResult) el.donationPixResult.classList.add("hidden");
+  }
+
   function atualizarPixDoacaoNoModal(valorNumericoOuNull) {
     const chave = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CHAVE || "").trim();
     const nome = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_NOME || "TOCATEXTO").trim();
     const cidade = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CIDADE || "CAMPINAS").trim();
 
     if (!chave) {
-      if (el.donationNotConfiguredNotice) el.donationNotConfiguredNotice.classList.remove("hidden");
-      if (el.donationPixResult) el.donationPixResult.classList.add("hidden");
+      if (CONFIG_COMERCIAL.API_BASE_URL && !_statusSincronizadoOk) {
+        exibirAvisoChaveDoacao(
+          "⏳ Carregando chave PIX do servidor (pode levar alguns segundos se o servidor estiver iniciando)...",
+          false
+        );
+      } else {
+        exibirAvisoChaveDoacao(
+          "A chave PIX de doações ainda não foi configurada pelo administrador. Assim que configurada, o QR Code aparecerá aqui automaticamente.",
+          Boolean(CONFIG_COMERCIAL.API_BASE_URL)
+        );
+      }
       return;
     }
     if (el.donationNotConfiguredNotice) el.donationNotConfiguredNotice.classList.add("hidden");
@@ -3878,6 +3968,30 @@
       el.donationQrImage.src = qrUrl.toString();
     }
     if (el.donationPixResult) el.donationPixResult.classList.remove("hidden");
+  }
+
+  async function garantirChavePixDoacaoERenderizar(valorAtual) {
+    const chaveAtual = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CHAVE || "").trim();
+    if (chaveAtual || !CONFIG_COMERCIAL.API_BASE_URL) {
+      atualizarPixDoacaoNoModal(valorAtual);
+      return;
+    }
+    exibirAvisoChaveDoacao(
+      "⏳ Buscando chave PIX no servidor (pode levar alguns segundos se o servidor estiver iniciando)...",
+      false
+    );
+    const ok = await sincronizarStatusMotor(true);
+    const valorFinal = _donationInputCents > 0 ? _donationInputCents / 100 : null;
+    if (String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CHAVE || "").trim()) {
+      atualizarPixDoacaoNoModal(valorFinal);
+    } else if (!ok) {
+      exibirAvisoChaveDoacao(
+        "Não foi possível conectar ao servidor para carregar a chave PIX. Clique abaixo para tentar novamente.",
+        true
+      );
+    } else {
+      atualizarPixDoacaoNoModal(valorFinal);
+    }
   }
 
   function abrirModalDoacao() {
@@ -3914,16 +4028,14 @@
     }
 
     const valorInicial = temDoc && sug.valorSugerido > 0 ? sug.valorSugerido : null;
-    if (el.donationAmountInput) {
-      el.donationAmountInput.value = valorInicial !== null ? valorInicial.toFixed(2).replace(".", ",") : "";
-    }
+    definirCentavosDoacaoInput(valorInicial !== null ? Math.round(valorInicial * 100) : 0);
     atualizarChipsDoacaoAtivo(valorInicial !== null ? "suggested" : null);
-    atualizarPixDoacaoNoModal(valorInicial);
 
     if (!el.donationModal.open) {
       el.donationModal.removeAttribute("data-closing");
       el.donationModal.showModal();
     }
+    garantirChavePixDoacaoERenderizar(valorInicial);
   }
 
   function fecharModalDoacao() {
@@ -4478,15 +4590,63 @@
       el.closeDonationModalBtn.addEventListener("click", fecharModalDoacao);
     }
 
+    if (el.donationAmountInput) {
+      el.donationAmountInput.addEventListener("keydown", (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === "Enter" || e.key === "Tab" || e.key === "Escape") return;
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          definirCentavosDoacaoInput(Math.floor(_donationInputCents / 10));
+          return;
+        }
+        if (e.key === "Delete") {
+          e.preventDefault();
+          definirCentavosDoacaoInput(0);
+          return;
+        }
+        if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          const proximo = _donationInputCents * 10 + parseInt(e.key, 10);
+          if (proximo <= DONATION_MAX_CENTS) {
+            definirCentavosDoacaoInput(proximo);
+          }
+          return;
+        }
+        // Bloqueia letras, vírgula/ponto manual e símbolos
+        e.preventDefault();
+      });
+
+      el.donationAmountInput.addEventListener("input", () => {
+        // Fallback para teclados virtuais mobile / autocomplete / colagem
+        definirCentavosDoacaoInput(extrairCentavosDeTexto(el.donationAmountInput.value));
+      });
+
+      el.donationAmountInput.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const colado = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+        const cents = extrairCentavosDeTexto(colado);
+        if (cents > 0) {
+          definirCentavosDoacaoInput(cents);
+        }
+      });
+
+      el.donationAmountInput.addEventListener("focus", () => {
+        const len = el.donationAmountInput.value.length;
+        try {
+          el.donationAmountInput.setSelectionRange(len, len);
+        } catch (_e) {}
+      });
+    }
+
     if (el.donationChipBtns) {
       el.donationChipBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
           const chip = btn.getAttribute("data-donation-chip");
           if (el.donationAmountError) el.donationAmountError.classList.add("hidden");
           if (chip === "free") {
-            if (el.donationAmountInput) el.donationAmountInput.value = "";
+            definirCentavosDoacaoInput(0);
             atualizarChipsDoacaoAtivo(null);
-            atualizarPixDoacaoNoModal(null);
+            garantirChavePixDoacaoERenderizar(null);
             return;
           }
           let valNum = null;
@@ -4497,11 +4657,9 @@
             const parsed = parseValorDoacaoBRL(chip);
             valNum = parsed.valido ? parsed.valor : null;
           }
-          if (el.donationAmountInput) {
-            el.donationAmountInput.value = valNum !== null ? valNum.toFixed(2).replace(".", ",") : "";
-          }
+          definirCentavosDoacaoInput(valNum !== null ? Math.round(valNum * 100) : 0);
           atualizarChipsDoacaoAtivo(chip);
-          atualizarPixDoacaoNoModal(valNum);
+          garantirChavePixDoacaoERenderizar(valNum);
         });
       });
     }
@@ -4509,18 +4667,17 @@
     if (el.donationAmountForm) {
       el.donationAmountForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        const parsed = parseValorDoacaoBRL(el.donationAmountInput?.value || "");
-        if (!parsed.valido) {
-          if (el.donationAmountError) {
-            el.donationAmountError.textContent = "Informe um valor válido em reais (ex.: 5,00) ou deixe vazio para valor livre.";
-            el.donationAmountError.classList.remove("hidden");
-          }
-          el.donationAmountInput?.focus();
-          return;
-        }
         if (el.donationAmountError) el.donationAmountError.classList.add("hidden");
-        atualizarChipsDoacaoAtivo(parsed.valor === null ? null : String(parsed.valor));
-        atualizarPixDoacaoNoModal(parsed.valor);
+        const valorFinal = _donationInputCents > 0 ? _donationInputCents / 100 : null;
+        atualizarChipsDoacaoAtivo(valorFinal === null ? null : String(valorFinal));
+        garantirChavePixDoacaoERenderizar(valorFinal);
+      });
+    }
+
+    if (el.retryDonationSyncBtn) {
+      el.retryDonationSyncBtn.addEventListener("click", () => {
+        const valorAtual = _donationInputCents > 0 ? _donationInputCents / 100 : null;
+        garantirChavePixDoacaoERenderizar(valorAtual);
       });
     }
 
@@ -4736,6 +4893,8 @@
     el.generateDonationPixBtn = document.getElementById("generateDonationPixBtn");
     el.donationAmountError = document.getElementById("donationAmountError");
     el.donationNotConfiguredNotice = document.getElementById("donationNotConfiguredNotice");
+    el.donationNoticeText = document.getElementById("donationNoticeText");
+    el.retryDonationSyncBtn = document.getElementById("retryDonationSyncBtn");
     el.donationPixResult = document.getElementById("donationPixResult");
     el.donationPixAmountCaption = document.getElementById("donationPixAmountCaption");
     el.donationQrImage = document.getElementById("donationQrImage");
