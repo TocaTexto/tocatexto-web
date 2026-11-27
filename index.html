@@ -43,88 +43,92 @@
   <!-- Skip link para navegação por teclado -->
   <a href="#mainContent" class="skip-link visually-hidden">Pular para o conteúdo principal</a>
 
-  <!-- BARRA SUPERIOR DE STATUS DO MOTOR -->
-  <header class="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
-    <div class="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-      <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold text-lg" aria-hidden="true">
+  <!-- BARRA SUPERIOR DE STATUS DO MOTOR (compacta em linha única no mobile; sticky só no desktop p/ não empilhar com o stepper) -->
+  <header id="siteTopHeader" class="relative md:sticky md:top-0 z-40 border-b border-slate-800/80 bg-slate-950/90">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3.5 py-2.5 sm:px-6 sm:py-3">
+      <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
+        <div id="headerBrandIcon" class="engine-brand-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 font-extrabold text-sm text-slate-950 shadow-lg shadow-amber-500/20 sm:h-10 sm:w-10 sm:text-lg" aria-hidden="true">
           ▶
         </div>
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span class="text-lg font-extrabold tracking-tight text-white">TocaTexto</span>
-            <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+            <span class="whitespace-nowrap text-base font-extrabold tracking-tight text-white sm:text-lg">TocaTexto</span>
+            <span id="headerFormatPill" class="engine-soft-pill hidden whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300 sm:inline-flex">
               MP3 / ZIP Definitivo
             </span>
           </div>
-          <p class="text-xs text-slate-400">Você envia o texto. A gente dá o play.</p>
+          <p class="hidden truncate text-xs text-slate-400 sm:block">Você envia o texto. A gente dá o play.</p>
         </div>
       </div>
 
       <!-- Indicador de Heartbeat em tempo real -->
-      <div id="heartbeatBadge" class="flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-xs font-medium text-slate-300" role="status">
-        <span id="heartbeatDot" class="h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse" aria-hidden="true"></span>
-        <span id="heartbeatText">Motor online · XTTSv2 &amp; Edge TTS prontos</span>
+      <div id="heartbeatBadge" class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-300 sm:gap-2 sm:px-3.5 sm:py-1.5 sm:text-xs" role="status">
+        <span id="heartbeatDot" class="h-2 w-2 shrink-0 rounded-full bg-emerald-400 motion-pulse sm:h-2.5 sm:w-2.5" aria-hidden="true"></span>
+        <span id="heartbeatTextMobile" class="sm:hidden">Sintetizador online</span>
+        <span id="heartbeatText" class="hidden sm:inline">Sintetizador online · Solar &amp; Raio prontos</span>
       </div>
     </div>
   </header>
 
 
-  <main id="mainContent" tabindex="-1" class="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+  <main id="mainContent" tabindex="-1" class="relative z-10 mx-auto max-w-7xl px-3.5 py-6 sm:px-6 sm:py-8 lg:py-10">
 
 
     <!-- HERO SECTION -->
-    <section class="mb-7 text-center">
-      <h1 class="mx-auto max-w-4xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
-        Transforme apostilas, livros e artigos em <span class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Audiobooks MP3</span> definitivos
+    <section class="mb-6 sm:mb-7 text-center">
+      <h1 class="mx-auto max-w-4xl text-2xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+        Transforme apostilas, livros e artigos em <span id="heroHighlightSpan" class="engine-hero-gradient bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300 bg-clip-text text-transparent">Audiobooks MP3</span> definitivos
       </h1>
       <p class="mx-auto mt-3 max-w-3xl text-sm text-slate-300 sm:text-base">
-        Sem assinatura e sem aplicativo exclusivo. Escolha entre a <strong class="text-amber-300">qualidade de estúdio (XTTSv2)</strong> ou a <strong class="text-cyan-300">síntese ultrarrápida e 100% gratuita (Edge TTS)</strong>, com higienização automática em <strong class="text-white">Português e Inglês</strong> e entrega direta no seu E-mail ou WhatsApp.
+        Sem assinatura e sem aplicativo exclusivo. Escolha entre o sintetizador de voz <strong class="text-amber-300">Solar (voz mais natural)</strong> ou o <strong class="text-cyan-300">Raio (síntese rápida)</strong>, com higienização automática em <strong class="text-white">Português e Inglês</strong> e entrega direta no seu E-mail ou WhatsApp.
       </p>
-      <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs text-slate-300">
-        <span class="rounded-lg border border-cyan-500/40 bg-cyan-950/35 px-3 py-1.5 font-semibold text-cyan-300">⚡ Edge TTS: 100% grátis e ultrarrápido</span>
-        <span id="heroXttsQuotaBadge" class="rounded-lg border border-emerald-500/40 bg-emerald-950/35 px-3 py-1.5 font-semibold text-emerald-300">🎁 XTTSv2 Estúdio: 100 pág. grátis (200.000 chars) no 1º uso</span>
-        <span id="heroXttsPriceBadge" class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">💰 Excedente XTTSv2: R$ 0,05 / 1.000 chars (mín. R$ 1,00)</span>
-        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">🎧 44 vozes XTTSv2 + 12 vozes Edge TTS (PT-BR &amp; EN)</span>
-        <span class="rounded-lg border border-slate-800 bg-slate-900/80 px-3 py-1.5">⚡ Posse real do arquivo (.mp3 ou .zip)</span>
+      <div class="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
+        <span id="heroXttsQuotaBadge" class="hero-minicard hero-minicard-emerald rounded-lg border px-3 py-1.5 font-semibold">🎁 Cota inicial grátis: 20.000 chars (~10 pág.) no Solar ou 10.000 chars (~5 pág.) no Raio</span>
+        <span id="heroXttsPriceBadge" class="hero-minicard hero-minicard-amber rounded-lg border px-3 py-1.5 font-semibold">☀️ Solar (Voz Natural): R$ 0,05 / 1.000 chars (mín. R$ 1,00)</span>
+        <span id="heroEdgePriceBadge" class="hero-minicard hero-minicard-cyan rounded-lg border px-3 py-1.5 font-semibold">⚡ Raio (Rápido): R$ 0,025 / 1.000 chars (mín. R$ 1,00)</span>
+        <span class="hero-minicard hero-minicard-neutral rounded-lg border px-3 py-1.5 font-medium">🎧 44 vozes Solar + 12 vozes Raio (PT-BR &amp; EN)</span>
+        <span class="hero-minicard hero-minicard-neutral rounded-lg border px-3 py-1.5 font-medium">⚡ Posse real do arquivo (.mp3 ou .zip)</span>
       </div>
     </section>
 
 
-    <!-- BARRA DE JORNADA GUIADA CONGELADA NO TOPO AO ROLAR (STICKY STEPPER 01 -> 02 -> 03) -->
-    <nav id="flowStepper" aria-label="Etapas do pedido" class="sticky top-[61px] z-30 mb-8 rounded-2xl border border-slate-800/90 bg-slate-900/90 p-3.5 shadow-xl backdrop-blur-md transition-all duration-200">
-      <div class="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-        <a href="#stepCard01" id="stepperItem01" aria-current="step" class="stepper-pill stepper-pill-active flex items-center justify-between rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-2.5 transition">
-          <div class="flex items-center gap-3">
-            <span id="stepperBadge01" class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950">01</span>
-            <div>
-              <span class="block text-[11px] font-extrabold uppercase tracking-wider text-amber-300">Passo 1</span>
-              <span class="text-sm font-bold text-white">Envie seus documentos</span>
+    <!-- BARRA DE JORNADA GUIADA CONGELADA NO TOPO AO ROLAR (compacta em 1 linha de 3 colunas no celular) -->
+    <nav id="flowStepper" aria-label="Etapas do pedido" class="sticky z-30 mb-5 rounded-xl border border-slate-800/90 bg-slate-900/90 p-1.5 shadow-xl transition-all duration-200 md:mb-8 md:rounded-2xl md:p-3">
+      <div class="grid grid-cols-3 gap-1.5 md:gap-2.5">
+        <a href="#stepCard01" id="stepperItem01" aria-current="step" class="stepper-pill stepper-pill-active flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-500/10 px-2 py-1.5 transition md:justify-between md:rounded-xl md:px-4 md:py-2.5">
+          <div class="flex min-w-0 items-center gap-1.5 md:gap-3">
+            <span id="stepperBadge01" class="stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-400 font-mono text-[10px] font-extrabold text-slate-950 md:h-8 md:w-8 md:rounded-lg md:text-xs">01</span>
+            <span class="truncate text-[11px] font-bold text-white md:hidden">Documentos</span>
+            <div class="hidden min-w-0 md:block">
+              <span id="stepperEyebrow01" class="stepper-eyebrow block text-[11px] font-extrabold uppercase tracking-wider text-amber-300">Passo 1</span>
+              <span class="block truncate text-sm font-bold text-white">Envie seus documentos</span>
             </div>
           </div>
-          <span id="stepperState01" class="step-arrow-cue text-xs font-semibold text-amber-300">Comece aqui ↓</span>
+          <span id="stepperState01" class="step-arrow-cue hidden whitespace-nowrap text-xs font-semibold text-amber-300 lg:inline">Comece aqui ↓</span>
         </a>
 
-        <a href="#stepCard02" id="stepperItem02" class="stepper-pill flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 transition hover:border-slate-700">
-          <div class="flex items-center gap-3">
-            <span id="stepperBadge02" class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300">02</span>
-            <div>
-              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 2</span>
-              <span class="text-sm font-bold text-white">Motor, Voz e Ritmo</span>
+        <a href="#stepCard02" id="stepperItem02" class="stepper-pill flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/60 px-2 py-1.5 transition hover:border-slate-700 md:justify-between md:rounded-xl md:px-4 md:py-2.5">
+          <div class="flex min-w-0 items-center gap-1.5 md:gap-3">
+            <span id="stepperBadge02" class="stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-800 font-mono text-[10px] font-bold text-slate-300 md:h-8 md:w-8 md:rounded-lg md:text-xs">02</span>
+            <span class="truncate text-[11px] font-bold text-white md:hidden">Sintetizador</span>
+            <div class="hidden min-w-0 md:block">
+              <span id="stepperEyebrow02" class="stepper-eyebrow block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 2</span>
+              <span class="block truncate text-sm font-bold text-white">Sintetizador, Voz e Ritmo</span>
             </div>
           </div>
-          <span id="stepperState02" class="text-xs font-medium text-slate-400">XTTSv2 ou Edge →</span>
+          <span id="stepperState02" class="hidden whitespace-nowrap text-xs font-medium text-slate-400 lg:inline">Solar ou Raio →</span>
         </a>
 
-        <a href="#stepCard03" id="stepperItem03" class="stepper-pill flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 transition hover:border-slate-700">
-          <div class="flex items-center gap-3">
-            <span id="stepperBadge03" class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300">03</span>
-            <div>
-              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 3</span>
-              <span class="text-sm font-bold text-white">Recebimento e Envio</span>
+        <a href="#stepCard03" id="stepperItem03" class="stepper-pill flex items-center justify-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/60 px-2 py-1.5 transition hover:border-slate-700 md:justify-between md:rounded-xl md:px-4 md:py-2.5">
+          <div class="flex min-w-0 items-center gap-1.5 md:gap-3">
+            <span id="stepperBadge03" class="stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-800 font-mono text-[10px] font-bold text-slate-300 md:h-8 md:w-8 md:rounded-lg md:text-xs">03</span>
+            <span class="truncate text-[11px] font-bold text-white md:hidden">Entrega</span>
+            <div class="hidden min-w-0 md:block">
+              <span id="stepperEyebrow03" class="stepper-eyebrow block text-[11px] font-bold uppercase tracking-wider text-slate-400">Passo 3</span>
+              <span class="block truncate text-sm font-bold text-white">Recebimento e Envio</span>
             </div>
           </div>
-          <span id="stepperState03" class="text-xs font-medium text-slate-400">E-mail &amp; WhatsApp</span>
+          <span id="stepperState03" class="hidden whitespace-nowrap text-xs font-medium text-slate-400 lg:inline">E-mail &amp; WhatsApp</span>
         </a>
       </div>
     </nav>
@@ -133,42 +137,101 @@
     <!-- ====================================================================== -->
     <!-- PASSO 01: UPLOAD MULTI-ARQUIVOS, VALIDAÇÃO DE TEXTO E CÁLCULO          -->
     <!-- ====================================================================== -->
-    <section id="stepCard01" class="step-section step-card-active scroll-mt-36 rounded-2xl border border-amber-400/60 bg-slate-900/65 p-6 shadow-xl transition-all duration-300">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-3">
-          <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950 shadow">01</span>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-white">Envie seu(s) documento(s) para calcular o prazo e o valor</h2>
-              <span id="step01LivePill" class="step-live-indicator rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+    <section id="stepCard01" class="step-section step-card-active rounded-2xl border border-amber-400/60 bg-slate-900/65 p-4 shadow-xl transition-all duration-300 sm:p-6">
+      <div class="mb-4 flex flex-wrap items-start justify-between gap-2">
+        <div class="flex items-start gap-3">
+          <span class="step-number-badge step-number-solid mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950 shadow">01</span>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 class="text-base font-bold text-white sm:text-lg">Envie seu(s) documento(s) para calcular o prazo e o valor</h2>
+              <span id="step01LivePill" class="step-live-indicator engine-live-pill shrink-0 whitespace-nowrap rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                 ● Etapa atual
               </span>
             </div>
-            <p class="text-xs text-slate-400">Você pode anexar 1 ou vários documentos de uma só vez (.PDF, .DOCX, .TXT e .MD) · Higienização automática em PT-BR ou EN</p>
+            <p class="mt-0.5 text-xs text-slate-400">Você pode anexar 1 ou vários documentos de uma só vez (.PDF, .DOCX, .TXT e .MD) · Higienização automática em PT-BR ou EN</p>
           </div>
         </div>
       </div>
 
 
+      <!-- Resumo técnico dos documentos carregados (FICA ACIMA DA DROPZONE APÓS ENVIAR O PRIMEIRO DOCUMENTO) -->
+      <div id="docSummaryCard" class="mb-4 hidden rounded-xl border border-emerald-500/35 bg-emerald-950/20 p-3.5 sm:p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-lg shrink-0" aria-hidden="true">📚</span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <p id="docFileName" class="text-sm font-bold text-white break-all"></p>
+                <span id="docDetectedLangBadge" class="rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+                  ⚠️ Escolha o idioma de cada documento abaixo
+                </span>
+              </div>
+              <p id="docQualityBadge" class="text-xs text-emerald-300 mt-0.5">Camada de texto e seções validadas com sucesso</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="addMoreFilesBtn" type="button" class="engine-outline-cta inline-flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
+              <span>+ Anexar mais arquivos</span>
+            </button>
+            <a href="#stepCard02" id="goToStep02Btn" class="engine-solid-cta inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-extrabold text-slate-950 shadow hover:bg-amber-300 transition">
+              <span>Ir para Passo 02: Sintetizador e Voz</span>
+              <span class="step-arrow-cue" aria-hidden="true">↓</span>
+            </a>
+            <button id="clearFileBtn" type="button" class="rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700">
+              Limpar tudo
+            </button>
+          </div>
+        </div>
+
+
+        <!-- Lista individual de arquivos anexados no lote -->
+        <div id="attachedFilesList" class="mt-3 space-y-1.5 border-t border-slate-800/70 pt-3"></div>
+        <div id="docLangValidationError" role="alert" class="mt-2.5 hidden rounded-xl border border-red-500/45 bg-red-950/40 px-3.5 py-2.5 text-xs font-medium text-red-200"></div>
+
+
+        <div class="mt-3 grid grid-cols-2 gap-2.5 border-t border-slate-800/80 pt-3 text-center sm:grid-cols-4 sm:gap-3">
+          <div class="rounded-lg bg-slate-950/70 p-2.5">
+            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Caracteres Totais</span>
+            <span id="docCharsCount" class="font-mono text-base font-bold text-white">0</span>
+          </div>
+          <div class="rounded-lg bg-slate-950/70 p-2.5">
+            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Páginas / Laudas</span>
+            <span id="docPagesCount" class="font-mono text-base font-bold text-white">0</span>
+          </div>
+          <div class="rounded-lg bg-slate-950/70 p-2.5">
+            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Capítulos / Seções</span>
+            <span id="docChaptersCount" class="engine-accent-text font-mono text-base font-bold text-amber-300">1</span>
+            <span id="docChaptersSubnote" class="block text-[10px] text-slate-400 mt-0.5">Detectados na estrutura</span>
+          </div>
+          <div id="docPriceBox" class="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-2.5">
+            <span id="docPriceLabel" class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Valor Estimado</span>
+            <span id="docPriceCount" class="font-mono text-lg font-extrabold text-emerald-400">GRÁTIS</span>
+            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">Coberto pela cota inicial grátis (por caracteres)</span>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Área tracejada de clique e arraste (fica abaixo dos pedidos listados quando há documento anexado) -->
       <label
         id="dropzone"
         for="fileInput"
         tabindex="0"
         role="button"
         aria-label="Selecionar ou arrastar documentos PDF, DOCX, TXT ou MD"
-        class="group relative flex cursor-pointer select-none flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-700 bg-slate-950/60 px-6 py-7 text-center transition hover:border-amber-400/70 hover:bg-slate-900/80"
+        class="group relative flex cursor-pointer select-none flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-700 bg-slate-950/60 px-5 py-7 text-center transition hover:border-amber-400/70 hover:bg-slate-900/80"
       >
         <input id="fileInput" name="documentos" type="file" multiple accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" class="sr-only" />
-        <div class="pointer-events-none mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-amber-400 transition group-hover:scale-110 group-hover:bg-amber-500/20" aria-hidden="true">
+        <div id="dropzoneIconCircle" class="dropzone-icon-circle pointer-events-none mb-2.5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-amber-400 transition group-hover:scale-110 group-hover:bg-amber-500/20" aria-hidden="true">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
           </svg>
         </div>
-        <p class="pointer-events-none text-sm font-semibold text-slate-200">
+        <p id="dropzoneTitleText" class="pointer-events-none text-sm font-semibold text-slate-200">
           Clique para selecionar ou arraste seus arquivos (.PDF, .DOCX, .TXT ou .MD)
         </p>
-        <p class="pointer-events-none mt-1 text-xs text-slate-400">
-          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres, prazo (XTTSv2 e Edge TTS) e valor no navegador
+        <p id="dropzoneSubtitleText" class="pointer-events-none mt-1 text-xs text-slate-400">
+          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres, prazo (Solar e Raio) e valor no navegador
         </p>
       </label>
 
@@ -193,143 +256,202 @@
           </div>
         </div>
       </div>
-
-
-      <!-- Resumo técnico dos documentos carregados (COM LISTA MULTI-ARQUIVOS + BOTÃO ANEXAR MAIS) -->
-      <div id="docSummaryCard" class="mt-4 hidden rounded-xl border border-emerald-500/35 bg-emerald-950/20 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex items-center gap-2.5">
-            <span class="text-lg" aria-hidden="true">📚</span>
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
-                <p id="docFileName" class="text-sm font-bold text-white break-all"></p>
-                <span id="docDetectedLangBadge" class="rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
-                  ⚠️ Escolha o idioma de cada documento abaixo
-                </span>
-              </div>
-              <p id="docQualityBadge" class="text-xs text-emerald-300 mt-0.5">Camada de texto e seções validadas com sucesso</p>
-            </div>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button id="addMoreFilesBtn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
-              <span>+ Anexar mais arquivos</span>
-            </button>
-            <a href="#stepCard02" class="inline-flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-extrabold text-slate-950 shadow hover:bg-amber-300 transition">
-              <span>Ir para Passo 02: Motor e Voz</span>
-              <span class="step-arrow-cue" aria-hidden="true">↓</span>
-            </a>
-            <button id="clearFileBtn" type="button" class="rounded-lg border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700">
-              Limpar tudo
-            </button>
-          </div>
-        </div>
-
-
-        <!-- Lista individual de arquivos anexados no lote -->
-        <div id="attachedFilesList" class="mt-3 space-y-1.5 border-t border-slate-800/70 pt-3"></div>
-        <div id="docLangValidationError" role="alert" class="mt-2.5 hidden rounded-xl border border-red-500/45 bg-red-950/40 px-3.5 py-2.5 text-xs font-medium text-red-200"></div>
-
-
-        <div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800/80 pt-3 text-center sm:grid-cols-4">
-          <div class="rounded-lg bg-slate-950/70 p-2.5">
-            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Caracteres Totais</span>
-            <span id="docCharsCount" class="font-mono text-base font-bold text-white">0</span>
-          </div>
-          <div class="rounded-lg bg-slate-950/70 p-2.5">
-            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Páginas / Laudas</span>
-            <span id="docPagesCount" class="font-mono text-base font-bold text-white">0</span>
-          </div>
-          <div class="rounded-lg bg-slate-950/70 p-2.5">
-            <span class="block text-[11px] uppercase tracking-wider text-slate-400">Capítulos / Seções</span>
-            <span id="docChaptersCount" class="font-mono text-base font-bold text-amber-300">1</span>
-            <span id="docChaptersSubnote" class="block text-[10px] text-slate-400 mt-0.5">Detectados na estrutura</span>
-          </div>
-          <div id="docPriceBox" class="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-2.5">
-            <span id="docPriceLabel" class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Valor Estimado</span>
-            <span id="docPriceCount" class="font-mono text-lg font-extrabold text-emerald-400">GRÁTIS</span>
-            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">Coberto pela cota grátis (200 mil chars)</span>
-          </div>
-        </div>
-      </div>
     </section>
 
 
     <!-- CONECTOR VISUAL ANIMADO 01 -> 02 -->
     <div class="my-3 flex flex-col items-center justify-center" aria-hidden="true">
-      <div id="connector01to02" class="step-connector flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-4 py-1 text-xs font-semibold text-slate-400">
-        <span class="step-arrow-cue text-amber-400">↓</span>
-        <span id="connector01Text">Próximo passo: escolha o motor (XTTSv2 ou Edge TTS), narrador e velocidade</span>
-        <span class="step-arrow-cue text-amber-400">↓</span>
+      <div id="connector01to02" class="step-connector flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-center text-xs font-semibold text-slate-400 sm:rounded-full sm:px-4 sm:py-1">
+        <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
+        <span id="connector01Text">Próximo passo: escolha o sintetizador de voz (Solar ou Raio), narrador e velocidade</span>
+        <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
       </div>
     </div>
 
 
     <!-- ====================================================================== -->
-    <!-- PASSO 02: SELETOR DE MOTOR (XTTSv2 vs EDGE TTS) + CATÁLOGO DE VOZES    -->
+    <!-- PASSO 02: SELETOR DE SINTETIZADOR (SOLAR vs RAIO) + CATÁLOGO DE VOZES  -->
     <!-- ====================================================================== -->
-    <section id="stepCard02" class="step-section scroll-mt-36 rounded-2xl border border-slate-800 bg-slate-900/65 p-6 shadow-xl transition-all duration-300">
-      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">02</span>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 id="step02Heading" class="text-lg font-bold text-white">Escolha o Serviço de Áudio, Voz e Velocidade</h2>
-              <span id="step02LivePill" class="hidden rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+    <section id="stepCard02" class="step-section rounded-2xl border border-slate-800 bg-slate-900/65 p-4 shadow-xl transition-all duration-300 sm:p-6">
+      <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <span class="step-number-badge step-number-soft mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">02</span>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h2 id="step02Heading" class="text-base font-bold text-white sm:text-lg">Escolha o Sintetizador de Voz, Narrador e Velocidade</h2>
+              <span id="step02LivePill" class="step-live-indicator engine-live-pill hidden shrink-0 whitespace-nowrap rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                 ● Etapa atual
               </span>
             </div>
-            <p id="step02Subtitle" class="text-xs text-slate-400">
-              Compare o motor <strong class="text-amber-300">XTTSv2 (estúdio)</strong> com o <strong class="text-cyan-300">Edge TTS (rápido e gratuito)</strong> e clique em <strong class="text-slate-200">▶ Ouvir</strong> para testar a voz real em tempo real
+            <p id="step02Subtitle" class="mt-0.5 text-xs text-slate-400">
+              Compare o sintetizador de voz <strong class="text-amber-300">Solar (voz mais natural)</strong> com o <strong class="text-cyan-300">Raio (rápido)</strong> e clique em <strong class="text-slate-200">▶ Ouvir</strong> para testar a voz real em tempo real
             </p>
           </div>
         </div>
       </div>
 
 
-      <!-- SELETOR DE SERVIÇO DE ÁUDIO: XTTSv2 vs EDGE TTS (NATIVO <fieldset> + <input type="radio">) -->
-      <fieldset id="engineSelectorFieldset" class="mb-6 rounded-2xl border border-slate-800 bg-slate-950/75 p-4 sm:p-5">
-        <legend class="px-2 text-xs font-extrabold uppercase tracking-wider text-amber-300">
-          Serviço de Síntese de Áudio — Qualidade vs. Velocidade &amp; Custo
+      <!-- SELETOR DE SINTETIZADOR DE VOZ COM AVATARES DE CORPO INTEIRO: SOLAR vs RAIO -->
+      <fieldset id="engineSelectorFieldset" class="mb-6 rounded-2xl border border-slate-800 bg-slate-950/75 p-3.5 sm:p-5">
+        <legend class="engine-accent-legend px-2 text-xs font-extrabold uppercase tracking-wider text-amber-300">
+          Sintetizador de Voz — Naturalidade vs. Velocidade &amp; Custo
         </legend>
 
-        <div class="mt-2 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <!-- OPÇÃO 1: XTTSv2 (ESTÚDIO) -->
+        <div class="mb-2.5 flex items-center justify-between gap-2 px-0.5 text-[11px] text-slate-400">
+          <span>Clique em um dos sintetizadores de voz para ativar seu personagem narrador:</span>
+          <button
+            type="button"
+            id="engineAvatarMotionBtn"
+            class="engine-avatar-pause-btn shrink-0 rounded-lg border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition hover:border-slate-600 hover:text-white"
+          >
+            ⏸ Pausar avatares
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <!-- OPÇÃO 1: XTTSv2 (VOZ NATURAL) + AVATAR DE CORPO INTEIRO (MAESTRO NARRADOR) -->
           <label
             id="engineCardXtts"
             for="engineRadioXtts"
-            class="engine-choice-card engine-card-xtts engine-active flex cursor-pointer flex-col justify-between rounded-xl border border-amber-400/75 bg-amber-500/10 p-4 transition"
+            class="engine-choice-card engine-card-xtts engine-active flex cursor-pointer flex-col justify-between rounded-xl border border-amber-400/75 bg-amber-500/10 p-3.5 sm:p-4 transition"
           >
-            <div>
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-2.5">
-                  <input
-                    id="engineRadioXtts"
-                    type="radio"
-                    name="audioEngine"
-                    value="xttsv2"
-                    checked
-                    class="engine-radio mt-1 h-4 w-4 shrink-0"
-                  />
-                  <div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="text-sm font-extrabold text-white">🎙️ XTTSv2 — Qualidade Estúdio</span>
-                      <span class="rounded-full border border-amber-400/50 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                        ⭐ Voz mais natural
-                      </span>
-                    </div>
-                    <p class="mt-0.5 text-[11px] font-medium text-amber-200/90">
-                      44 vozes neurais realistas (18 PT-BR · 26 EN) · Entonação humana
-                    </p>
-                  </div>
-                </div>
-                <span id="engineXttsQuotaTag" class="shrink-0 rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] font-bold text-emerald-300">
-                  200k grátis
-                </span>
+            <div class="flex items-center gap-3 sm:gap-4">
+              <!-- Palco do Avatar de Corpo Inteiro — XTTSv2 Solar -->
+              <div class="engine-avatar-stage engine-avatar-stage-xtts shrink-0" aria-hidden="true">
+                <svg class="engine-fullbody-svg" viewBox="0 0 104 152" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="xttsCoatGrad" x1="28" y1="54" x2="66" y2="98" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#fbbf24" />
+                      <stop offset="100%" stop-color="#d97706" />
+                    </linearGradient>
+                    <linearGradient id="xttsStageGlow" x1="52" y1="10" x2="52" y2="146" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.28" />
+                      <stop offset="100%" stop-color="#f97316" stop-opacity="0.03" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Halo de palco -->
+                  <ellipse class="engine-avatar-aura" cx="50" cy="78" rx="42" ry="58" fill="url(#xttsStageGlow)" />
+                  <!-- Sombra no chão -->
+                  <ellipse class="engine-avatar-shadow" cx="46" cy="141" rx="23" ry="5.2" fill="rgba(2, 6, 23, 0.55)" />
+
+                  <!-- Pedestal e Microfone Condensador (corpo inteiro ao lado) -->
+                  <g class="engine-avatar-prop">
+                    <ellipse cx="82" cy="139" rx="11" ry="3.2" fill="#334155" stroke="#fbbf24" stroke-width="1" stroke-opacity="0.5" />
+                    <line x1="82" y1="138" x2="82" y2="66" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round" />
+                    <line x1="75" y1="68" x2="84" y2="64" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+                    <rect x="76.5" y="49" width="11" height="17" rx="5.5" fill="#fbbf24" stroke="#78350f" stroke-width="1.4" />
+                    <line x1="78.5" y1="54" x2="85.5" y2="54" stroke="#78350f" stroke-width="1.1" stroke-linecap="round" />
+                    <line x1="78.5" y1="57.5" x2="85.5" y2="57.5" stroke="#78350f" stroke-width="1.1" stroke-linecap="round" />
+                    <line x1="78.5" y1="61" x2="85.5" y2="61" stroke="#78350f" stroke-width="1.1" stroke-linecap="round" />
+                  </g>
+
+                  <!-- Ondas sonoras -->
+                  <g class="engine-avatar-waves">
+                    <path d="M68 48c-3 4-3 11 0 15" stroke="#fde68a" stroke-width="2" stroke-linecap="round" />
+                    <path d="M63 44c-4.5 6.5-4.5 16.5 0 23" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.8" />
+                    <circle cx="20" cy="30" r="2.3" fill="#fde68a" />
+                    <path d="M16 20v8m0-8l6-2v8" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  </g>
+
+                  <!-- Personagem Completo XTTSv2 -->
+                  <g class="engine-avatar-figure">
+                    <!-- Perna Esquerda + Sapato -->
+                    <g class="engine-avatar-leg-l">
+                      <path d="M39 93L36 129" stroke="#1e293b" stroke-width="8.5" stroke-linecap="round" />
+                      <path d="M36 129L35 133" stroke="#475569" stroke-width="7" stroke-linecap="round" />
+                      <path d="M27 135.5c0-3.2 4-5.2 9.5-5.2h4.5v6.2H28.5c-0.9 0-1.5-0.4-1.5-1z" fill="#78350f" stroke="#fbbf24" stroke-width="1.1" />
+                    </g>
+                    <!-- Perna Direita + Sapato -->
+                    <g class="engine-avatar-leg-r">
+                      <path d="M51 93L54 129" stroke="#0f172a" stroke-width="8.5" stroke-linecap="round" />
+                      <path d="M54 129L55 133" stroke="#334155" stroke-width="7" stroke-linecap="round" />
+                      <path d="M50 130.3h5.5c5.5 0 9.5 2 9.5 5.2 0 0.6-0.6 1-1.5 1H50v-6.2z" fill="#78350f" stroke="#fbbf24" stroke-width="1.1" />
+                    </g>
+
+                    <!-- Tronco Superior + Braços + Cabeça -->
+                    <g class="engine-avatar-torso">
+                      <!-- Braço Esquerdo segurando livro aberto -->
+                      <g class="engine-avatar-arm-l">
+                        <path d="M33 60c-7 5-11 12-9 20" stroke="#d97706" stroke-width="7.2" stroke-linecap="round" fill="none" />
+                        <circle cx="24" cy="81" r="3.8" fill="#fed7aa" />
+                        <!-- Livro / Roteiro aberto -->
+                        <path d="M10 73l12 3v12l-12-3V73z" fill="#fef3c7" stroke="#b45309" stroke-width="1.2" stroke-linejoin="round" />
+                        <path d="M34 73l-12 3v12l12-3V73z" fill="#fde68a" stroke="#b45309" stroke-width="1.2" stroke-linejoin="round" />
+                      </g>
+
+                      <!-- Blazer do Narrador -->
+                      <path d="M31 57c0-3.3 2.7-6 6-6h16c3.3 0 6 2.7 6 6l2 37H29l2-37z" fill="url(#xttsCoatGrad)" stroke="#78350f" stroke-width="1.3" />
+                      <!-- Camisa interna e gravata/broche -->
+                      <path d="M40 51h10l-5 15-5-15z" fill="#0f172a" />
+                      <path d="M45 53l2.2 6.5L45 64l-2.2-4.5L45 53z" fill="#fde68a" />
+                      <circle cx="45" cy="74" r="1.5" fill="#78350f" />
+                      <circle cx="45" cy="82" r="1.5" fill="#78350f" />
+
+                      <!-- Braço Direito gesticulando p/ o microfone -->
+                      <g class="engine-avatar-arm-r">
+                        <path d="M57 59c6 2 11-1 15-7" stroke="#f59e0b" stroke-width="7.2" stroke-linecap="round" fill="none" />
+                        <circle cx="73" cy="51" r="3.8" fill="#fed7aa" />
+                      </g>
+
+                      <!-- Pescoço e Cabeça com Fones -->
+                      <g class="engine-avatar-head">
+                        <rect x="41.5" y="44" width="7" height="8" rx="3" fill="#fdba74" />
+                        <!-- Arco do Headphone -->
+                        <path d="M29 31c0-10.5 7.2-18 16-18s16 7.5 16 18" stroke="#fbbf24" stroke-width="3.2" stroke-linecap="round" />
+                        <!-- Rosto -->
+                        <circle cx="45" cy="32" r="13.5" fill="#fed7aa" stroke="#9a3412" stroke-width="1.1" />
+                        <!-- Cabelo -->
+                        <path d="M32 28c1.5-8 7.5-12.5 14.5-12 5.8 0.4 10.5 4.2 11.5 10.5-3.5-2.5-7.5-3.2-12.5-2.8-5.2 0.4-9.8 1.8-13.5 4.3z" fill="#451a03" />
+                        <!-- Conchas do Fone -->
+                        <rect x="27" y="26" width="5.5" height="12" rx="2.7" fill="#f59e0b" stroke="#78350f" stroke-width="1.2" />
+                        <rect x="57.5" y="26" width="5.5" height="12" rx="2.7" fill="#f59e0b" stroke="#78350f" stroke-width="1.2" />
+                        <!-- Olhos e Sobrancelhas -->
+                        <circle cx="40.5" cy="31.5" r="1.6" fill="#1e293b" />
+                        <circle cx="49.8" cy="31.5" r="1.6" fill="#1e293b" />
+                        <path d="M38 28.2c1.5-1 3.2-1 4.6-0.2" stroke="#451a03" stroke-width="1.3" stroke-linecap="round" />
+                        <path d="M47.5 28c1.5-0.8 3.2-0.8 4.6 0.2" stroke="#451a03" stroke-width="1.3" stroke-linecap="round" />
+                        <!-- Boca expressiva (anima na fala quando ativo) -->
+                        <ellipse class="engine-avatar-mouth" cx="45.2" cy="37.8" rx="3.4" ry="2.1" fill="#9a3412" />
+                      </g>
+                    </g>
+                  </g>
+                </svg>
               </div>
 
-              <p class="mt-3 text-xs leading-relaxed text-slate-300">
-                Entrega <strong class="text-white">a maior naturalidade e qualidade de áudio</strong>, ideal para livros longos e escuta imersiva. Por rodar redes neurais pesadas, <strong class="text-amber-300">demora mais para sintetizar</strong>. <span id="engineXttsQuotaInline">As primeiras 100 páginas (200.000 chars) são grátis; excedente cobrado via PIX.</span>
-              </p>
+              <!-- Conteúdo textual XTTSv2 -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2 min-w-0">
+                    <input
+                      id="engineRadioXtts"
+                      type="radio"
+                      name="audioEngine"
+                      value="xttsv2"
+                      checked
+                      class="engine-radio mt-1 h-4 w-4 shrink-0"
+                    />
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-sm font-extrabold text-white">☀️ Solar — Voz Mais Natural</span>
+                        <span class="rounded-full border border-amber-400/50 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          📖 Ideal p/ leituras longas
+                        </span>
+                      </div>
+                      <p class="mt-0.5 text-[11px] font-medium text-amber-200/90">
+                        44 vozes neurais (18 PT-BR · 26 EN) · Melhor cadência
+                      </p>
+                    </div>
+                  </div>
+                  <span id="engineXttsQuotaTag" class="shrink-0 rounded-lg border border-amber-500/40 bg-amber-950/40 px-2 py-1 font-mono text-[10px] font-bold text-amber-300">
+                    R$ 0,05 / 1k
+                  </span>
+                </div>
+
+                <p class="mt-2.5 text-xs leading-relaxed text-slate-300">
+                  Entrega <strong class="text-white">voz mais natural e melhor cadência</strong>, indicado para leituras longas e mais confortável para ouvir por mais tempo. Por utilizar síntese neural mais expressiva, <strong class="text-amber-300">demora mais para gerar o áudio</strong>. <span id="engineXttsQuotaInline">Cota inicial grátis de 20.000 caracteres (~10 páginas); excedente cobrado por caractere via PIX (mín. R$ 1,00).</span>
+                </p>
+              </div>
             </div>
 
             <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-3 text-[11px]">
@@ -337,47 +459,135 @@
                 ⏱️ Envie um texto p/ estimar
               </span>
               <span id="engineXttsPriceBadge" class="font-mono font-bold text-emerald-300">
-                💰 GRÁTIS (cota 200k)
+                💰 Grátis até 20.000 chars (~10 pág.)
               </span>
             </div>
           </label>
 
-          <!-- OPÇÃO 2: EDGE TTS (RÁPIDO E GRATUITO) -->
+          <!-- OPÇÃO 2: EDGE TTS (SÍNTESE RÁPIDA) + AVATAR DE CORPO INTEIRO (VELOCISTA SINTÉTICO) -->
           <label
             id="engineCardEdge"
             for="engineRadioEdge"
-            class="engine-choice-card engine-card-edge flex cursor-pointer flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-4 transition hover:border-cyan-400/60"
+            class="engine-choice-card engine-card-edge flex cursor-pointer flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/70 p-3.5 sm:p-4 transition hover:border-cyan-400/60"
           >
-            <div>
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-start gap-2.5">
-                  <input
-                    id="engineRadioEdge"
-                    type="radio"
-                    name="audioEngine"
-                    value="edge"
-                    class="engine-radio mt-1 h-4 w-4 shrink-0"
-                  />
-                  <div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="text-sm font-extrabold text-white">⚡ Edge TTS — Rápido e 100% Gratuito</span>
-                      <span class="rounded-full border border-cyan-400/50 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
-                        ⚡ Muito mais rápido
-                      </span>
-                    </div>
-                    <p class="mt-0.5 text-[11px] font-medium text-cyan-200/90">
-                      12 vozes (3 PT-BR · 9 EN) · Síntese muito ágil
-                    </p>
-                  </div>
-                </div>
-                <span class="shrink-0 rounded-lg border border-cyan-500/45 bg-cyan-950/50 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
-                  100% GRÁTIS
-                </span>
+            <div class="flex items-center gap-3 sm:gap-4">
+              <!-- Palco do Avatar de Corpo Inteiro — Edge TTS Rápido -->
+              <div class="engine-avatar-stage engine-avatar-stage-edge shrink-0" aria-hidden="true">
+                <svg class="engine-fullbody-svg" viewBox="0 0 104 152" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="edgeJacketGrad" x1="30" y1="52" x2="72" y2="96" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#38bdf8" />
+                      <stop offset="100%" stop-color="#0284c7" />
+                    </linearGradient>
+                    <linearGradient id="edgeStageGlow" x1="52" y1="10" x2="52" y2="146" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.30" />
+                      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.03" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Halo de velocidade -->
+                  <ellipse class="engine-avatar-aura" cx="52" cy="78" rx="42" ry="58" fill="url(#edgeStageGlow)" />
+                  <!-- Sombra dinâmica no chão -->
+                  <ellipse class="engine-avatar-shadow" cx="52" cy="141" rx="23" ry="5.2" fill="rgba(2, 6, 23, 0.55)" />
+
+                  <!-- Trilhas de velocidade e ondas digitais -->
+                  <g class="engine-avatar-waves">
+                    <path d="M13 62h10M9 72h13M14 82h9" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-opacity="0.8" />
+                    <path d="M84 36l-5 8h5l-4 8" stroke="#67e8f9" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M80 68c4 4 4 12 0 16M85 64c6 6 6 18 0 24" stroke="#22d3ee" stroke-width="1.9" stroke-linecap="round" />
+                  </g>
+
+                  <!-- Personagem Completo Edge TTS -->
+                  <g class="engine-avatar-figure">
+                    <!-- Perna Esquerda + Tênis futurista -->
+                    <g class="engine-avatar-leg-l">
+                      <path d="M44 92L38 128" stroke="#0f172a" stroke-width="8.5" stroke-linecap="round" />
+                      <path d="M43 96L38 125" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" />
+                      <path d="M28 135c0-3.4 4.2-5.5 9.8-5.5h4.7v6.5H29.5c-0.8 0-1.5-0.4-1.5-1z" fill="#0284c7" stroke="#67e8f9" stroke-width="1.2" />
+                      <line x1="29" y1="135.2" x2="42" y2="135.2" stroke="#e0f2fe" stroke-width="1.6" stroke-linecap="round" />
+                    </g>
+                    <!-- Perna Direita + Tênis futurista -->
+                    <g class="engine-avatar-leg-r">
+                      <path d="M56 92L63 128" stroke="#1e293b" stroke-width="8.5" stroke-linecap="round" />
+                      <path d="M57 96L62 125" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" />
+                      <path d="M58.5 129.5h5.2c5.6 0 9.8 2.1 9.8 5.5 0 0.6-0.7 1-1.5 1H58.5v-6.5z" fill="#0284c7" stroke="#67e8f9" stroke-width="1.2" />
+                      <line x1="59" y1="135.2" x2="72" y2="135.2" stroke="#e0f2fe" stroke-width="1.6" stroke-linecap="round" />
+                    </g>
+
+                    <!-- Tronco Superior + Braços + Cabeça -->
+                    <g class="engine-avatar-torso">
+                      <!-- Braço Esquerdo em impulso ágil -->
+                      <g class="engine-avatar-arm-l">
+                        <path d="M37 59c-7 4-11 11-9 19" stroke="#0284c7" stroke-width="7" stroke-linecap="round" fill="none" />
+                        <circle cx="28" cy="79" r="3.7" fill="#fed7aa" />
+                      </g>
+
+                      <!-- Jaqueta Tech Aerodinâmica -->
+                      <path d="M36 56c0-3.3 2.7-6 6-6h16c3.3 0 6 2.7 6 6l1.5 36.5h-31L36 56z" fill="url(#edgeJacketGrad)" stroke="#0c4a6e" stroke-width="1.3" />
+                      <!-- Gola alta + Emblema de Raio no peito -->
+                      <path d="M44 49h12v6H44v-6z" fill="#0f172a" />
+                      <path d="M51.5 62l-5 8.5h4.8l-2.8 8.5 7-9.5h-4.8l0.8-7.5z" fill="#e0f2fe" />
+
+                      <!-- Braço Direito projetando pulso de áudio -->
+                      <g class="engine-avatar-arm-r">
+                        <path d="M63 59c7 1 12-2 15-9" stroke="#38bdf8" stroke-width="7" stroke-linecap="round" fill="none" />
+                        <circle cx="79" cy="49" r="3.7" fill="#fed7aa" />
+                      </g>
+
+                      <!-- Cabeça com Visor Ciano e Headset Rápido -->
+                      <g class="engine-avatar-head">
+                        <rect x="46.5" y="43.5" width="7" height="7.5" rx="3" fill="#fdba74" />
+                        <!-- Rosto -->
+                        <circle cx="50" cy="31.5" r="13.2" fill="#fed7aa" stroke="#0c4a6e" stroke-width="1.1" />
+                        <!-- Cabelo aerodinâmico estilizado -->
+                        <path d="M37 26c2-8.5 9-12.5 17.5-11 4.5 0.8 8 3.2 9.5 6.8-3.8-1.4-7.8-1.5-12.2-0.8-5.5 0.8-10.5 2.4-14.8 5z" fill="#0f172a" />
+                        <!-- Visor / Óculos Tech Ciano -->
+                        <rect x="39.5" y="27.2" width="21" height="6.8" rx="3.4" fill="#083344" stroke="#67e8f9" stroke-width="1.4" />
+                        <line x1="42.5" y1="29.8" x2="48" y2="29.8" stroke="#67e8f9" stroke-width="1.5" stroke-linecap="round" />
+                        <line x1="52.5" y1="29.8" x2="57.5" y2="29.8" stroke="#67e8f9" stroke-width="1.5" stroke-linecap="round" />
+                        <!-- Headset lateral + microfone boom -->
+                        <circle cx="36.8" cy="32" r="3.2" fill="#22d3ee" stroke="#083344" stroke-width="1.1" />
+                        <path d="M37 34.5c2 3.5 5.5 5 9.5 4.8" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" />
+                        <!-- Sorriso confiante -->
+                        <path class="engine-avatar-mouth" d="M46.5 37.5c2.2 2 5.2 2 7.4 0" stroke="#0c4a6e" stroke-width="1.8" stroke-linecap="round" />
+                      </g>
+                    </g>
+                  </g>
+                </svg>
               </div>
 
-              <p class="mt-3 text-xs leading-relaxed text-slate-300">
-                Síntese <strong class="text-cyan-300">bem mais rápida e 100% gratuita</strong> (não consome sua cota e não exige PIX). <strong class="text-white">A voz é mais robótica</strong> em comparação ao XTTSv2, <strong class="text-emerald-300">porém continua muito boa, clara e agradável para ouvir e estudar</strong>.
-              </p>
+              <!-- Conteúdo textual Edge TTS -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-start gap-2 min-w-0">
+                    <input
+                      id="engineRadioEdge"
+                      type="radio"
+                      name="audioEngine"
+                      value="edge"
+                      class="engine-radio mt-1 h-4 w-4 shrink-0"
+                    />
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="text-sm font-extrabold text-white">⚡ Raio — Síntese Rápida</span>
+                        <span id="engineEdgeDiscountPill" class="rounded-full border border-cyan-400/50 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                          ⚡ Entrega mais rápida
+                        </span>
+                      </div>
+                      <p class="mt-0.5 text-[11px] font-medium text-cyan-200/90">
+                        12 vozes (3 PT-BR · 9 EN) · Síntese ágil
+                      </p>
+                    </div>
+                  </div>
+                  <span id="engineEdgeQuotaTag" class="shrink-0 rounded-lg border border-cyan-500/45 bg-cyan-950/50 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
+                    R$ 0,025 / 1k
+                  </span>
+                </div>
+
+                <p class="mt-2.5 text-xs leading-relaxed text-slate-300">
+                  Síntese <strong class="text-cyan-300">muito mais rápida</strong> para entregas ágeis. <strong class="text-white">A voz é mais sintética</strong> em comparação ao Solar, <strong class="text-emerald-300">porém continua clara e agradável para ouvir e estudar</strong>. <span id="engineEdgeQuotaInline">Cota inicial grátis de 10.000 caracteres (~5 páginas); excedente cobrado por caractere via PIX (mín. R$ 1,00).</span>
+                </p>
+              </div>
             </div>
 
             <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/80 pt-3 text-[11px]">
@@ -385,7 +595,7 @@
                 ⚡ Envie um texto p/ estimar
               </span>
               <span id="engineEdgePriceBadge" class="font-mono font-bold text-cyan-300">
-                🆓 R$ 0,00 (Grátis ilimitado)
+                💰 Grátis até 10.000 chars (~5 pág.)
               </span>
             </div>
           </label>
@@ -397,22 +607,22 @@
       <div class="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
 
         <!-- Controle Granular de Velocidade (7 colunas) -->
-        <div class="rounded-xl border border-amber-500/25 bg-slate-950/80 p-4 sm:p-5 lg:col-span-7">
+        <div id="speedControlPanel" class="engine-themed-panel rounded-xl border border-amber-500/25 bg-slate-950/80 p-4 sm:p-5 lg:col-span-7">
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
-              <label for="speedSlider" class="text-xs font-bold uppercase tracking-wider text-amber-300">Controle de Velocidade em Tempo Real (Sobre o MP3)</label>
+              <label for="speedSlider" class="engine-accent-label text-xs font-bold uppercase tracking-wider text-amber-300">Controle de Velocidade em Tempo Real (Sobre o MP3)</label>
               <p class="text-xs text-slate-400 mt-0.5">
                 Arraste de <strong class="text-slate-200">0.50x a 2.00x</strong> com ímã nos pontos <strong class="text-slate-200">0.85x</strong>, <strong class="text-slate-200">1.00x</strong> e <strong class="text-slate-200">1.25x</strong>.
               </p>
             </div>
             <div class="flex items-center gap-1.5">
-              <button type="button" id="speedMinusBtn" aria-label="Diminuir velocidade em 0.05x" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Diminuir 0.05x">
+              <button type="button" id="speedMinusBtn" aria-label="Diminuir velocidade em 0.05x" class="speed-step-btn flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Diminuir 0.05x">
                 <span aria-hidden="true">−</span>
               </button>
-              <div class="min-w-[84px] rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-center font-mono text-base font-extrabold text-amber-300" id="speedDisplayBadge" aria-live="off">
+              <div class="engine-badge-box min-w-[84px] rounded-lg border border-amber-400/50 bg-amber-500/10 px-3 py-1.5 text-center font-mono text-base font-extrabold text-amber-300" id="speedDisplayBadge" aria-live="off">
                 1.00x
               </div>
-              <button type="button" id="speedPlusBtn" aria-label="Aumentar velocidade em 0.05x" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Aumentar 0.05x">
+              <button type="button" id="speedPlusBtn" aria-label="Aumentar velocidade em 0.05x" class="speed-step-btn flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 font-mono text-sm font-bold text-slate-200 hover:border-amber-400" title="Aumentar 0.05x">
                 <span aria-hidden="true">+</span>
               </button>
             </div>
@@ -435,7 +645,7 @@
                 type="button"
                 data-speed-preset="0.85"
                 aria-pressed="false"
-                class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2.5 py-2 text-center transition hover:border-amber-400/60"
+                class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2 py-2 text-center transition hover:border-amber-400/60 sm:px-2.5"
               >
                 <span class="font-mono text-xs font-bold text-white">🐢 0.85x · Lenta</span>
                 <span class="text-[11px] text-slate-400">Leis e textos densos</span>
@@ -444,7 +654,7 @@
                 type="button"
                 data-speed-preset="1.00"
                 aria-pressed="true"
-                class="speed-preset-btn active-preset flex flex-col items-center rounded-lg border border-amber-400/60 bg-amber-500/10 px-2.5 py-2 text-center transition hover:border-amber-400"
+                class="speed-preset-btn active-preset flex flex-col items-center rounded-lg border border-amber-400/60 bg-amber-500/10 px-2 py-2 text-center transition hover:border-amber-400 sm:px-2.5"
               >
                 <span class="font-mono text-xs font-bold text-amber-300">🚶 1.00x · Normal</span>
                 <span class="text-[11px] text-slate-300">Leitura natural fluida</span>
@@ -453,7 +663,7 @@
                 type="button"
                 data-speed-preset="1.25"
                 aria-pressed="false"
-                class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2.5 py-2 text-center transition hover:border-amber-400/60"
+                class="speed-preset-btn flex flex-col items-center rounded-lg border border-slate-800 bg-slate-900/90 px-2 py-2 text-center transition hover:border-amber-400/60 sm:px-2.5"
               >
                 <span class="font-mono text-xs font-bold text-white">🐇 1.25x · Rápida</span>
                 <span class="text-[11px] text-slate-400">Revisão e produtividade</span>
@@ -462,7 +672,7 @@
           </div>
 
           <p id="speedHintText" class="mt-2 text-xs text-slate-300">
-            Ritmo selecionado: <strong class="text-amber-300">1.00x (Normal)</strong> — Mexa no controle acima para ouvir automaticamente uma voz aleatória nesta velocidade.
+            Ritmo selecionado: <strong class="engine-accent-text text-amber-300">1.00x (Normal)</strong> — Mexa no controle acima para ouvir automaticamente uma voz aleatória nesta velocidade.
           </p>
         </div>
 
@@ -473,7 +683,7 @@
             <p class="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-300">Modo de distribuição das vozes</p>
             <div class="space-y-2.5" role="group" aria-label="Modo de distribuição das vozes">
               <!-- MODO 1: VOZ ÚNICA + SUBBOTÕES -->
-              <div id="voiceModeGroupUnica" class="voice-mode-group rounded-xl border border-amber-400 bg-amber-500/10 p-2.5 transition">
+              <div id="voiceModeGroupUnica" class="voice-mode-group active-mode rounded-xl border border-amber-400 bg-amber-500/10 p-2.5 transition">
                 <button
                   type="button"
                   data-voice-mode="unica"
@@ -482,11 +692,11 @@
                 >
                   <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-white">🎙️ Voz Única</span>
-                    <span class="font-mono text-[10px] text-amber-300">1 narrador fixo</span>
+                    <span id="voiceModeTagUnica" class="voice-mode-tag font-mono text-[10px] text-amber-300">1 narrador fixo</span>
                   </div>
                   <p class="mt-0.5 text-[11px] text-slate-300">Um único locutor narra todo o documento do início ao fim.</p>
                 </button>
-                <div id="subModeUnicaPanel" class="mt-2 grid grid-cols-2 gap-1.5 border-t border-amber-400/25 pt-2">
+                <div id="subModeUnicaPanel" class="voice-submode-panel mt-2 grid grid-cols-2 gap-1.5 border-t border-amber-400/25 pt-2">
                   <button
                     type="button"
                     data-voice-parent="unica"
@@ -520,17 +730,17 @@
                 >
                   <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-white">📑 Voz por Capítulo</span>
-                    <span class="font-mono text-[10px] text-slate-400">múltiplos narradores</span>
+                    <span id="voiceModeTagCapitulo" class="voice-mode-tag font-mono text-[10px] text-slate-400">múltiplos narradores</span>
                   </div>
                   <p class="mt-0.5 text-[11px] text-slate-400">Alterne narradores entre os capítulos/documentos detectados.</p>
                 </button>
-                <div id="subModeCapituloPanel" class="mt-2 hidden grid-cols-2 gap-1.5 border-t border-slate-700/60 pt-2">
+                <div id="subModeCapituloPanel" class="voice-submode-panel mt-2 hidden grid-cols-2 gap-1.5 border-t border-slate-700/60 pt-2">
                   <button
                     type="button"
                     data-voice-parent="por_capitulo"
                     data-voice-submode="escolher"
                     aria-pressed="false"
-                    class="voice-submode-btn rounded-lg border border-amber-400 bg-amber-400/20 px-2.5 py-1.5 text-left transition"
+                    class="voice-submode-btn rounded-lg border border-slate-700/80 bg-slate-900/70 px-2.5 py-1.5 text-left transition hover:border-slate-600"
                   >
                     <span class="block text-[11px] font-bold text-white">🎯 Escolher por capítulo</span>
                     <span class="block text-[10px] text-slate-300">Defino cada capítulo</span>
@@ -559,7 +769,7 @@
                 aria-pressed="true"
                 class="output-format-btn active-format rounded-xl border border-amber-400 bg-amber-500/10 p-2.5 text-left transition"
               >
-                <div class="text-xs font-bold text-white">🎵 Áudio Único (<span class="font-mono text-amber-300">.mp3</span>)</div>
+                <div class="text-xs font-bold text-white">🎵 Áudio Único (<span class="output-format-ext font-mono text-amber-300">.mp3</span>)</div>
                 <p class="mt-0.5 text-[10px] text-slate-300">1 arquivo MP3 contínuo.</p>
               </button>
 
@@ -569,7 +779,7 @@
                 aria-pressed="false"
                 class="output-format-btn rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 text-left transition hover:border-slate-700"
               >
-                <div class="text-xs font-bold text-white">🗂️ Por Capítulos (<span class="font-mono text-slate-400">.zip</span>)</div>
+                <div class="text-xs font-bold text-white">🗂️ Por Capítulos (<span class="output-format-ext font-mono text-slate-400">.zip</span>)</div>
                 <p class="mt-0.5 text-[10px] text-slate-400">Faixas MP3 numeradas.</p>
               </button>
             </div>
@@ -579,9 +789,9 @@
 
 
       <!-- SELETOR POR CAPÍTULO (visível quando modo_voz == 'por_capitulo') -->
-      <div id="chapterVoiceMapper" class="mb-6 hidden rounded-xl border border-amber-500/30 bg-slate-950/85 p-4">
+      <div id="chapterVoiceMapper" class="engine-themed-panel mb-6 hidden rounded-xl border border-amber-500/30 bg-slate-950/85 p-4">
         <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-amber-300">Atribuição de Voz por Capítulo / Seção</span>
+          <span class="engine-accent-label text-xs font-bold uppercase tracking-wider text-amber-300">Atribuição de Voz por Capítulo / Seção</span>
           <span class="text-[11px] text-slate-400">Selecione o narrador de cada seção detectada nos documentos anexados</span>
         </div>
         <div id="chapterVoiceList" class="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-60 overflow-y-auto pr-1"></div>
@@ -614,12 +824,12 @@
 
         <div class="flex flex-wrap items-center gap-2">
           <span id="catalogEnginePill" class="rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-300">
-            🎙️ XTTSv2 Estúdio
+            ☀️ Solar · Voz Natural
           </span>
           <span id="catalogLangCounter" class="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 font-mono text-xs text-slate-300">
             18 vozes PT-BR
           </span>
-          <span id="selectedVoiceBadge" class="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
+          <span id="selectedVoiceBadge" class="engine-soft-pill rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
             Voz ativa: Borges (borges)
           </span>
         </div>
@@ -684,7 +894,7 @@
         <span id="audioSourceStatusText">
           🔊 Reprodução real em cima dos arquivos MP3 das vozes (controle de velocidade com preservação de tom ativa).
         </span>
-        <a href="#stepCard03" id="step02NextBtn" class="inline-flex items-center gap-1.5 rounded-xl bg-amber-400/15 border border-amber-400/40 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
+        <a href="#stepCard03" id="step02NextBtn" class="engine-outline-cta inline-flex items-center gap-1.5 rounded-xl bg-amber-400/15 border border-amber-400/40 px-3.5 py-2 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition">
           <span>Avançar para Passo 03: Entrega</span>
           <span class="step-arrow-cue" aria-hidden="true">↓</span>
         </a>
@@ -694,10 +904,10 @@
 
     <!-- CONECTOR VISUAL ANIMADO 02 -> 03 -->
     <div class="my-3 flex flex-col items-center justify-center" aria-hidden="true">
-      <div id="connector02to03" class="step-connector flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-4 py-1 text-xs font-semibold text-slate-400">
-        <span class="step-arrow-cue text-amber-400">↓</span>
+      <div id="connector02to03" class="step-connector flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-center text-xs font-semibold text-slate-400 sm:rounded-full sm:px-4 sm:py-1">
+        <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
         <span id="connector02Text">Último passo: informe onde entregar seu audiobook e confirme o pedido</span>
-        <span class="step-arrow-cue text-amber-400">↓</span>
+        <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
       </div>
     </div>
 
@@ -707,19 +917,19 @@
     <!-- ====================================================================== -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
 
-      <!-- COLUNA ESQUERDA: PASSO 03 (FORMULÁRIO DE ENTREGA + WHATSAPP + TERMOS) -->
-      <section id="stepCard03" class="step-section scroll-mt-36 rounded-2xl border border-slate-800 bg-slate-900/65 p-6 shadow-xl transition-all duration-300 lg:col-span-7">
-        <div class="mb-4 flex items-center justify-between gap-2">
-          <div class="flex items-center gap-3">
-            <span class="step-number-badge flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">03</span>
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 id="step03Heading" class="text-lg font-bold text-white">Onde devemos entregar o seu audiobook?</h2>
-                <span id="step03LivePill" class="hidden rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+      <!-- COLUNA ESQUERDA: PASSO 03 (FORMULÁRIO DE ENTREGA + WHATSAPP + CRÉDITO INICIAL + TERMOS) -->
+      <section id="stepCard03" class="step-section rounded-2xl border border-slate-800 bg-slate-900/65 p-4 shadow-xl transition-all duration-300 sm:p-6 lg:col-span-7">
+        <div class="mb-4 flex items-start justify-between gap-2">
+          <div class="flex items-start gap-3">
+            <span class="step-number-badge step-number-soft mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 font-mono text-xs font-extrabold text-amber-300">03</span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 id="step03Heading" class="text-base font-bold text-white sm:text-lg">Onde devemos entregar o seu audiobook?</h2>
+                <span id="step03LivePill" class="step-live-indicator engine-live-pill hidden shrink-0 whitespace-nowrap rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                   ● Etapa atual
                 </span>
               </div>
-              <p class="text-xs text-slate-400">Receba no seu E-mail e, se desejar, diretamente no seu WhatsApp</p>
+              <p class="mt-0.5 text-xs text-slate-400">Receba no seu E-mail e, se desejar, diretamente no seu WhatsApp</p>
             </div>
           </div>
         </div>
@@ -727,9 +937,9 @@
 
         <form id="orderForm" aria-labelledby="step03Heading" class="space-y-4" novalidate>
           <div class="form-field">
-            <div class="mb-1 flex items-center justify-between">
+            <div class="mb-1 flex items-center justify-between gap-2">
               <label for="clientName" class="text-xs font-semibold text-slate-200">Seu Nome</label>
-              <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
+              <span class="engine-req-badge rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
             </div>
             <input
               id="clientName"
@@ -749,11 +959,11 @@
 
 
           <div class="form-field">
-            <div class="mb-1 flex items-center justify-between">
+            <div class="mb-1 flex items-center justify-between gap-2">
               <label for="clientEmail" class="text-xs font-semibold text-slate-200">
                 E-mail para receber o seu audiobook (link de download)
               </label>
-              <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
+              <span class="engine-req-badge shrink-0 rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
             </div>
             <p id="clientEmailHint" class="mb-1.5 text-[11px] text-slate-400">
               Enviamos um link de download direto (disponível por 7 dias) e, para arquivos de até 15 MB, o áudio também vai anexado no próprio e-mail.
@@ -781,11 +991,11 @@
 
 
           <div class="form-field">
-            <div class="mb-1 flex items-center justify-between">
+            <div class="mb-1 flex items-center justify-between gap-2">
               <label for="clientEmailConfirm" class="text-xs font-semibold text-slate-200">
                 Confirme seu e-mail
               </label>
-              <span class="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
+              <span class="engine-req-badge shrink-0 rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-amber-300">Obrigatório</span>
             </div>
             <p id="clientEmailConfirmHint" class="mb-1.5 text-[11px] text-slate-400">
               Digite o mesmo endereço novamente para evitar erros de digitação na entrega do seu audiobook.
@@ -812,24 +1022,11 @@
             <p id="clientEmailConfirmMatch" class="mt-1.5 hidden items-center gap-1.5 text-xs font-medium text-emerald-300">
               <span aria-hidden="true">✓</span> <span>E-mails conferem.</span>
             </p>
-
-            <div id="quotaStatusBox" class="mt-3 rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-2.5 text-xs">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <span id="quotaStatusTitle" class="font-semibold text-emerald-300">🎁 Cota Gratuita XTTSv2 (100 páginas / 200.000 chars)</span>
-                <span id="quotaBalanceBadge" class="font-mono font-bold text-emerald-300">200.000 chars disponíveis</span>
-              </div>
-              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                <div id="quotaBalanceBar" class="h-full w-full bg-emerald-400 transition-all duration-300"></div>
-              </div>
-              <p id="quotaStatusHint" class="mt-1.5 text-[11px] text-slate-300">
-                O saldo gratuito do XTTSv2 é vinculado ao seu e-mail. No modo Edge TTS, a conversão é sempre 100% gratuita e não consome esta cota.
-              </p>
-            </div>
           </div>
 
 
-          <!-- CAMPO DE WHATSAPP COM BOTÃO CLICK-TO-CHAT INTEGRADO -->
-          <div class="rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-3.5">
+          <!-- CAMPO DE WHATSAPP COM BOTÃO CLICK-TO-CHAT INTEGRADO (VERDE WHATSAPP) -->
+          <div class="whatsapp-subcard rounded-xl border border-emerald-500/30 bg-emerald-950/15 p-3.5">
             <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
               <label for="clientWhatsapp" class="text-xs font-semibold text-emerald-300">
                 WhatsApp (com DDD) para receber o seu audiobook (link de download)
@@ -871,6 +1068,21 @@
           </div>
 
 
+          <!-- SUBCARD DE CRÉDITO INICIAL GRATUITO (ABAIXO DO WHATSAPP E EM COR ÍNDIGO/VIOLETA DISTINTA) -->
+          <div id="quotaStatusBox" class="quota-credit-card rounded-xl border px-3.5 py-3 text-xs">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span id="quotaStatusTitle" class="quota-credit-title font-semibold">🎁 Crédito Inicial Gratuito por Caracteres (compartilhado)</span>
+              <span id="quotaBalanceBadge" class="quota-credit-badge font-mono font-bold">20.000 chars (~10 pág.) Solar · 10.000 chars (~5 pág.) Raio</span>
+            </div>
+            <div class="quota-credit-track mt-2 h-1.5 w-full overflow-hidden rounded-full">
+              <div id="quotaBalanceBar" class="quota-credit-bar h-full w-full transition-all duration-300"></div>
+            </div>
+            <p id="quotaStatusHint" class="quota-credit-hint mt-1.5 text-[11px] leading-relaxed">
+              Cota contabilizada por caracteres, vinculada ao seu e-mail e compartilhada entre os dois sintetizadores de voz (20.000 caracteres no Solar ou 10.000 no Raio). Excedente cobrado via PIX (mín. R$ 1,00).
+            </p>
+          </div>
+
+
           <!-- TERMOS E CONDIÇÕES (BLINDAGEM JURÍDICA) -->
           <div id="termsBox" class="form-field rounded-xl border border-slate-800 bg-slate-950/70 p-3.5 transition">
             <label for="termsCheckbox" class="terms-check-label flex items-start gap-2.5 cursor-pointer">
@@ -885,10 +1097,10 @@
               <span class="text-[11px] leading-relaxed text-slate-300">
                 <strong class="text-white">Li e concordo com os Termos e Condições de Uso do TocaTexto (Obrigatório):</strong>
                 <span class="block mt-1 text-slate-400">
-                  1. <strong>Natureza Tecnológica:</strong> Conversão por síntese neural (XTTSv2 ou Edge TTS), sujeita a variações pontuais de entonação e siglas.<br />
+                  1. <strong>Natureza Tecnológica:</strong> Conversão por síntese neural de voz (sintetizadores Solar ou Raio), sujeita a variações pontuais de entonação e siglas.<br />
                   2. <strong>Responsabilidade do Conteúdo:</strong> Declaro possuir titularidade ou fazer uso privado para estudo pessoal (art. 46, Lei 9.610/98).<br />
                   3. <strong>Prazo e Validade:</strong> Entrega assíncrona por E-mail e WhatsApp no prazo estimado. Link de download ativo por <span id="termsLinkDias">7</span> dias.<br />
-                  4. <strong>Produtos Digitais:</strong> Serviço sob demanda imediata (gratuito no Edge TTS, via cota inicial de <span id="termsQuotaChars">200.000</span> caracteres no XTTSv2 ou pagamento via PIX no excedente), sem cancelamento após confirmação.
+                  4. <strong>Produtos Digitais:</strong> Serviço sob demanda imediata (<span id="termsPricingDetail">cota inicial gratuita por caracteres compartilhada entre os sintetizadores de voz — <span id="termsQuotaChars">20.000</span> caracteres (~10 páginas) no Solar ou 10.000 caracteres (~5 páginas) no Raio — e pagamento via PIX no excedente, mín. R$ 1,00</span>), sem cancelamento após confirmação.
                 </span>
               </span>
             </label>
@@ -914,10 +1126,10 @@
 
       <!-- COLUNA DIREITA: CARD DE RESUMO FINANCEIRO & PREVISÃO DINÂMICA DE ENTREGA -->
       <aside class="lg:col-span-5" aria-label="Resumo do pedido e previsão de entrega">
-        <section id="summaryStickyCard" class="sticky top-36 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-900 to-slate-950 p-6 shadow-2xl">
+        <section id="summaryStickyCard" class="sticky top-36 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-900 to-slate-950 p-4 shadow-2xl sm:p-6">
           <div class="flex items-start justify-between border-b border-slate-800 pb-4">
             <div>
-              <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Resumo &amp; Previsão Dinâmica</span>
+              <span id="summaryEyebrowLabel" class="engine-accent-label text-[11px] font-bold uppercase tracking-wider text-amber-400">Resumo &amp; Previsão Dinâmica</span>
               <h2 class="text-lg font-extrabold text-white">⏱️ Seu Audiobook Sob Demanda</h2>
             </div>
             <div class="text-right">
@@ -929,16 +1141,16 @@
           <!-- Memória de Cálculo Transparente (Serviço + Cota Grátis + Excedente PIX) -->
           <div class="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 px-3.5 py-2.5 text-xs">
             <div class="flex items-center justify-between gap-2 text-slate-300">
-              <span>• Serviço de áudio:</span>
-              <span id="estEngineSummary" class="font-mono font-bold text-amber-300">🎙️ XTTSv2 (Estúdio)</span>
+              <span>• Sintetizador de voz:</span>
+              <span id="estEngineSummary" class="font-mono font-bold text-amber-300">☀️ Solar (Voz Natural)</span>
             </div>
             <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
               <span>• Documento(s) no pedido:</span>
               <span id="summaryDocStatus" class="font-mono font-semibold text-slate-400">Aguardando arquivo...</span>
             </div>
             <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
-              <span id="summaryQuotaLabel">• Cota grátis XTTSv2 (100 pág.):</span>
-              <span id="summaryQuotaStatus" class="font-mono text-[11px] font-semibold text-emerald-300">200.000 chars disponíveis</span>
+              <span id="summaryQuotaLabel">• Cota grátis (chars):</span>
+              <span id="summaryQuotaStatus" class="font-mono text-[11px] font-semibold text-emerald-300">20.000 chars (~10 pág.)</span>
             </div>
             <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
               <span>• Cálculo de cobrança:</span>
@@ -957,7 +1169,7 @@
             </div>
             <div class="flex items-center justify-between gap-2 text-slate-300">
               <span class="shrink-0">• Configuração escolhida:</span>
-              <span id="estConfigSummary" class="font-mono text-right text-amber-300">XTTSv2 · PT-BR · Voz: borges · 1.00x · .mp3</span>
+              <span id="estConfigSummary" class="font-mono text-right text-amber-300">Solar · PT-BR · Voz: borges · 1.00x · .mp3</span>
             </div>
           </div>
 
@@ -993,7 +1205,7 @@
           </svg>
         </span>
         <div>
-          <p class="font-semibold text-slate-200">Ambiente Seguro · XTTSv2 Estúdio, Edge TTS Gratuito &amp; Processamento Isolado</p>
+          <p class="font-semibold text-slate-200">Ambiente Seguro · Sintetizadores Solar &amp; Raio · Processamento Isolado</p>
           <p class="text-[11px] text-slate-400">© 2026 TocaTexto — Todos os direitos reservados. Você envia o texto. A gente dá o play.</p>
         </div>
       </div>
@@ -1095,7 +1307,7 @@
           </p>
           <div class="pt-0.5">
             <span id="approvedEngineLabel" class="confirm-engine-pill inline-flex items-center rounded-full border border-slate-700/80 bg-slate-950/75 px-3 py-1 text-xs font-medium text-slate-300">
-              XTTSv2 · Qualidade Estúdio
+              ☀️ Solar · Voz Natural
             </span>
           </div>
         </div>

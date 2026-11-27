@@ -1,22 +1,15 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v12_00_config_comercial_dinamica)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v16_00_solar_natural_cota_raio)
  * ============================================================================
- * Serviços de Síntese Disponíveis:
- * 1. XTTSv2 (Qualidade Estúdio): 44 vozes neurais realistas (18 PT-BR · 26 EN),
- *    cota gratuita inicial de 200.000 chars (~100 pág.) + PIX no excedente
- *    (`max(1.00, chars_cobraveis * 0.00005)`), prazo calibrado em CPU Kaggle.
- * 2. Edge TTS (Ultrarrápido e 100% Gratuito): 12 vozes (3 PT-BR · 9 EN),
- *    arquitetura paralela de múltiplas instâncias simultâneas (espelhada no
- *    Whispr Flow Like Plus: 6 instâncias em blocos de ~1.200 chars), custo R$ 0,00
- *    (não consome cota XTTSv2) e estimativa própria bem mais rápida.
- *
- * Modernizações (modern-web-guidance):
- * - Native <dialog> com showModal(), closedby="any" + fallback Safari,
- *   transição top-layer com @starting-style / allow-discrete + fallback exit.
- * - Element.replaceChildren(), AbortSignal.timeout(), URLSearchParams, .toSorted().
- * - Validação pós-interação (:user-invalid) sincronizada com aria-invalid,
- *   aria-describedby dinâmico (data-error) e live region centralizada.
+ * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
+ * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
+ *    melhor cadência e indicado para leituras longas (`COM_VALOR_CARACTERE = R$ 0,00005/char`), prazo calibrado em CPU.
+ * 2. Raio (Síntese Rápida · interno: edge): 12 vozes (3 PT-BR · 9 EN), tarifa econômica
+ *    (`COM_VALOR_CARACTERE_EDGE = R$ 0,000025/char`, metade do Solar) e síntese paralela ágil.
+ * - Ambos compartilham o crédito inicial gratuito unificado ponderado por e-mail
+ *   (`COM_COTA_GRATIS_CHARS = 20.000` Solar / `COM_COTA_GRATIS_CHARS_EDGE = 10.000` Raio),
+ *   com excedente cobrado via PIX respeitando o piso `COM_VALOR_MINIMO = R$ 1,00`.
  * ============================================================================
  */
 
@@ -32,9 +25,11 @@
   // Constantes alinhadas ao grupo `servico_comercial`, calibração CPU XTTSv2 e medições Edge TTS (WFLP)
   const CONFIG_COMERCIAL = {
     COM_VALOR_CARACTERE: 0.00005,
+    COM_VALOR_CARACTERE_EDGE: 0.000025,
     COM_VALOR_MINIMO: 1.0,
     COM_COTA_GRATIS_ATIVA: true,
-    COM_COTA_GRATIS_CHARS: 200000,
+    COM_COTA_GRATIS_CHARS: 20000,
+    COM_COTA_GRATIS_CHARS_EDGE: 10000,
     COM_MIN_CHARS_PAGINA: 80,
     COM_CHARS_POR_PAGINA: 2000,
     COM_TEMPO_ATUACAO_MIN: 15,
@@ -51,9 +46,13 @@
     CPU_BASE_SEG: 150.0,
     CPU_S_POR_BYTE: 0.49343,
     CPU_WORKERS_POR_FATIA: 3,
-    CPU_FATIAS_ATIVAS: 45,
-    CPU_WORKERS_TOTAIS: 135,
+    CPU_FATIAS_ATIVAS: 15,
+    CPU_WORKERS_TOTAIS: 45,
     PARTICAO_PISO_BYTES: 3072,
+    ORQ_OTIMIZAR_CONTAS: true,
+    ORQ_OTIM_K_CPU: 0.38,
+    ORQ_WORKERS_CPU_ADAPTATIVO: true,
+    FATOR_CPU_2W: 0.8,
     // [web_v07_00] Baseline medido do Edge TTS em paralelo (Whispr Flow Like Plus v03_01):
     // 6 instâncias simultâneas em blocos de ~1.200 chars, ~9.5s handshake + 0.0115s/char (~23.3s/onda de 6 blocos)
     EDGE_ALVO_BLOCO: 1200,
@@ -140,23 +139,23 @@
     ],
   };
 
-  // [web_v07_00] Catálogo oficial Edge TTS (alinhado ao Whispr Flow Like Plus e Audiobook_Edge_TTT)
+  // [web_v16_00] Catálogo oficial do sintetizador Raio (frases espelhadas em FRASES_AMOSTRAS_WEB_RAIO)
   const VOZES_EDGE_CATALOGO = {
     pt: [
-      { sigla: "thalita", nome: "Thalita", edgeVoiceId: "pt-BR-ThalitaMultilingualNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "dinamica", cor1: "#06b6d4", cor2: "#0e7490", perfil: "Jovem, vibrante e ágil", frase: "Esta é a voz Thalita no modo rápido e gratuito do TocaTexto. A síntese é muito ágil para entregar seu áudio em poucos minutos." },
-      { sigla: "antonio", nome: "Antônio", edgeVoiceId: "pt-BR-AntonioNeural", motor: "edge", idioma: "pt", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "Grave, séria e documental", frase: "Esta é a voz Antônio no serviço gratuito Edge TTS. Um pouco mais sintética que o estúdio, mas muito clara, ágil e excelente para ouvir apostilas e relatórios." },
-      { sigla: "francisca", nome: "Francisca", edgeVoiceId: "pt-BR-FranciscaNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "Equilibrada, calma e objetiva", frase: "Esta é a voz Francisca no Edge TTS. Equilibrada e objetiva, converte seus documentos em MP3 com rapidez e custo zero." },
+      { sigla: "thalita", nome: "Thalita", edgeVoiceId: "pt-BR-ThalitaMultilingualNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "dinamica", cor1: "#06b6d4", cor2: "#0e7490", perfil: "Jovem, vibrante e ágil", frase: "No TocaTexto, suas apostilas, artigos e livros em PDF ou Word viram audiobooks em MP3 para ouvir onde quiser." },
+      { sigla: "antonio", nome: "Antônio", edgeVoiceId: "pt-BR-AntonioNeural", motor: "edge", idioma: "pt", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "Grave, séria e documental", frase: "O TocaTexto higieniza automaticamente cabeçalhos, rodapés e ruídos de formatação para entregar uma leitura contínua e clara." },
+      { sigla: "francisca", nome: "Francisca", edgeVoiceId: "pt-BR-FranciscaNeural", motor: "edge", idioma: "pt", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "Equilibrada, calma e objetiva", frase: "Sem assinatura nem aplicativo fechado: você escolhe a voz, ajusta a velocidade e recebe seu audiobook pronto por e-mail ou WhatsApp." },
     ],
     en: [
-      { sigla: "jenny", nome: "Jenny", edgeVoiceId: "en-US-JennyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#06b6d4", cor2: "#0e7490", perfil: "US · Clear & Versatile", frase: "This is Jenny on the fast and free Edge TTS engine. Multiple parallel instances convert your documents into MP3 audio in minutes." },
-      { sigla: "aria", nome: "Aria", edgeVoiceId: "en-US-AriaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "dinamica", cor1: "#ec4899", cor2: "#be185d", perfil: "US · Energetic & Crisp", frase: "This is Aria on Edge TTS. Slightly more synthetic than studio voices, yet crisp, responsive, and completely free to use." },
-      { sigla: "michelle", nome: "Michelle", edgeVoiceId: "en-US-MichelleNeural", motor: "edge", idioma: "en", genero: "F", categoria: "densa", cor1: "#8b5cf6", cor2: "#5b21b6", perfil: "US · Executive & Authoritative", frase: "This is Michelle on Edge TTS. Clear and structured pacing built for rapid review of reports, papers, and technical manuals." },
-      { sigla: "guy", nome: "Guy", edgeVoiceId: "en-US-GuyNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "US · Neutral & News-style", frase: "This is Guy on Edge TTS. Neutral, direct narration generated rapidly across parallel instances at zero cost." },
-      { sigla: "chris", nome: "Christopher", edgeVoiceId: "en-US-ChristopherNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#6366f1", cor2: "#3730a3", perfil: "US · Deep & Documentary", frase: "This is Christopher on Edge TTS. Deep and steady delivery for long documents when you want fast, free audio synthesis." },
-      { sigla: "eric", nome: "Eric", edgeVoiceId: "en-US-EricNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#10b981", cor2: "#047857", perfil: "US · Friendly & Agile", frase: "This is Eric on Edge TTS. Friendly and agile voice synthesis ready for quick listening on any device." },
-      { sigla: "sonia", nome: "Sonia", edgeVoiceId: "en-GB-SoniaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "UK · Clear British RP", frase: "This is Sonia on Edge TTS with a clear British accent. Fast parallel synthesis with zero usage cost." },
-      { sigla: "ryan", nome: "Ryan", edgeVoiceId: "en-GB-RyanNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#0ea5e9", cor2: "#0369a1", perfil: "UK · Versatile British", frase: "This is Ryan on Edge TTS. Versatile British narration generated rapidly for study sessions and commuting." },
-      { sigla: "libby", nome: "Libby", edgeVoiceId: "en-GB-LibbyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#a855f7", cor2: "#6b21a8", perfil: "UK · Smooth & Narrative", frase: "This is Libby on Edge TTS. Smooth British delivery that turns your readings into portable MP3 audio in minutes." },
+      { sigla: "jenny", nome: "Jenny", edgeVoiceId: "en-US-JennyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#06b6d4", cor2: "#0e7490", perfil: "US · Clear & Versatile", frase: "TocaTexto converts your PDFs, Word documents, and Markdown files into portable MP3 audiobooks ready for offline listening." },
+      { sigla: "aria", nome: "Aria", edgeVoiceId: "en-US-AriaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "dinamica", cor1: "#ec4899", cor2: "#be185d", perfil: "US · Energetic & Crisp", frase: "Upload one or several documents at once, preview the exact character count, and pick the narrator that fits your study routine." },
+      { sigla: "michelle", nome: "Michelle", edgeVoiceId: "en-US-MichelleNeural", motor: "edge", idioma: "en", genero: "F", categoria: "densa", cor1: "#8b5cf6", cor2: "#5b21b6", perfil: "US · Executive & Authoritative", frase: "Every file is automatically cleaned to strip out headers, footers, and layout noise before narration begins." },
+      { sigla: "guy", nome: "Guy", edgeVoiceId: "en-US-GuyNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#3b82f6", cor2: "#1d4ed8", perfil: "US · Neutral & News-style", frase: "No monthly subscriptions or locked apps: you receive your finished audio file directly by email or WhatsApp and keep it forever." },
+      { sigla: "chris", nome: "Christopher", edgeVoiceId: "en-US-ChristopherNeural", motor: "edge", idioma: "en", genero: "M", categoria: "densa", cor1: "#6366f1", cor2: "#3730a3", perfil: "US · Deep & Documentary", frase: "Choose between a single continuous MP3 track or an organized ZIP archive split neatly by chapters and sections." },
+      { sigla: "eric", nome: "Eric", edgeVoiceId: "en-US-EricNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#10b981", cor2: "#047857", perfil: "US · Friendly & Agile", frase: "Adjust the playback speed slider in real time to hear each narrator at the pace that works best for you." },
+      { sigla: "sonia", nome: "Sonia", edgeVoiceId: "en-GB-SoniaNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "UK · Clear British RP", frase: "With multi-voice chapter mode, TocaTexto can assign a different narrator to each section of your book or report." },
+      { sigla: "ryan", nome: "Ryan", edgeVoiceId: "en-GB-RyanNeural", motor: "edge", idioma: "en", genero: "M", categoria: "dinamica", cor1: "#0ea5e9", cor2: "#0369a1", perfil: "UK · Versatile British", frase: "Turn long study guides, technical manuals, and academic papers into audio you can follow while commuting or walking." },
+      { sigla: "libby", nome: "Libby", edgeVoiceId: "en-GB-LibbyNeural", motor: "edge", idioma: "en", genero: "F", categoria: "narrativa", cor1: "#a855f7", cor2: "#6b21a8", perfil: "UK · Smooth & Narrative", frase: "Simply send your text, customize the voice and reading pace, and let TocaTexto handle the entire audiobook creation for you." },
     ],
   };
 
@@ -175,6 +174,7 @@
     cotaConsumidaChars: 0,
     cotaRestanteChars: CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS,
     charsCobertosCota: 0,
+    charsCotaBaseDebitados: 0,
     charsCobraveis: 0,
     pedidoGratuito: true,
     idioma: "pt",
@@ -504,54 +504,143 @@
     return { signal: undefined, cleanup: () => {} };
   }
 
-  // [web_v12_00] Atualiza textos comerciais estáticos da interface a partir de CONFIG_COMERCIAL
-  function formatarTagCotaCurta(totalChars) {
-    const n = Math.max(0, Math.round(Number(totalChars) || 0));
-    if (n <= 0) return "PIX";
-    if (n >= 1000) {
-      const k = n / 1000;
-      const kFmt = Number.isInteger(k) ? String(k) : k.toFixed(1).replace(".", ",");
-      return `${kFmt}k grátis`;
+  // [web_v16_00] Helpers da cota unificada ponderada e formatação de tarifas (XTTSv2 + Edge TTS)
+  function obterValorCaractereMotor(motor = state.motorServico) {
+    const valXtts = Math.max(0.000001, Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005);
+    if (motor === "edge") {
+      const bruto = Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE_EDGE);
+      return Number.isFinite(bruto) && bruto >= 0 ? bruto : valXtts * 0.5;
     }
-    return `${formatarInteiro(n)} ch grátis`;
+    return valXtts;
+  }
+
+  function obterCotaTotalMotor(motor = "xttsv2") {
+    if (!CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA) return 0;
+    if (motor === "edge") {
+      const brutoEdge = Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS_EDGE);
+      return Number.isFinite(brutoEdge) && brutoEdge >= 0 ? Math.round(brutoEdge) : 10000;
+    }
+    const brutoSolar = Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS);
+    return Number.isFinite(brutoSolar) && brutoSolar >= 0 ? Math.round(brutoSolar) : 20000;
+  }
+
+  function obterPesoCotaMotor(motor = state.motorServico) {
+    if (obterValorCaractereMotor(motor) <= 0) return 0;
+    if (motor !== "edge") return 1;
+    const cotaSolar = obterCotaTotalMotor("xttsv2");
+    const cotaEdge = obterCotaTotalMotor("edge");
+    return cotaSolar > 0 && cotaEdge > 0 ? cotaSolar / cotaEdge : 0;
+  }
+
+  function obterCharsEquivalentesMotor(charsBase, motor = state.motorServico) {
+    const base = Math.max(0, Math.round(Number(charsBase) || 0));
+    if (base <= 0) return 0;
+    const peso = obterPesoCotaMotor(motor);
+    if (peso <= 0) return 0;
+    return Math.floor(base / peso + 1e-9);
+  }
+
+  function formatarPrecoMil(valorPorChar) {
+    const mil = Number(valorPorChar || 0) * 1000;
+    if (mil <= 0) return "GRÁTIS";
+    const temTerceiraCasa = Math.abs(Math.round(mil * 100) / 100 - mil) > 0.0001;
+    return mil.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: temTerceiraCasa ? 3 : 2,
+      maximumFractionDigits: temTerceiraCasa ? 3 : 2,
+    });
+  }
+
+  function formatarValorCharUnitario(valorPorChar) {
+    const v = Number(valorPorChar || 0);
+    if (v <= 0) return "R$ 0";
+    const txt = v.toFixed(6).replace(/0+$/, "").replace(/\.$/, "").replace(".", ",");
+    return `R$ ${txt}`;
   }
 
   function atualizarTextosComerciaisNaUI() {
     const ativa = Boolean(CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA);
-    const total = ativa ? Math.max(0, Math.round(Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS) || 0)) : 0;
+    const totalBase = ativa ? Math.max(0, Math.round(Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS) || 0)) : 0;
     const charsPorPag = Math.max(100, Math.round(Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000));
-    const pags = Math.max(0, Math.round(total / charsPorPag));
-    const totalFmt = formatarInteiro(total);
-    const precoMil = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
+    const valXtts = obterValorCaractereMotor("xttsv2");
+    const valEdge = obterValorCaractereMotor("edge");
+    const edgeGratis = valEdge <= 0;
+
+    const totalEdge = edgeGratis ? 0 : obterCharsEquivalentesMotor(totalBase, "edge");
+    const pagsXtts = Math.max(0, Math.round(totalBase / charsPorPag));
+    const pagsEdge = Math.max(0, Math.round(totalEdge / charsPorPag));
+    const totalBaseFmt = formatarInteiro(totalBase);
+    const totalEdgeFmt = formatarInteiro(totalEdge);
+    const precoMilXtts = formatarPrecoMil(valXtts);
+    const precoMilEdge = formatarPrecoMil(valEdge);
     const minBrl = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
     const diasExpira = Math.max(1, Math.round(Number(CONFIG_COMERCIAL.COM_LINK_DIAS_EXPIRA) || 7));
 
     const heroQuota = document.getElementById("heroXttsQuotaBadge");
     if (heroQuota) {
-      heroQuota.textContent =
-        ativa && total > 0
-          ? `🎁 XTTSv2 Estúdio: ${pags} pág. grátis (${totalFmt} chars) no 1º uso`
-          : "🎙️ XTTSv2 Estúdio: sob demanda via PIX";
+      if (ativa && totalBase > 0) {
+        heroQuota.textContent = edgeGratis
+          ? `🎁 Cota inicial grátis Solar: ${totalBaseFmt} chars (~${pagsXtts} pág.)`
+          : `🎁 Cota inicial grátis: ${totalBaseFmt} chars (~${pagsXtts} pág.) no Solar ou ${totalEdgeFmt} chars (~${pagsEdge} pág.) no Raio`;
+      } else {
+        heroQuota.textContent = "🎙️ Solar & Raio: cobrança por caractere via PIX";
+      }
     }
     const heroPrice = document.getElementById("heroXttsPriceBadge");
     if (heroPrice) {
-      heroPrice.textContent = `💰 Excedente XTTSv2: ${precoMil} / 1.000 chars (mín. ${minBrl})`;
+      heroPrice.textContent = `☀️ Solar (Voz Natural): ${precoMilXtts} / 1.000 chars (mín. ${minBrl})`;
     }
+    const heroEdgePrice = document.getElementById("heroEdgePriceBadge");
+    if (heroEdgePrice) {
+      heroEdgePrice.textContent = edgeGratis
+        ? "⚡ Raio (Rápido): gratuito"
+        : `⚡ Raio (Rápido): ${precoMilEdge} / 1.000 chars (mín. ${minBrl})`;
+    }
+
     const engineTag = document.getElementById("engineXttsQuotaTag");
     if (engineTag) {
-      engineTag.textContent = ativa && total > 0 ? formatarTagCotaCurta(total) : "Sob demanda";
+      engineTag.textContent = `${precoMilXtts} / 1k`;
     }
     const engineInline = document.getElementById("engineXttsQuotaInline");
     if (engineInline) {
       engineInline.textContent =
-        ativa && total > 0
-          ? `As primeiras ${pags} páginas (${totalFmt} chars) são grátis; excedente cobrado via PIX.`
-          : `Cobrança sob demanda via PIX (${precoMil} / 1.000 chars, mín. ${minBrl}).`;
+        ativa && totalBase > 0
+          ? `Cota inicial grátis de ${totalBaseFmt} caracteres (~${pagsXtts} páginas); excedente cobrado por caractere via PIX (mín. ${minBrl}).`
+          : `Cobrança por caractere via PIX (${precoMilXtts} / 1.000 chars, mín. ${minBrl}).`;
     }
+
+    const engineEdgeDiscount = document.getElementById("engineEdgeDiscountPill");
+    if (engineEdgeDiscount) {
+      engineEdgeDiscount.textContent = "⚡ Entrega mais rápida";
+    }
+    const engineEdgeTag = document.getElementById("engineEdgeQuotaTag");
+    if (engineEdgeTag) {
+      engineEdgeTag.textContent = edgeGratis ? "GRÁTIS" : `${precoMilEdge} / 1k`;
+    }
+    const engineEdgeInline = document.getElementById("engineEdgeQuotaInline");
+    if (engineEdgeInline) {
+      if (edgeGratis) {
+        engineEdgeInline.textContent = "Conversão gratuita no sintetizador Raio, sem consumir a cota inicial.";
+      } else if (ativa && totalEdge > 0) {
+        engineEdgeInline.textContent = `Cota inicial grátis de ${totalEdgeFmt} caracteres (~${pagsEdge} páginas); excedente cobrado por caractere via PIX (mín. ${minBrl}).`;
+      } else {
+        engineEdgeInline.textContent = `Cobrança por caractere via PIX (${precoMilEdge} / 1.000 chars, mín. ${minBrl}).`;
+      }
+    }
+
     const termsDias = document.getElementById("termsLinkDias");
     if (termsDias) termsDias.textContent = String(diasExpira);
-    const termsQuota = document.getElementById("termsQuotaChars");
-    if (termsQuota) termsQuota.textContent = totalFmt;
+    const termsPricingDetail = document.getElementById("termsPricingDetail");
+    if (termsPricingDetail) {
+      if (edgeGratis) {
+        termsPricingDetail.textContent = `gratuito no Raio, via cota inicial de ${totalBaseFmt} caracteres (~${pagsXtts} páginas) no Solar e pagamento via PIX no excedente, mín. ${minBrl}`;
+      } else if (ativa && totalBase > 0) {
+        termsPricingDetail.textContent = `cota inicial gratuita por caracteres compartilhada entre os sintetizadores de voz — ${totalBaseFmt} caracteres (~${pagsXtts} páginas) no Solar ou ${totalEdgeFmt} caracteres (~${pagsEdge} páginas) no Raio — e pagamento via PIX no excedente, mín. ${minBrl}`;
+      } else {
+        termsPricingDetail.textContent = `pagamento via PIX por caractere (${precoMilXtts}/1k no Solar ou ${precoMilEdge}/1k no Raio, mín. ${minBrl})`;
+      }
+    }
   }
 
   function aplicarConfigComercialRemota(cfgRemota) {
@@ -563,7 +652,9 @@
     }
     const numKeys = [
       ["COM_COTA_GRATIS_CHARS", 0],
+      ["COM_COTA_GRATIS_CHARS_EDGE", 0],
       ["COM_VALOR_CARACTERE", 0.000001],
+      ["COM_VALOR_CARACTERE_EDGE", 0],
       ["COM_VALOR_MINIMO", 0],
       ["COM_MIN_CHARS_PAGINA", 1],
       ["COM_CHARS_POR_PAGINA", 100],
@@ -602,12 +693,29 @@
         });
         if (resp.ok) {
           const data = await resp.json();
+          let mudouTarifa = false;
           if (typeof data?.cota_ativa === "boolean") {
             CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA = data.cota_ativa;
+            mudouTarifa = true;
+          }
+          if (typeof data?.valor_caractere === "number" && data.valor_caractere > 0) {
+            CONFIG_COMERCIAL.COM_VALOR_CARACTERE = data.valor_caractere;
+            mudouTarifa = true;
+          }
+          if (typeof data?.valor_caractere_edge === "number" && data.valor_caractere_edge >= 0) {
+            CONFIG_COMERCIAL.COM_VALOR_CARACTERE_EDGE = data.valor_caractere_edge;
+            mudouTarifa = true;
           }
           if (typeof data?.cota_total_chars === "number" && data.cota_total_chars >= 0) {
             CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS = data.cota_total_chars;
             total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? data.cota_total_chars : 0;
+            mudouTarifa = true;
+          }
+          if (typeof data?.cota_total_chars_edge === "number" && data.cota_total_chars_edge >= 0) {
+            CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS_EDGE = data.cota_total_chars_edge;
+            mudouTarifa = true;
+          }
+          if (mudouTarifa) {
             atualizarTextosComerciaisNaUI();
           }
           if (typeof data?.chars_consumidos === "number") {
@@ -669,11 +777,16 @@
         }
         if (el.heartbeatDot && el.heartbeatText) {
           el.heartbeatDot.className = state.heartbeatOnline
-            ? "h-2.5 w-2.5 rounded-full bg-emerald-400 motion-pulse"
-            : "h-2.5 w-2.5 rounded-full bg-amber-400";
+            ? "h-2 w-2 shrink-0 rounded-full bg-emerald-400 motion-pulse sm:h-2.5 sm:w-2.5"
+            : "h-2 w-2 shrink-0 rounded-full bg-amber-400 sm:h-2.5 sm:w-2.5";
           el.heartbeatText.textContent = state.heartbeatOnline
-            ? "Motor online · XTTSv2 & Edge TTS prontos"
-            : "Motor em espera (janela programada)";
+            ? "Sintetizador online · Solar & Raio prontos"
+            : "Sintetizador em espera (janela programada)";
+          if (el.heartbeatTextMobile) {
+            el.heartbeatTextMobile.textContent = state.heartbeatOnline
+              ? "Sintetizador online"
+              : "Sintetizador em espera";
+          }
         }
         atualizarResumoPedido();
       }
@@ -686,37 +799,74 @@
     }
   }
 
-  function calcularPrecoXttsParaCaracteres(totalChars) {
-    const cotaRestante = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? Math.max(0, state.cotaRestanteChars) : 0;
-    if (!totalChars || totalChars <= 0) {
+  // [web_v13_00] Cálculo unificado ponderado de cota e preço (espelho exato de api/validator.py)
+  function calcularPrecoMotorParaCaracteres(totalChars, motor = state.motorServico) {
+    const motorNorm = motor === "edge" ? "edge" : "xttsv2";
+    const valMotor = obterValorCaractereMotor(motorNorm);
+    const peso = obterPesoCotaMotor(motorNorm);
+    const cotaRestanteBase = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? Math.max(0, state.cotaRestanteChars) : 0;
+
+    if (motorNorm === "edge" && valMotor <= 0) {
       return {
-        preco: cotaRestante > 0 ? 0 : CONFIG_COMERCIAL.COM_VALOR_MINIMO,
+        motor: "edge",
+        preco: 0,
         charsCobertos: 0,
+        charsBaseDebitados: 0,
         charsCobraveis: 0,
-        gratuito: cotaRestante > 0,
+        valorCaractere: 0,
+        gratuito: true,
+        motivoGratuidade: "edge_tts_gratuito",
       };
     }
-    const charsCobertos = Math.min(totalChars, cotaRestante);
+
+    const cotaRestanteMotor = obterCharsEquivalentesMotor(cotaRestanteBase, motorNorm);
+    if (!totalChars || totalChars <= 0) {
+      return {
+        motor: motorNorm,
+        preco: cotaRestanteMotor > 0 ? 0 : CONFIG_COMERCIAL.COM_VALOR_MINIMO,
+        charsCobertos: 0,
+        charsBaseDebitados: 0,
+        charsCobraveis: 0,
+        valorCaractere: valMotor,
+        gratuito: cotaRestanteMotor > 0,
+        motivoGratuidade: cotaRestanteMotor > 0 ? "cota_inicial_unificada" : null,
+      };
+    }
+
+    const charsCobertos = Math.min(totalChars, cotaRestanteMotor);
     const charsCobraveis = Math.max(0, totalChars - charsCobertos);
     if (charsCobraveis === 0) {
-      return { preco: 0, charsCobertos, charsCobraveis: 0, gratuito: true };
+      const charsBaseDebitados =
+        charsCobertos > 0 && peso > 0 ? Math.min(cotaRestanteBase, Math.ceil(charsCobertos * peso - 1e-9)) : 0;
+      return {
+        motor: motorNorm,
+        preco: 0,
+        charsCobertos,
+        charsBaseDebitados,
+        charsCobraveis: 0,
+        valorCaractere: valMotor,
+        gratuito: true,
+        motivoGratuidade: "cota_inicial_unificada",
+      };
     }
-    const bruto = charsCobraveis * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
+    const bruto = charsCobraveis * valMotor;
     const preco = Math.round(Math.max(CONFIG_COMERCIAL.COM_VALOR_MINIMO, bruto) * 100) / 100;
-    return { preco, charsCobertos, charsCobraveis, gratuito: false };
+    return {
+      motor: motorNorm,
+      preco,
+      charsCobertos,
+      charsBaseDebitados: charsCobertos > 0 ? cotaRestanteBase : 0,
+      charsCobraveis,
+      valorCaractere: valMotor,
+      gratuito: false,
+      motivoGratuidade: null,
+    };
   }
 
   function calcularPrecoPorCaracteres(totalChars) {
-    // [web_v07_00] Edge TTS é sempre 100% gratuito e não consome a cota XTTSv2
-    if (ehEdgeTts()) {
-      state.charsCobertosCota = 0;
-      state.charsCobraveis = 0;
-      state.pedidoGratuito = true;
-      return 0;
-    }
-
-    const res = calcularPrecoXttsParaCaracteres(totalChars);
+    const res = calcularPrecoMotorParaCaracteres(totalChars, state.motorServico);
     state.charsCobertosCota = res.charsCobertos;
+    state.charsCotaBaseDebitados = res.charsBaseDebitados;
     state.charsCobraveis = res.charsCobraveis;
     state.pedidoGratuito = res.gratuito;
     return res.preco;
@@ -772,15 +922,15 @@
     }
 
     const itensStepper = [
-      { pill: el.stepperItem01, badge: el.stepperBadge01, stateTxt: el.stepperState01, num: 1 },
-      { pill: el.stepperItem02, badge: el.stepperBadge02, stateTxt: el.stepperState02, num: 2 },
-      { pill: el.stepperItem03, badge: el.stepperBadge03, stateTxt: el.stepperState03, num: 3 },
+      { pill: el.stepperItem01, badge: el.stepperBadge01, eyebrow: el.stepperEyebrow01, stateTxt: el.stepperState01, num: 1 },
+      { pill: el.stepperItem02, badge: el.stepperBadge02, eyebrow: el.stepperEyebrow02, stateTxt: el.stepperState02, num: 2 },
+      { pill: el.stepperItem03, badge: el.stepperBadge03, eyebrow: el.stepperEyebrow03, stateTxt: el.stepperState03, num: 3 },
     ];
 
     const valorCurto = state.valorCalculado <= 0 ? "GRÁTIS" : formatarBRL(state.valorCalculado);
-    const motorCurto = ehEdgeTts() ? "Edge TTS" : "XTTSv2";
+    const motorCurto = ehEdgeTts() ? "Raio" : "Solar";
 
-    itensStepper.forEach(({ pill, badge, stateTxt, num }) => {
+    itensStepper.forEach(({ pill, badge, eyebrow, stateTxt, num }) => {
       if (!pill || !badge || !stateTxt) return;
       const concluido =
         (num === 1 && todosIdiomasDefinidos && etapaAtiva > 1) ||
@@ -793,30 +943,47 @@
         pill.removeAttribute("aria-current");
       }
 
-      pill.className = "stepper-pill flex items-center justify-between rounded-xl border px-4 py-2.5 transition ";
+      pill.className =
+        "stepper-pill flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 transition md:justify-between md:rounded-xl md:px-4 md:py-2.5 ";
       if (ativo) {
-        pill.className += "border-amber-400/70 bg-amber-500/15 shadow";
-        badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950";
+        pill.className += "stepper-pill-active border-amber-400/70 bg-amber-500/15 shadow";
+        badge.className =
+          "stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-400 font-mono text-[10px] font-extrabold text-slate-950 md:h-8 md:w-8 md:rounded-lg md:text-xs";
         badge.textContent = `0${num}`;
-        stateTxt.className = "step-arrow-cue text-xs font-bold text-amber-300";
+        if (eyebrow) {
+          eyebrow.className = "stepper-eyebrow block text-[11px] font-extrabold uppercase tracking-wider text-amber-300";
+        }
+        stateTxt.className = "step-arrow-cue hidden whitespace-nowrap text-xs font-bold text-amber-300 lg:inline";
         stateTxt.textContent = num === 1 && temDoc && !todosIdiomasDefinidos ? "Escolha o idioma ↓" : "Etapa atual ↓";
       } else if (concluido) {
         pill.className += "border-emerald-500/45 bg-emerald-950/25";
-        badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 font-mono text-xs font-extrabold text-slate-950";
+        badge.className =
+          "stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-500 font-mono text-[10px] font-extrabold text-slate-950 md:h-8 md:w-8 md:rounded-lg md:text-xs";
         badge.textContent = "✓";
-        stateTxt.className = "text-xs font-semibold text-emerald-300";
+        if (eyebrow) {
+          eyebrow.className = "stepper-eyebrow block text-[11px] font-bold uppercase tracking-wider text-emerald-300";
+        }
+        stateTxt.className = "hidden whitespace-nowrap text-xs font-semibold text-emerald-300 lg:inline";
         stateTxt.textContent = num === 1 ? `${state.arquivos.length} arq. · ${valorCurto}` : `${motorCurto} · ${state.vozId}`;
       } else {
         pill.className += "border-slate-800 bg-slate-950/60 hover:border-slate-700";
-        badge.className = "flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 font-mono text-xs font-bold text-slate-300";
+        badge.className =
+          "stepper-badge flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-800 font-mono text-[10px] font-bold text-slate-300 md:h-8 md:w-8 md:rounded-lg md:text-xs";
         badge.textContent = `0${num}`;
+        if (eyebrow) {
+          eyebrow.className = "stepper-eyebrow block text-[11px] font-bold uppercase tracking-wider text-slate-400";
+        }
         stateTxt.className =
           num === 1 && temDoc && !todosIdiomasDefinidos
-            ? "text-xs font-semibold text-amber-300"
-            : "text-xs font-medium text-slate-400";
+            ? "hidden whitespace-nowrap text-xs font-semibold text-amber-300 engine-accent-text lg:inline"
+            : "hidden whitespace-nowrap text-xs font-medium text-slate-400 lg:inline";
         stateTxt.textContent =
-          num === 1 && temDoc && !todosIdiomasDefinidos
-            ? "Idioma pendente"
+          num === 1
+            ? !temDoc
+              ? "Anexar arquivo ↑"
+              : !todosIdiomasDefinidos
+              ? "Idioma pendente"
+              : `${state.arquivos.length} arq. · ${valorCurto}`
             : num === 2
             ? `${motorCurto} →`
             : "E-mail & WhatsApp";
@@ -828,9 +995,9 @@
     }
     if (el.connector01Text) {
       el.connector01Text.textContent = !temDoc
-        ? "Próximo passo: escolha o motor (XTTSv2 ou Edge TTS), narrador e velocidade"
+        ? "Próximo passo: escolha o sintetizador de voz (Solar ou Raio), narrador e velocidade"
         : todosIdiomasDefinidos
-        ? `✓ ${state.arquivos.length} documento(s) validado(s) (${valorCurto}) — Agora escolha o serviço, voz e velocidade no Passo 02`
+        ? `✓ ${state.arquivos.length} documento(s) validado(s) (${valorCurto}) — Agora escolha o sintetizador de voz, narrador e velocidade no Passo 02`
         : "Escolha o idioma obrigatório de cada documento acima antes de prosseguir";
     }
     if (el.connector02to03) {
@@ -874,7 +1041,7 @@
   }
 
   // ==========================================================================
-  // 3. SELEÇÃO DE SERVIÇO DE ÁUDIO (XTTSv2 ESTÚDIO vs EDGE TTS RÁPIDO/GRÁTIS)
+  // 3. SELEÇÃO DE SERVIÇO DE ÁUDIO (SOLAR VOZ NATURAL vs RAIO SÍNTESE RÁPIDA)
   // ==========================================================================
   function selecionarMotorServico(novoMotor, animarPreco = false) {
     if (novoMotor !== "xttsv2" && novoMotor !== "edge") return;
@@ -902,6 +1069,7 @@
     }
 
     atualizarUiSeletorMotor();
+    atualizarVelocidade(state.velocidade, false, false);
     renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
     renderizarMapeadorCapitulos();
     recalcularAgregadosDocumentos();
@@ -926,18 +1094,18 @@
 
     if (el.catalogEnginePill) {
       if (isEdge) {
-        el.catalogEnginePill.textContent = "⚡ Edge TTS · 100% Grátis";
+        el.catalogEnginePill.textContent = "⚡ Raio · Rápido";
         el.catalogEnginePill.className = "rounded-lg border border-cyan-400/45 bg-cyan-500/15 px-2.5 py-1 font-mono text-[11px] font-bold text-cyan-300";
       } else {
-        el.catalogEnginePill.textContent = "🎙️ XTTSv2 Estúdio";
+        el.catalogEnginePill.textContent = "☀️ Solar · Voz Natural";
         el.catalogEnginePill.className = "rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-300";
       }
     }
 
     if (el.audioSourceStatusText && !state.vozTocandoSigla) {
       el.audioSourceStatusText.textContent = isEdge
-        ? "⚡ Amostras reais do Edge TTS (voz mais robótica, porém muito clara e ágil — controle de velocidade ativo em tempo real)."
-        : "🔊 Amostras reais das vozes neurais XTTSv2 (qualidade de estúdio — controle de velocidade com preservação de tom ativa).";
+        ? "⚡ Amostras reais do sintetizador Raio (voz mais sintética, porém muito clara e ágil — controle de velocidade ativo em tempo real)."
+        : "🔊 Amostras reais do sintetizador Solar (voz mais natural e melhor cadência para leituras longas — controle de velocidade com preservação de tom ativa).";
     }
   }
 
@@ -945,20 +1113,27 @@
     const temDoc = state.totalCaracteres > 0;
     const minXtts = temDoc ? calcularMinutosXttsLocal(state.totalCaracteres) : 0;
     const minEdge = temDoc ? calcularMinutosEdgeLocal(state.totalCaracteres) : 0;
-    const xttsPreco = calcularPrecoXttsParaCaracteres(state.totalCaracteres);
+    const xttsPreco = calcularPrecoMotorParaCaracteres(state.totalCaracteres, "xttsv2");
+    const edgePreco = calcularPrecoMotorParaCaracteres(state.totalCaracteres, "edge");
+    const charsPorPag = Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000);
+    const valXtts = obterValorCaractereMotor("xttsv2");
+    const valEdge = obterValorCaractereMotor("edge");
+    const edgeGratis = valEdge <= 0;
+    const restXtts = Math.max(0, state.cotaRestanteChars);
+    const restEdge = edgeGratis ? 0 : obterCharsEquivalentesMotor(restXtts, "edge");
 
     if (el.engineXttsEtaBadge) {
       el.engineXttsEtaBadge.textContent = temDoc
-        ? `⏱️ ~${formatarDuracaoHorasMinutos(minXtts)} (CPU nuvem)`
+        ? `⏱️ ~${formatarDuracaoHorasMinutos(minXtts)}`
         : "⏱️ Ex.: ~1h20 para 100 pág.";
     }
 
     if (el.engineXttsPriceBadge) {
       if (!temDoc) {
-        const precoMil = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
-        el.engineXttsPriceBadge.textContent = state.cotaRestanteChars > 0
-          ? `💰 Grátis até ${formatarInteiro(state.cotaRestanteChars)} ch`
-          : `💰 ${precoMil} / 1.000 chars`;
+        const pagsR = Math.floor(restXtts / charsPorPag);
+        el.engineXttsPriceBadge.textContent = restXtts > 0
+          ? `💰 Grátis até ${formatarInteiro(restXtts)} chars (~${pagsR} pág.)`
+          : `💰 ${formatarPrecoMil(valXtts)} / 1.000 chars`;
       } else {
         el.engineXttsPriceBadge.textContent = xttsPreco.preco <= 0
           ? "💰 GRÁTIS (usa cota)"
@@ -973,7 +1148,18 @@
     }
 
     if (el.engineEdgePriceBadge) {
-      el.engineEdgePriceBadge.textContent = "🆓 R$ 0,00 (Grátis ilimitado)";
+      if (edgeGratis) {
+        el.engineEdgePriceBadge.textContent = "🆓 R$ 0,00 (Grátis)";
+      } else if (!temDoc) {
+        const pagsE = Math.floor(restEdge / charsPorPag);
+        el.engineEdgePriceBadge.textContent = restEdge > 0
+          ? `💰 Grátis até ${formatarInteiro(restEdge)} chars (~${pagsE} pág.)`
+          : `💰 ${formatarPrecoMil(valEdge)} / 1.000 chars`;
+      } else {
+        el.engineEdgePriceBadge.textContent = edgePreco.preco <= 0
+          ? "💰 GRÁTIS (usa cota)"
+          : `💰 ${formatarBRL(edgePreco.preco)} (PIX)`;
+      }
     }
 
     // Card de comparativo rápido no Resumo Sticky
@@ -986,15 +1172,15 @@
           el.estEngineCompareBox.className = "mt-3 rounded-xl border border-amber-500/35 bg-amber-950/25 px-3 py-2 text-[11px] text-slate-300 compare-target-xtts";
           el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-amber-400/55 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition";
           const precoTxt = xttsPreco.preco <= 0 ? "grátis na cota" : formatarBRL(xttsPreco.preco);
-          el.estEngineCompareHint.textContent = `Prefere voz mais natural (estúdio)? XTTSv2: ~${formatarDuracaoHorasMinutos(minXtts)} (${precoTxt}).`;
-          el.quickSwitchEngineBtn.textContent = "Usar XTTSv2";
+          el.estEngineCompareHint.textContent = `Prefere voz mais natural e cadenciada para leituras longas? Solar: ~${formatarDuracaoHorasMinutos(minXtts)} (${precoTxt}).`;
+          el.quickSwitchEngineBtn.textContent = "Usar Solar";
         } else {
-          // Em XTTSv2, o atalho sugere Edge TTS na cor ciano temática
+          // Em Solar (xttsv2), o atalho sugere Raio (edge) na cor ciano temática
           el.estEngineCompareBox.className = "mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-3 py-2 text-[11px] text-slate-300 compare-target-edge";
           el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-bold text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition";
-          const economiaTxt = xttsPreco.preco > 0 ? ` e economize ${formatarBRL(xttsPreco.preco)}` : " e preserve sua cota";
-          el.estEngineCompareHint.textContent = `Quer bem mais rápido e grátis? Edge TTS: ~${formatarDuracaoHorasMinutos(minEdge)}${economiaTxt}.`;
-          el.quickSwitchEngineBtn.textContent = "Usar Edge TTS";
+          const precoEdgeTxt = edgePreco.preco <= 0 ? "grátis na cota" : formatarBRL(edgePreco.preco);
+          el.estEngineCompareHint.textContent = `Prefere entrega mais rápida? Raio: ~${formatarDuracaoHorasMinutos(minEdge)} (${precoEdgeTxt}).`;
+          el.quickSwitchEngineBtn.textContent = "Usar Raio";
         }
       }
     }
@@ -1022,7 +1208,7 @@
           <path d="M11 40c2.2-6.5 7.2-10 13-10s10.8 3.5 13 10" fill="rgba(255,255,255,0.20)" />
           <text x="24" y="28" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-weight="800" font-size="13" letter-spacing="0.5">${iniciais}</text>
         </svg>
-        <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-900 bg-slate-950 text-[10px] font-bold text-amber-300 shadow" title="${voz.genero === "F" ? "Voz Feminina" : "Voz Masculina"}" aria-hidden="true">
+        <span class="voice-gender-badge absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-slate-900 bg-slate-950 text-[10px] font-bold text-amber-300 shadow" title="${voz.genero === "F" ? "Voz Feminina" : "Voz Masculina"}" aria-hidden="true">
           ${iconeGenero}
         </span>
       </div>
@@ -1185,7 +1371,7 @@
               aria-label="${playAriaLabel}"
               class="play-voice-btn shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition shadow ${
                 tocando
-                  ? "bg-emerald-400 text-slate-950 shadow-emerald-500/25"
+                  ? "is-playing bg-emerald-400 text-slate-950 shadow-emerald-500/25"
                   : "bg-slate-800 text-slate-100 hover:bg-amber-400 hover:text-slate-950"
               }"
               title="Ouvir amostra real em ${state.velocidade.toFixed(2)}x"
@@ -1204,7 +1390,7 @@
         </div>
 
         <div class="mt-3 pt-2.5 border-t border-slate-800/70 flex items-center justify-between text-[11px]">
-          <span class="font-mono text-slate-400">ID: <strong class="text-slate-200">${voz.sigla}</strong> · ${isEdge ? "EDGE" : "XTTS"} · ${voz.idioma.toUpperCase()}</span>
+          <span class="font-mono text-slate-400">ID: <strong class="text-slate-200">${voz.sigla}</strong> · ${isEdge ? "RAIO" : "SOLAR"} · ${voz.idioma.toUpperCase()}</span>
           <span class="font-semibold ${selecionada ? (isEdge ? "text-cyan-300" : "text-amber-300") : "text-slate-400"}">
             ${selecionada ? "✓ Selecionada" : "Clique p/ escolher"}
           </span>
@@ -1281,7 +1467,7 @@
       labelSpan.className = "truncate text-slate-200 font-medium";
       labelSpan.title = cap.titulo;
       const numStrong = document.createElement("strong");
-      numStrong.className = "font-mono text-amber-300";
+      numStrong.className = "engine-accent-text font-mono text-amber-300";
       numStrong.textContent = `#${capKey}`;
       labelSpan.append(numStrong, ` ${cap.titulo}`);
 
@@ -1409,10 +1595,7 @@
         state.vozTocandoMotor = null;
         renderizarCatalogoVozes();
         if (el.audioSourceStatusText) {
-          const caminhoEsperado = motorVoz === "edge"
-            ? `web/amostras_vozes/edge/${voz.idioma}/${voz.sigla}.mp3`
-            : `web/amostras_vozes/${voz.idioma}/${voz.sigla}.mp3`;
-          el.audioSourceStatusText.textContent = `⚠️ Amostra MP3 de ${voz.nome} não encontrada em ${caminhoEsperado}.`;
+          el.audioSourceStatusText.textContent = `⚠️ Amostra de voz de ${voz.nome} indisponível no momento.`;
         }
         return;
       }
@@ -1429,10 +1612,10 @@
             aplicarVelocidadeNoAudioAtivo(state.velocidade);
             if (el.audioSourceStatusText) {
               const origemTipo = motorVoz === "edge"
-                ? "Amostra real Edge TTS (rápido e gratuito)"
+                ? "Amostra do sintetizador Raio"
                 : url.includes("amostras_vozes")
-                ? "Amostra XTTSv2 Estúdio"
-                : "Voz original do banco_vozes";
+                ? "Amostra do sintetizador Solar"
+                : "Amostra de referência";
               const prefixoMotivo =
                 motivo === "velocidade" ? "🎲 Teste de velocidade:" : "🔊 Tocando agora:";
               el.audioSourceStatusText.innerHTML =
@@ -1534,7 +1717,7 @@
     else if (Math.abs(vel - 1.25) < 0.005) rotuloRitmo = "Rápida — Revisão e ganho de tempo";
 
     if (el.speedHintText) {
-      el.speedHintText.innerHTML = `Ritmo selecionado: <strong class="text-amber-300">${vel.toFixed(2)}x (${rotuloRitmo})</strong> — Este valor exato será aplicado na síntese (${ehEdgeTts() ? `Edge rate ${velocidadeParaRateEdge(vel)}` : "XTTSv2"}) e no áudio em reprodução.`;
+      el.speedHintText.innerHTML = `Ritmo selecionado: <strong class="engine-accent-text text-amber-300">${vel.toFixed(2)}x (${rotuloRitmo})</strong> — Este valor exato será aplicado no sintetizador ${ehEdgeTts() ? "Raio" : "Solar"} e no áudio em reprodução.`;
     }
 
     aplicarVelocidadeNoAudioAtivo(vel);
@@ -1554,11 +1737,11 @@
   function atualizarUiModoVoz() {
     const ehUnica = state.modoVoz === "unica";
     const grupos = [
-      { box: el.voiceModeGroupUnica, panel: el.subModeUnicaPanel, ativo: ehUnica },
-      { box: el.voiceModeGroupCapitulo, panel: el.subModeCapituloPanel, ativo: !ehUnica },
+      { box: el.voiceModeGroupUnica, panel: el.subModeUnicaPanel, tag: el.voiceModeTagUnica, ativo: ehUnica },
+      { box: el.voiceModeGroupCapitulo, panel: el.subModeCapituloPanel, tag: el.voiceModeTagCapitulo, ativo: !ehUnica },
     ];
 
-    grupos.forEach(({ box, panel, ativo }) => {
+    grupos.forEach(({ box, panel, tag, ativo }) => {
       if (box) {
         box.classList.toggle("active-mode", ativo);
         box.classList.toggle("border-amber-400", ativo);
@@ -1566,9 +1749,15 @@
         box.classList.toggle("border-slate-800", !ativo);
         box.classList.toggle("bg-slate-900/70", !ativo);
       }
+      if (tag) {
+        tag.classList.toggle("text-amber-300", ativo);
+        tag.classList.toggle("text-slate-400", !ativo);
+      }
       if (panel) {
         panel.classList.toggle("hidden", !ativo);
         panel.classList.toggle("grid", ativo);
+        panel.classList.toggle("border-amber-400/25", ativo);
+        panel.classList.toggle("border-slate-700/60", !ativo);
       }
     });
 
@@ -2103,15 +2292,15 @@
       }`;
       row.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
-          <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-amber-500/20 font-mono text-[10px] font-bold text-amber-300">${index + 1}</span>
+          <span class="step-number-soft flex h-5 w-5 shrink-0 items-center justify-center rounded bg-amber-500/20 font-mono text-[10px] font-bold text-amber-300">${index + 1}</span>
           <span class="font-semibold text-white truncate" data-file-name-label></span>
           <span class="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">${formatarBytes(item.tamanhoBytes)}</span>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
-          <span class="font-mono text-[11px] text-slate-300">${formatarInteiro(item.caracteres)} chars · ${item.paginas} pág. · <strong class="text-amber-300">${qtdCaps} cap./seç.</strong></span>
+          <span class="font-mono text-[11px] text-slate-300">${formatarInteiro(item.caracteres)} chars · ${item.paginas} pág. · <strong class="engine-accent-text text-amber-300">${qtdCaps} cap./seç.</strong></span>
           <div class="flex items-center gap-1.5">
             <span class="text-[10px] font-bold uppercase tracking-wider ${
-              faltaComErro ? "text-red-300" : idiomaDefinido ? "text-emerald-300" : "text-amber-300"
+              faltaComErro ? "text-red-300" : idiomaDefinido ? "text-emerald-300" : "engine-accent-text text-amber-300"
             }">
               ${faltaComErro ? "Escolha o idioma *" : idiomaDefinido ? "Idioma:" : "Idioma *"}
             </span>
@@ -2206,10 +2395,27 @@
       state.validacaoIdiomaTentada = false;
       if (el.docLangValidationError) el.docLangValidationError.classList.add("hidden");
       if (el.docSummaryCard) el.docSummaryCard.classList.add("hidden");
+      if (el.dropzone) {
+        el.dropzone.classList.remove("py-5");
+        el.dropzone.classList.add("py-7");
+      }
+      if (el.dropzoneTitleText) {
+        el.dropzoneTitleText.textContent =
+          "Clique para selecionar ou arraste seus arquivos (.PDF, .DOCX, .TXT ou .MD)";
+      }
       atualizarFluxoEtapas(1);
       renderizarMapeadorCapitulos();
       atualizarResumoPedido();
       return;
+    }
+
+    if (el.dropzone) {
+      el.dropzone.classList.remove("py-7");
+      el.dropzone.classList.add("py-5");
+    }
+    if (el.dropzoneTitleText) {
+      el.dropzoneTitleText.textContent =
+        "Clique para anexar mais arquivos ou arraste aqui (.PDF, .DOCX, .TXT ou .MD)";
     }
 
     if (el.docFileName) {
@@ -2386,11 +2592,25 @@
       1,
       Number(cal.workers_por_fatia) || CONFIG_COMERCIAL.CPU_WORKERS_POR_FATIA || 3
     );
-    const fatiasAtivas = Math.max(1, Number(cal.fatias_ativas) || CONFIG_COMERCIAL.CPU_FATIAS_ATIVAS || 45);
-    const workersTotais = Math.max(
+    const fatiasDisp = Math.max(1, Number(cal.fatias_ativas) || CONFIG_COMERCIAL.CPU_FATIAS_ATIVAS || 15);
+    const contasDisp = Math.max(
       1,
-      Number(cal.workers_totais) || fatiasAtivas * workersPorFatia || CONFIG_COMERCIAL.CPU_WORKERS_TOTAIS
+      Number(cal.qtd_contas_ativas) || Math.round(fatiasDisp / 5) || 1
     );
+    const pisoBytes = Math.max(
+      512,
+      Number(cal.piso_particao_bytes) || CONFIG_COMERCIAL.PARTICAO_PISO_BYTES || 3072
+    );
+    const otimizarContas =
+      typeof cal.otimizar_contas === "boolean"
+        ? cal.otimizar_contas
+        : Boolean(CONFIG_COMERCIAL.ORQ_OTIMIZAR_CONTAS ?? true);
+    const kCpu = Number(cal.otim_k_cpu) > 0 ? Number(cal.otim_k_cpu) : Number(CONFIG_COMERCIAL.ORQ_OTIM_K_CPU || 0.38);
+    const adaptW =
+      (typeof cal.workers_cpu_adaptativo === "boolean"
+        ? cal.workers_cpu_adaptativo
+        : Boolean(CONFIG_COMERCIAL.ORQ_WORKERS_CPU_ADAPTATIVO ?? true)) && workersPorFatia >= 3;
+    const fator2w = Number(cal.fator_cpu_2w) > 0 ? Number(cal.fator_cpu_2w) : Number(CONFIG_COMERCIAL.FATOR_CPU_2W || 0.8);
     const autocal =
       typeof cal.autocalibrado === "boolean" ? cal.autocalibrado : Boolean(CONFIG_COMERCIAL.CPU_AUTOCALIBRADO);
     const pisoMin =
@@ -2403,16 +2623,36 @@
       ? Number(cal.margem_seguranca)
       : CONFIG_COMERCIAL.COM_MARGEM_SEGURANCA;
 
+    // [web_v15_01] Espelha `simular_alocacao_otima_bytes_xttsv2` sobre a frota dinâmica atual
     const bytesEst = Math.max(1, Math.round(chars));
+    const sMed = Math.max(1.0, fatiasDisp / contasDisp);
+    let contasAlvo = contasDisp;
+    if (otimizarContas) {
+      const xKb = Math.max(0.001, bytesEst / 1024.0);
+      const pisoKb = Math.max(0.5, pisoBytes / 1024.0);
+      const wPiso = adaptW ? 2 : workersPorFatia;
+      const aTeto = Math.max(1, Math.ceil(xKb / Math.max(1.0, sMed * wPiso * pisoKb)));
+      const aRaiz = Math.max(1, Math.round(kCpu * Math.sqrt(xKb)));
+      contasAlvo = Math.max(1, Math.min(contasDisp, aTeto, aRaiz));
+    }
+    const fatiasOtimas = Math.max(1, Math.min(fatiasDisp, Math.round(contasAlvo * sMed)));
+    const limiar2w = (0.495 / 0.385) * pisoBytes;
+    const workersEf = adaptW && bytesEst / (2 * fatiasOtimas) <= limiar2w ? 2 : workersPorFatia;
+    const capacidadeOtima = Math.max(1, workersEf * fatiasOtimas);
+
+    const alvoParte = Math.max(pisoBytes, Math.ceil(bytesEst / capacidadeOtima));
+    const nPartesBruto = Math.max(1, Math.floor(bytesEst / alvoParte + 0.5));
     const numPartes = Math.min(
-      workersTotais,
-      Math.max(1, Math.floor(bytesEst / CONFIG_COMERCIAL.PARTICAO_PISO_BYTES))
+      capacidadeOtima,
+      Math.max(1, Math.min(nPartesBruto, Math.max(1, Math.floor(bytesEst / pisoBytes))))
     );
     const tamParte = Math.ceil(bytesEst / numPartes);
-    const maxPartesNaFatia = Math.ceil(numPartes / fatiasAtivas);
+    const fatiasUsadas = Math.max(1, Math.min(fatiasOtimas, Math.ceil(numPartes / workersEf)));
+    const maxPartesNaFatia = Math.ceil(numPartes / fatiasUsadas);
     const baldesNaFatia = Math.ceil(maxPartesNaFatia / workersPorFatia);
+    const fatorW = workersPorFatia >= 3 && maxPartesNaFatia >= 1 && maxPartesNaFatia <= 2 ? fator2w : 1.0;
 
-    const segSintese = setupSeg + baldesNaFatia * (baseSeg + sByte * tamParte);
+    const segSintese = setupSeg + baldesNaFatia * ((baseSeg + sByte * tamParte) * fatorW);
     const segOverhead = 120 + 2 * numPartes;
 
     const minutosBrutos = (segSintese + segOverhead) / 60.0;
@@ -2461,118 +2701,132 @@
   function atualizarExibicaoCotaEPreco(preco) {
     const isEdge = ehEdgeTts();
     const temDoc = state.totalCaracteres > 0;
-    const cotaTotal = state.cotaTotalChars;
-    const cotaRest = state.cotaRestanteChars;
+    const cotaTotalBase = state.cotaTotalChars;
+    const cotaRestBase = state.cotaRestanteChars;
     const cobertos = state.charsCobertosCota;
+    const baseDeb = state.charsCotaBaseDebitados;
     const cobraveis = state.charsCobraveis;
     const gratis = state.pedidoGratuito;
     const valorFmt = preco <= 0 ? "GRÁTIS" : formatarBRL(preco);
+
+    const valXtts = obterValorCaractereMotor("xttsv2");
+    const valEdge = obterValorCaractereMotor("edge");
+    const edgeGratis = valEdge <= 0;
+    const valMotorAtivo = obterValorCaractereMotor(state.motorServico);
+    const charsPorPag = Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000);
+    const cotaRestMotor = isEdge && edgeGratis ? 0 : obterCharsEquivalentesMotor(cotaRestBase, state.motorServico);
+    const cotaRestEdge = edgeGratis ? 0 : obterCharsEquivalentesMotor(cotaRestBase, "edge");
+    const pagsRestXtts = Math.floor(cotaRestBase / charsPorPag);
+    const pagsRestEdge = Math.floor(cotaRestEdge / charsPorPag);
+    const pagsRestMotor = Math.floor(cotaRestMotor / charsPorPag);
+    const precoMilAtivoFmt = formatarPrecoMil(valMotorAtivo);
+    const valorMinFmt = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
+    const motorRotuloCurto = isEdge ? "Raio" : "Solar";
 
     if (el.priceDisplay) el.priceDisplay.textContent = valorFmt;
     if (el.docPriceCount) el.docPriceCount.textContent = valorFmt;
 
     if (el.docPriceLabel) {
-      el.docPriceLabel.textContent = isEdge
-        ? "Valor (Edge TTS · Grátis)"
-        : preco <= 0
-        ? "Valor Estimado (Cota Grátis)"
-        : "Valor PIX Calculado";
+      el.docPriceLabel.textContent =
+        preco <= 0
+          ? isEdge && edgeGratis
+            ? "Valor (Raio · Grátis)"
+            : "Valor Estimado (Cota Grátis)"
+          : `Valor PIX (${motorRotuloCurto})`;
     }
     if (el.summaryPriceLabel) {
-      el.summaryPriceLabel.textContent = isEdge
-        ? "Serviço Edge TTS"
-        : preco <= 0
-        ? "Valor do Pedido"
-        : "Valor Total PIX";
+      el.summaryPriceLabel.textContent =
+        preco <= 0 ? "Valor do Pedido" : `Valor Total PIX (${motorRotuloCurto})`;
     }
-
-    const pagsCotaTotal = Math.max(
-      0,
-      Math.round(cotaTotal / Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000))
-    );
-    const precoMilFmt = formatarBRL((Number(CONFIG_COMERCIAL.COM_VALOR_CARACTERE) || 0.00005) * 1000);
-    const valorMinFmt = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
 
     if (el.quotaStatusTitle) {
-      el.quotaStatusTitle.textContent = isEdge
-        ? "⚡ Edge TTS Ativo (100% Gratuito · Cota XTTSv2 intacta)"
-        : cotaTotal > 0
-        ? `🎁 Cota Gratuita XTTSv2 (${pagsCotaTotal} páginas / ${formatarInteiro(cotaTotal)} chars)`
-        : "🎙️ XTTSv2 Sob Demanda (sem cota gratuita ativa)";
+      if (isEdge && edgeGratis) {
+        el.quotaStatusTitle.textContent = "⚡ Sintetizador Raio Ativo (Gratuito · Cota intacta)";
+      } else if (cotaTotalBase > 0) {
+        el.quotaStatusTitle.textContent = "🎁 Crédito Inicial Gratuito por Caracteres (compartilhado)";
+      } else {
+        el.quotaStatusTitle.textContent = "🎙️ Cobrança por Caractere via PIX";
+      }
     }
     if (el.quotaBalanceBadge) {
-      el.quotaBalanceBadge.textContent = isEdge
-        ? `Sem consumo · ${formatarInteiro(cotaRest)} ch XTTSv2 intactos`
-        : `${formatarInteiro(cotaRest)} chars disponíveis`;
+      if (isEdge && edgeGratis) {
+        el.quotaBalanceBadge.textContent = `Sem consumo · ${formatarInteiro(cotaRestBase)} chars Solar intactos`;
+      } else if (cotaRestBase > 0) {
+        el.quotaBalanceBadge.textContent = edgeGratis
+          ? `${formatarInteiro(cotaRestBase)} chars (~${pagsRestXtts} pág.) Solar`
+          : `${formatarInteiro(cotaRestBase)} chars (~${pagsRestXtts} pág.) Solar · ${formatarInteiro(cotaRestEdge)} chars (~${pagsRestEdge} pág.) Raio`;
+      } else {
+        el.quotaBalanceBadge.textContent = "0 chars (cota esgotada)";
+      }
     }
     if (el.quotaBalanceBar) {
-      const pctRest = cotaTotal > 0 ? Math.max(0, Math.min(100, (cotaRest / cotaTotal) * 100)) : 0;
+      const pctRest = cotaTotalBase > 0 ? Math.max(0, Math.min(100, (cotaRestBase / cotaTotalBase) * 100)) : 0;
       el.quotaBalanceBar.style.width = `${pctRest}%`;
     }
     if (el.quotaStatusHint) {
-      if (isEdge) {
-        el.quotaStatusHint.textContent = `O serviço Edge TTS é 100% gratuito e sem limite de caracteres. Sua cota gratuita do XTTSv2 (${formatarInteiro(
-          cotaTotal
-        )} chars) permanece preservada para quando você quiser qualidade de estúdio.`;
-      } else if (cotaRest <= 0) {
+      if (isEdge && edgeGratis) {
+        el.quotaStatusHint.textContent = `O sintetizador de voz Raio está gratuito no momento. Sua cota inicial (${formatarInteiro(cotaRestBase)} chars no Solar) permanece preservada.`;
+      } else if (cotaRestBase <= 0) {
         el.quotaStatusHint.textContent =
-          cotaTotal > 0
-            ? `Cota gratuita inicial de ${formatarInteiro(
-                cotaTotal
-              )} caracteres do XTTSv2 já consumida para este e-mail. Cobrança padrão de ${precoMilFmt} / 1.000 chars (mín. ${valorMinFmt}) — ou troque para Edge TTS no Passo 02 para converter grátis.`
-            : `Cobrança padrão de ${precoMilFmt} / 1.000 chars (mín. ${valorMinFmt}) no XTTSv2 — ou troque para Edge TTS no Passo 02 para converter grátis.`;
+          cotaTotalBase > 0
+            ? `Cota inicial gratuita por caracteres já utilizada para este e-mail. Tarifa ${motorRotuloCurto}: ${precoMilAtivoFmt} / 1.000 chars (mín. ${valorMinFmt}).`
+            : `Tarifa ${motorRotuloCurto}: ${precoMilAtivoFmt} / 1.000 chars (mín. ${valorMinFmt}).`;
       } else if (temDoc && cobraveis > 0) {
-        el.quotaStatusHint.textContent = `Este pedido XTTSv2 consome seus últimos ${formatarInteiro(
+        el.quotaStatusHint.textContent = `Este pedido ${motorRotuloCurto} utiliza os ${formatarInteiro(
           cobertos
-        )} chars grátis e cobra apenas o excedente de ${formatarInteiro(cobraveis)} chars via PIX.`;
+        )} caracteres restantes da cota gratuita e cobra o excedente de ${formatarInteiro(cobraveis)} caracteres via PIX.`;
       } else if (temDoc) {
-        const apos = Math.max(0, cotaRest - cobertos);
-        el.quotaStatusHint.textContent = `Este pedido XTTSv2 usa ${formatarInteiro(
+        const aposBase = Math.max(0, cotaRestBase - baseDeb);
+        const aposMotor = obterCharsEquivalentesMotor(aposBase, state.motorServico);
+        const aposPags = Math.floor(aposMotor / charsPorPag);
+        el.quotaStatusHint.textContent = `Este pedido ${motorRotuloCurto} usa ${formatarInteiro(
           cobertos
-        )} chars da sua cota gratuita. Após confirmar, ainda restarão ${formatarInteiro(apos)} chars grátis.`;
+        )} caracteres da sua cota inicial gratuita. Após confirmar, ainda restarão ${formatarInteiro(
+          aposMotor
+        )} chars (~${aposPags} pág.) no ${motorRotuloCurto}.`;
       } else {
         el.quotaStatusHint.textContent =
-          "O saldo gratuito do XTTSv2 é vinculado ao seu e-mail. No modo Edge TTS, a conversão é sempre 100% gratuita e não consome esta cota.";
+          `Cota contabilizada por caracteres, vinculada ao seu e-mail e compartilhada entre os dois sintetizadores de voz (${formatarInteiro(cotaTotalBase)} caracteres no Solar ou ${formatarInteiro(obterCharsEquivalentesMotor(cotaTotalBase, "edge"))} no Raio). Excedente via PIX (mín. ${valorMinFmt}).`;
       }
     }
 
     if (el.summaryQuotaLabel) {
-      el.summaryQuotaLabel.textContent = isEdge
-        ? "• Cota XTTSv2:"
-        : `• Cota grátis XTTSv2 (${pagsCotaTotal} pág.):`;
+      el.summaryQuotaLabel.textContent = "• Cota grátis (chars):";
     }
     if (el.summaryQuotaStatus) {
-      if (isEdge) {
-        el.summaryQuotaStatus.textContent = `Preservada (${formatarInteiro(cotaRest)} ch intactos)`;
+      if (isEdge && edgeGratis) {
+        el.summaryQuotaStatus.textContent = `Preservada (${formatarInteiro(cotaRestBase)} chars Solar)`;
       } else if (!temDoc) {
-        el.summaryQuotaStatus.textContent = `${formatarInteiro(cotaRest)} de ${formatarInteiro(cotaTotal)} chars`;
+        el.summaryQuotaStatus.textContent =
+          cotaRestMotor > 0
+            ? `${formatarInteiro(cotaRestMotor)} chars (~${pagsRestMotor} pág.)`
+            : "Esgotada (0 chars)";
       } else if (cobertos > 0) {
-        const apos = Math.max(0, cotaRest - cobertos);
-        el.summaryQuotaStatus.textContent = `-${formatarInteiro(cobertos)} chars (restam ${formatarInteiro(apos)})`;
+        const aposBase = Math.max(0, cotaRestBase - baseDeb);
+        const aposMotor = obterCharsEquivalentesMotor(aposBase, state.motorServico);
+        el.summaryQuotaStatus.textContent = `-${formatarInteiro(cobertos)} chars (restam ${formatarInteiro(aposMotor)} ch)`;
       } else {
-        el.summaryQuotaStatus.textContent = "Esgotada (0 chars restantes)";
+        el.summaryQuotaStatus.textContent = "Esgotada (0 chars)";
       }
     }
 
     let notaFormula = "";
-    if (isEdge) {
-      notaFormula = "100% gratuito no Edge TTS";
+    if (isEdge && edgeGratis) {
+      notaFormula = "Gratuito no Raio";
     } else if (!temDoc) {
       notaFormula =
-        cotaRest > 0
-          ? `Grátis até ${formatarInteiro(cotaRest)} chars (~${Math.floor(
-              cotaRest / CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA
-            )} pág.)`
-          : "Mín. R$ 1,00 (até 20.000 chars)";
+        cotaRestMotor > 0
+          ? `Grátis até ${formatarInteiro(cotaRestMotor)} chars (~${pagsRestMotor} pág. ${motorRotuloCurto})`
+          : `${precoMilAtivoFmt} / 1k chars (mín. ${valorMinFmt})`;
     } else if (gratis) {
-      notaFormula = `100% coberto pela cota grátis (${formatarInteiro(cobertos)} chars)`;
+      notaFormula = `Coberto pela cota grátis (${formatarInteiro(cobertos)} chars)`;
     } else {
-      const bruto = cobraveis * CONFIG_COMERCIAL.COM_VALOR_CARACTERE;
+      const bruto = cobraveis * valMotorAtivo;
       const prefixo = cobertos > 0 ? `Excedente ${formatarInteiro(cobraveis)} ch · ` : "";
       notaFormula =
         bruto < CONFIG_COMERCIAL.COM_VALOR_MINIMO
-          ? `${prefixo}Bruto ${formatarBRL(bruto)} → Piso R$ 1,00`
-          : `${prefixo}${formatarInteiro(cobraveis)} × R$ 0,00005 = ${formatarBRL(preco)}`;
+          ? `${prefixo}Bruto ${formatarBRL(bruto)} → Piso ${valorMinFmt}`
+          : `${prefixo}${formatarInteiro(cobraveis)} × ${formatarValorCharUnitario(valMotorAtivo)} = ${formatarBRL(preco)}`;
     }
 
     if (el.priceFormulaHint) el.priceFormulaHint.textContent = notaFormula;
@@ -2580,14 +2834,19 @@
 
     if (el.generatePixBtn) {
       if (isEdge) {
-        el.generatePixBtn.textContent = "⚡ Iniciar Conversão Gratuita e Rápida (Edge TTS)";
+        el.generatePixBtn.textContent =
+          preco <= 0
+            ? edgeGratis
+              ? "⚡ Iniciar Conversão Gratuita (Raio)"
+              : "⚡ Iniciar Conversão Gratuita Raio (Usa Cota Inicial)"
+            : `⚡ Gerar QR Code PIX (${formatarBRL(preco)}) e Iniciar Conversão Raio`;
         el.generatePixBtn.className =
           "w-full rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
       } else {
         el.generatePixBtn.textContent =
           preco <= 0
-            ? "✓ Iniciar Conversão Gratuita XTTSv2 (Usa Cota Inicial)"
-            : `Gerar QR Code PIX (${formatarBRL(preco)}) e Iniciar Conversão XTTSv2`;
+            ? "✓ Iniciar Conversão Gratuita Solar (Usa Cota Inicial)"
+            : `Gerar QR Code PIX (${formatarBRL(preco)}) e Iniciar Conversão Solar`;
         el.generatePixBtn.className =
           "w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
       }
@@ -2718,8 +2977,8 @@
 
     if (el.estEngineSummary) {
       el.estEngineSummary.textContent = isEdge
-        ? "⚡ Edge TTS (Rápido · Gratuito)"
-        : "🎙️ XTTSv2 (Qualidade Estúdio)";
+        ? "⚡ Raio (Síntese Rápida)"
+        : "☀️ Solar (Voz Natural)";
       el.estEngineSummary.className = isEdge
         ? "font-mono font-bold text-cyan-300"
         : "font-mono font-bold text-amber-300";
@@ -2765,7 +3024,7 @@
     }
     const fmtLabel = state.formatoSaida === "capitulos" ? ".zip (capítulos)" : ".mp3 único";
     const langLabel = state.idioma === "en" ? "EN" : "PT-BR";
-    const motorLabel = isEdge ? "Edge TTS" : "XTTSv2";
+    const motorLabel = isEdge ? "Raio" : "Solar";
 
     if (el.estConfigSummary) {
       el.estConfigSummary.textContent = `${motorLabel} · ${langLabel} · ${modoLabel} · ${state.velocidade.toFixed(2)}x · ${fmtLabel}`;
@@ -2787,7 +3046,7 @@
         ? "text-[11px] font-semibold uppercase tracking-wider text-cyan-300"
         : "text-[11px] font-semibold uppercase tracking-wider text-amber-300";
       el.estDeliveryLabel.textContent = isEdge
-        ? "⚡ Síntese rápida Edge TTS — entregue até"
+        ? "⚡ Síntese rápida Raio — entregue até"
         : "🚀 Seu áudio será entregue até";
     }
   }
@@ -2855,7 +3114,7 @@
 
     const configuracoes = {
       motor_tts: state.motorServico,
-      motor_tts_rotulo: isEdge ? "Edge TTS (Paralelo · Gratuito)" : "XTTSv2 (Qualidade Estúdio)",
+      motor_tts_rotulo: isEdge ? "Raio (Síntese Rápida)" : "Solar (Voz Natural)",
       idioma: idiomaPedido,
       modo_voz: modoVozContrato,
       voz_aleatoria: vozAleatoria,
@@ -2897,12 +3156,13 @@
         cota_total_chars: state.cotaTotalChars,
         cota_restante_antes: state.cotaRestanteChars,
         chars_cobertos_cota: state.charsCobertosCota,
+        chars_cota_base_debitados: state.charsCotaBaseDebitados,
         chars_cobraveis: state.charsCobraveis,
         pedido_gratuito: Boolean(state.pedidoGratuito),
-        motivo_gratuidade: isEdge
-          ? "edge_tts_gratuito"
-          : state.pedidoGratuito
-          ? "cota_inicial_xttsv2"
+        motivo_gratuidade: state.pedidoGratuito
+          ? isEdge && obterValorCaractereMotor("edge") <= 0
+            ? "edge_tts_gratuito"
+            : "cota_inicial_unificada"
           : null,
       },
       configuracoes,
@@ -3164,10 +3424,15 @@
     const gratuito = ehGratuitoDireto === true || Number(ped.documento?.valor_pago || 0) <= 0;
     const ehEdge = ped.configuracoes?.motor_tts === "edge";
     const charsCobertos = Number(ped.cota?.chars_cobertos_cota || 0);
+    const charsBaseDebitados = Number(
+      ped.cota?.chars_cota_base_debitados !== undefined && ped.cota?.chars_cota_base_debitados !== null
+        ? ped.cota.chars_cota_base_debitados
+        : charsCobertos
+    );
 
-    if (!ped._cotaDebitadaLocal && charsCobertos > 0 && !ehEdge) {
+    if (!ped._cotaDebitadaLocal && charsBaseDebitados > 0) {
       ped._cotaDebitadaLocal = true;
-      debitarCotaLocal(ped.cliente?.email || "", charsCobertos);
+      debitarCotaLocal(ped.cliente?.email || "", charsBaseDebitados);
       atualizarResumoPedido();
     }
 
@@ -3178,8 +3443,8 @@
     }
     if (el.approvedEngineLabel) {
       el.approvedEngineLabel.textContent = ehEdge
-        ? "⚡ Edge TTS · Rápido e Gratuito"
-        : "🎙️ XTTSv2 · Qualidade Estúdio";
+        ? "⚡ Raio · Síntese Rápida"
+        : "☀️ Solar · Voz Natural";
     }
 
     const prazoMin = Number(ped.prazos?.prazo_estimado_minutos || state.prazoEstimadoMinutos || (ehEdge ? 2 : 15));
@@ -3197,13 +3462,18 @@
     }
 
     if (el.approvedQuotaSummary) {
-      if (ehEdge) {
-        el.approvedQuotaSummary.textContent = `Sua cota gratuita XTTSv2 (${formatarInteiro(state.cotaRestanteChars)} chars) permanece intacta.`;
+      const motorKey = ehEdge ? "edge" : "xttsv2";
+      const charsPorPag = Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000);
+      if (ehEdge && obterValorCaractereMotor("edge") <= 0) {
+        el.approvedQuotaSummary.textContent = `Sua cota inicial gratuita (${formatarInteiro(state.cotaRestanteChars)} chars no Solar) permanece intacta.`;
         el.approvedQuotaSummary.classList.remove("hidden");
       } else if (charsCobertos > 0) {
-        el.approvedQuotaSummary.textContent = `Cota gratuita XTTSv2: ${formatarInteiro(
+        const motorTxt = ehEdge ? "Raio" : "Solar";
+        const restMotor = obterCharsEquivalentesMotor(state.cotaRestanteChars, motorKey);
+        const restPags = Math.floor(restMotor / charsPorPag);
+        el.approvedQuotaSummary.textContent = `Cota inicial gratuita (${motorTxt}): ${formatarInteiro(
           charsCobertos
-        )} chars usados · restam ${formatarInteiro(state.cotaRestanteChars)} chars.`;
+        )} chars usados · restam ${formatarInteiro(restMotor)} chars (~${restPags} pág.) no ${motorTxt}.`;
         el.approvedQuotaSummary.classList.remove("hidden");
       } else {
         el.approvedQuotaSummary.classList.add("hidden");
@@ -3485,11 +3755,30 @@
           b.classList.toggle("bg-amber-500/10", ativo);
           b.classList.toggle("border-slate-800", !ativo);
           b.classList.toggle("bg-slate-900/70", !ativo);
+          const extSpan = b.querySelector(".output-format-ext");
+          if (extSpan) {
+            extSpan.classList.toggle("text-amber-300", ativo);
+            extSpan.classList.toggle("text-slate-400", !ativo);
+          }
         });
 
         atualizarResumoPedido();
       });
     });
+
+    // Controle acessível de pausa/retomada dos avatares de motor (WCAG 2.2.2)
+    if (el.engineAvatarMotionBtn && el.engineSelectorFieldset) {
+      el.engineAvatarMotionBtn.addEventListener("click", () => {
+        const pausado = el.engineSelectorFieldset.getAttribute("data-avatars-paused") === "true";
+        if (pausado) {
+          el.engineSelectorFieldset.removeAttribute("data-avatars-paused");
+          el.engineAvatarMotionBtn.textContent = "⏸ Pausar avatares";
+        } else {
+          el.engineSelectorFieldset.setAttribute("data-avatars-paused", "true");
+          el.engineAvatarMotionBtn.textContent = "▶ Animar avatares";
+        }
+      });
+    }
 
     if (el.clientName) {
       el.clientName.addEventListener("input", () => {
@@ -3748,7 +4037,26 @@
     }
   }
 
+  function configurarObservadorAlturaHeader() {
+    const header = el.siteTopHeader || document.getElementById("siteTopHeader");
+    if (!header) return;
+    const sincronizarAltura = () => {
+      const h = Math.round(header.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty("--header-h", `${h}px`);
+      }
+    };
+    sincronizarAltura();
+    if (typeof ResizeObserver === "function") {
+      const ro = new ResizeObserver(sincronizarAltura);
+      ro.observe(header);
+    } else {
+      window.addEventListener("resize", sincronizarAltura, { passive: true });
+    }
+  }
+
   function revalidarReferenciasDom() {
+    el.siteTopHeader = document.getElementById("siteTopHeader");
     el.flowStepper = document.getElementById("flowStepper");
     el.stepperItem01 = document.getElementById("stepperItem01");
     el.stepperItem02 = document.getElementById("stepperItem02");
@@ -3756,6 +4064,9 @@
     el.stepperBadge01 = document.getElementById("stepperBadge01");
     el.stepperBadge02 = document.getElementById("stepperBadge02");
     el.stepperBadge03 = document.getElementById("stepperBadge03");
+    el.stepperEyebrow01 = document.getElementById("stepperEyebrow01");
+    el.stepperEyebrow02 = document.getElementById("stepperEyebrow02");
+    el.stepperEyebrow03 = document.getElementById("stepperEyebrow03");
     el.stepperState01 = document.getElementById("stepperState01");
     el.stepperState02 = document.getElementById("stepperState02");
     el.stepperState03 = document.getElementById("stepperState03");
@@ -3770,6 +4081,7 @@
     el.connector02to03 = document.getElementById("connector02to03");
     el.connector02Text = document.getElementById("connector02Text");
     el.dropzone = document.getElementById("dropzone");
+    el.dropzoneTitleText = document.getElementById("dropzoneTitleText");
     el.fileInput = document.getElementById("fileInput");
     el.addMoreFilesBtn = document.getElementById("addMoreFilesBtn");
     el.attachedFilesList = document.getElementById("attachedFilesList");
@@ -3793,6 +4105,8 @@
     el.docPriceCount = document.getElementById("docPriceCount");
     el.docPriceFormulaNote = document.getElementById("docPriceFormulaNote");
     el.clearFileBtn = document.getElementById("clearFileBtn");
+    el.engineSelectorFieldset = document.getElementById("engineSelectorFieldset");
+    el.engineAvatarMotionBtn = document.getElementById("engineAvatarMotionBtn");
     el.engineRadioXtts = document.getElementById("engineRadioXtts");
     el.engineRadioEdge = document.getElementById("engineRadioEdge");
     el.engineCardXtts = document.getElementById("engineCardXtts");
@@ -3810,6 +4124,8 @@
     el.speedPresetBtns = document.querySelectorAll(".speed-preset-btn");
     el.voiceModeGroupUnica = document.getElementById("voiceModeGroupUnica");
     el.voiceModeGroupCapitulo = document.getElementById("voiceModeGroupCapitulo");
+    el.voiceModeTagUnica = document.getElementById("voiceModeTagUnica");
+    el.voiceModeTagCapitulo = document.getElementById("voiceModeTagCapitulo");
     el.subModeUnicaPanel = document.getElementById("subModeUnicaPanel");
     el.subModeCapituloPanel = document.getElementById("subModeCapituloPanel");
     el.voiceModeBtns = document.querySelectorAll(".voice-mode-btn");
@@ -3861,6 +4177,7 @@
     el.heartbeatBadge = document.getElementById("heartbeatBadge");
     el.heartbeatDot = document.getElementById("heartbeatDot");
     el.heartbeatText = document.getElementById("heartbeatText");
+    el.heartbeatTextMobile = document.getElementById("heartbeatTextMobile");
     el.pixModal = document.getElementById("pixModal");
     el.closePixModalBtn = document.getElementById("closePixModalBtn");
     el.pixModalOrderId = document.getElementById("pixModalOrderId");
@@ -3895,6 +4212,7 @@
     revalidarReferenciasDom();
     if (!el.dropzone || !el.fileInput) return;
     _initialized = true;
+    configurarObservadorAlturaHeader();
     atualizarUiSeletorMotor();
     renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
     atualizarUiModoVoz();

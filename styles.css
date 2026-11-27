@@ -1,13 +1,14 @@
 /* ==========================================================================
-   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v11_01_aurora_leve_fade)
+   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v14_00_avatares_tema_mobile)
    Modern Web Guidance: light-dark(), native <dialog> + @starting-style,
-   prefers-reduced-motion opt-in, :user-invalid, accent-color, scrollbar-color,
-   in oklab gradient interpolation & compositor-only Aurora backdrop
+   prefers-reduced-motion opt-in + pause control, :user-invalid, accent-color,
+   scrollbar-color, single compact sticky bar on mobile & engine theming
    ========================================================================== */
 
 :root {
   color-scheme: light dark;
   --in-oklab: ;
+  --header-h: 61px;
 
   /* Tokens de marca e controles nativos com fallback para navegadores sem light-dark() */
   --brand-accent-light: #b45309;
@@ -98,6 +99,33 @@ body.aurora-page {
 
 body.aurora-page[data-engine="edge"] {
   background-color: #04111c !important;
+  --brand-accent: var(--edge-accent);
+  --scrollbar-thumb: var(--edge-accent);
+  --focus-ring: var(--edge-accent);
+}
+
+body.aurora-page[data-engine="edge"] ::selection {
+  background-color: #22d3ee;
+  color: #082f49;
+}
+
+/* Stepper compacto no mobile (1 única barra sticky a 8px do topo; no desktop ancora abaixo do header real) */
+#flowStepper {
+  top: 0.5rem;
+}
+
+.step-section {
+  scroll-margin-top: 4.25rem;
+}
+
+@media (min-width: 768px) {
+  #flowStepper {
+    top: calc(var(--header-h, 61px) + 0.5rem);
+  }
+
+  .step-section {
+    scroll-margin-top: calc(var(--header-h, 61px) + 6rem);
+  }
 }
 
 .aurora-backdrop {
@@ -227,6 +255,35 @@ body.aurora-page #dropzone {
 body.aurora-page .step-connector {
   background-color: rgba(13, 20, 38, 0.90);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* [web_v13_01] Minicards do Hero com fundo 100% opaco para alto contraste sobre a Aurora */
+.hero-minicard {
+  box-shadow: 0 4px 14px -4px rgba(2, 6, 23, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.hero-minicard-emerald {
+  background-color: #07291f;
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #6ee7b7;
+}
+
+.hero-minicard-amber {
+  background-color: #261907;
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fde68a;
+}
+
+.hero-minicard-cyan {
+  background-color: #072633;
+  border-color: rgba(6, 182, 212, 0.55);
+  color: #67e8f9;
+}
+
+.hero-minicard-neutral {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
 }
 
 .font-mono {
@@ -400,7 +457,7 @@ progress.reading-progress::-moz-progress-bar {
 }
 
 /* ==========================================================================
-   1.5 SELETOR DE SERVIÇO DE ÁUDIO (XTTSv2 ESTÚDIO vs EDGE TTS RÁPIDO/GRÁTIS)
+   1.5 SELETOR DE SERVIÇO DE ÁUDIO + AVATARES DE CORPO INTEIRO (IDLE vs ATIVO)
    ========================================================================== */
 .engine-choice-card {
   position: relative;
@@ -415,13 +472,337 @@ progress.reading-progress::-moz-progress-bar {
 
 .engine-card-edge.engine-active,
 .engine-card-edge:has(input:checked) {
-  border-color: rgba(34, 211, 238, 0.82) !important;
-  background-color: rgba(6, 182, 212, 0.11) !important;
-  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.32), 0 10px 24px -8px rgba(6, 182, 212, 0.22);
+  border-color: rgba(34, 211, 238, 0.85) !important;
+  background-color: rgba(14, 165, 233, 0.12) !important;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35), 0 10px 24px -8px rgba(14, 165, 233, 0.24);
 }
 
 .engine-card-edge .engine-radio {
   accent-color: var(--edge-accent);
+}
+
+/* Palco dos avatares de corpo inteiro no Card 02 */
+.engine-avatar-stage {
+  position: relative;
+  width: 4.9rem;
+  height: 7.4rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: radial-gradient(circle at 50% 30%, rgba(30, 41, 59, 0.85) 0%, rgba(2, 6, 23, 0.92) 100%);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+
+@media (min-width: 640px) {
+  .engine-avatar-stage {
+    width: 5.65rem;
+    height: 8.5rem;
+  }
+}
+
+.engine-card-xtts.engine-active .engine-avatar-stage-xtts,
+.engine-card-xtts:has(input:checked) .engine-avatar-stage-xtts {
+  border-color: rgba(251, 191, 36, 0.58);
+  background: radial-gradient(circle at 50% 28%, rgba(120, 53, 15, 0.45) 0%, rgba(9, 13, 28, 0.94) 100%);
+  box-shadow: inset 0 0 18px rgba(251, 191, 36, 0.14);
+}
+
+.engine-card-edge.engine-active .engine-avatar-stage-edge,
+.engine-card-edge:has(input:checked) .engine-avatar-stage-edge {
+  border-color: rgba(56, 189, 248, 0.62);
+  background: radial-gradient(circle at 50% 28%, rgba(8, 51, 68, 0.65) 0%, rgba(4, 17, 28, 0.94) 100%);
+  box-shadow: inset 0 0 18px rgba(34, 211, 238, 0.16);
+}
+
+.engine-fullbody-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Pivôs anatômicos no sistema viewBox="0 0 104 152" */
+.engine-fullbody-svg .engine-avatar-figure,
+.engine-fullbody-svg .engine-avatar-torso,
+.engine-fullbody-svg .engine-avatar-head,
+.engine-fullbody-svg .engine-avatar-arm-l,
+.engine-fullbody-svg .engine-avatar-arm-r,
+.engine-fullbody-svg .engine-avatar-leg-l,
+.engine-fullbody-svg .engine-avatar-leg-r,
+.engine-fullbody-svg .engine-avatar-mouth,
+.engine-fullbody-svg .engine-avatar-waves,
+.engine-fullbody-svg .engine-avatar-aura,
+.engine-fullbody-svg .engine-avatar-shadow {
+  transform-box: view-box;
+}
+
+.engine-avatar-stage-xtts .engine-avatar-figure { transform-origin: 45px 136px; }
+.engine-avatar-stage-xtts .engine-avatar-torso  { transform-origin: 45px 92px; }
+.engine-avatar-stage-xtts .engine-avatar-head   { transform-origin: 45px 48px; }
+.engine-avatar-stage-xtts .engine-avatar-arm-l  { transform-origin: 33px 60px; }
+.engine-avatar-stage-xtts .engine-avatar-arm-r  { transform-origin: 57px 59px; }
+.engine-avatar-stage-xtts .engine-avatar-leg-l  { transform-origin: 39px 93px; }
+.engine-avatar-stage-xtts .engine-avatar-leg-r  { transform-origin: 51px 93px; }
+.engine-avatar-stage-xtts .engine-avatar-mouth  { transform-origin: 45.2px 37.8px; }
+.engine-avatar-stage-xtts .engine-avatar-waves  { transform-origin: 68px 56px; }
+.engine-avatar-stage-xtts .engine-avatar-shadow { transform-origin: 46px 141px; }
+
+.engine-avatar-stage-edge .engine-avatar-figure { transform-origin: 50px 136px; }
+.engine-avatar-stage-edge .engine-avatar-torso  { transform-origin: 50px 92px; }
+.engine-avatar-stage-edge .engine-avatar-head   { transform-origin: 50px 48px; }
+.engine-avatar-stage-edge .engine-avatar-arm-l  { transform-origin: 37px 59px; }
+.engine-avatar-stage-edge .engine-avatar-arm-r  { transform-origin: 63px 59px; }
+.engine-avatar-stage-edge .engine-avatar-leg-l  { transform-origin: 44px 92px; }
+.engine-avatar-stage-edge .engine-avatar-leg-r  { transform-origin: 56px 92px; }
+.engine-avatar-stage-edge .engine-avatar-waves  { transform-origin: 52px 68px; }
+.engine-avatar-stage-edge .engine-avatar-shadow { transform-origin: 52px 141px; }
+
+/* Estado estático base (waves discretas quando não selecionado, intensas quando selecionado) */
+.engine-choice-card:not(.engine-active) .engine-avatar-waves {
+  opacity: 0.2;
+}
+
+.engine-choice-card:not(.engine-active) .engine-avatar-aura {
+  opacity: 0.42;
+}
+
+.engine-choice-card.engine-active .engine-avatar-waves,
+.engine-choice-card:has(input:checked) .engine-avatar-waves {
+  opacity: 0.95;
+}
+
+.engine-choice-card.engine-active .engine-avatar-aura,
+.engine-choice-card:has(input:checked) .engine-avatar-aura {
+  opacity: 1;
+}
+
+/* Dois níveis de movimento (menos ativo quando não selecionado; mais ativo quando selecionado) */
+@media (prefers-reduced-motion: no-preference) {
+  /* Nível 1 — Motor NÃO selecionado: respiração calma e balanço sutil */
+  .engine-choice-card:not(.engine-active) .engine-avatar-torso {
+    animation: avatarIdleBreath 4.2s ease-in-out infinite;
+  }
+
+  .engine-choice-card:not(.engine-active) .engine-avatar-head {
+    animation: avatarIdleNod 4.8s ease-in-out infinite;
+  }
+
+  .engine-choice-card:not(.engine-active) .engine-avatar-arm-r {
+    animation: avatarIdleArm 4.5s ease-in-out infinite;
+  }
+
+  .engine-choice-card:not(.engine-active) .engine-avatar-waves {
+    animation: avatarIdleWaves 4.2s ease-in-out infinite;
+  }
+
+  /* Nível 2A — XTTSv2 SELECIONADO: locução expressiva de estúdio, regência e marcação no pé */
+  .engine-card-xtts.engine-active .engine-avatar-figure,
+  .engine-card-xtts:has(input:checked) .engine-avatar-figure {
+    animation: xttsActiveGroove 1.35s ease-in-out infinite;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-torso,
+  .engine-card-xtts:has(input:checked) .engine-avatar-torso {
+    animation: xttsActiveTorso 1.35s ease-in-out infinite;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-head,
+  .engine-card-xtts:has(input:checked) .engine-avatar-head {
+    animation: xttsActiveHead 1.35s ease-in-out infinite;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-arm-r,
+  .engine-card-xtts:has(input:checked) .engine-avatar-arm-r {
+    animation: xttsActiveConduct 0.92s ease-in-out infinite alternate;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-arm-l,
+  .engine-card-xtts:has(input:checked) .engine-avatar-arm-l {
+    animation: xttsActiveBook 1.35s ease-in-out infinite;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-leg-r,
+  .engine-card-xtts:has(input:checked) .engine-avatar-leg-r {
+    animation: xttsActiveFootTap 0.675s ease-in-out infinite alternate;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-mouth,
+  .engine-card-xtts:has(input:checked) .engine-avatar-mouth {
+    animation: xttsActiveSpeak 0.38s ease-in-out infinite alternate;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-waves,
+  .engine-card-xtts:has(input:checked) .engine-avatar-waves {
+    animation: xttsActiveWaves 1.05s ease-in-out infinite alternate;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-shadow,
+  .engine-card-xtts:has(input:checked) .engine-avatar-shadow {
+    animation: avatarActiveShadow 1.35s ease-in-out infinite;
+  }
+
+  /* Nível 2B — Edge TTS SELECIONADO: cadência ágil, passada energética e pulsos digitais */
+  .engine-card-edge.engine-active .engine-avatar-figure,
+  .engine-card-edge:has(input:checked) .engine-avatar-figure {
+    animation: edgeActiveBounce 0.86s cubic-bezier(0.36, 0, 0.66, 1) infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-torso,
+  .engine-card-edge:has(input:checked) .engine-avatar-torso {
+    animation: edgeActiveTorso 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-head,
+  .engine-card-edge:has(input:checked) .engine-avatar-head {
+    animation: edgeActiveHead 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-arm-l,
+  .engine-card-edge:has(input:checked) .engine-avatar-arm-l {
+    animation: edgeActiveArmL 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-arm-r,
+  .engine-card-edge:has(input:checked) .engine-avatar-arm-r {
+    animation: edgeActiveArmR 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-leg-l,
+  .engine-card-edge:has(input:checked) .engine-avatar-leg-l {
+    animation: edgeActiveLegL 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-leg-r,
+  .engine-card-edge:has(input:checked) .engine-avatar-leg-r {
+    animation: edgeActiveLegR 0.86s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-waves,
+  .engine-card-edge:has(input:checked) .engine-avatar-waves {
+    animation: edgeActiveWaves 0.65s ease-in-out infinite alternate;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-shadow,
+  .engine-card-edge:has(input:checked) .engine-avatar-shadow {
+    animation: edgeActiveShadow 0.86s ease-in-out infinite alternate;
+  }
+
+  /* Controle explícito de pausa pelo botão (WCAG 2.2.2 Pause, Stop, Hide) */
+  #engineSelectorFieldset[data-avatars-paused="true"] .engine-fullbody-svg * {
+    animation-play-state: paused !important;
+  }
+}
+
+@keyframes avatarIdleBreath {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.8px); }
+}
+
+@keyframes avatarIdleNod {
+  0%, 100% { transform: rotate(-1.3deg); }
+  50%      { transform: rotate(1.5deg); }
+}
+
+@keyframes avatarIdleArm {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2.4deg); }
+}
+
+@keyframes avatarIdleWaves {
+  0%, 100% { opacity: 0.14; }
+  50%      { opacity: 0.28; }
+}
+
+@keyframes xttsActiveGroove {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4.2px); }
+}
+
+@keyframes xttsActiveTorso {
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(2.4deg); }
+}
+
+@keyframes xttsActiveHead {
+  0%, 100% { transform: rotate(-4.5deg) translateY(0); }
+  50%      { transform: rotate(5deg) translateY(-1.2px); }
+}
+
+@keyframes xttsActiveConduct {
+  0%   { transform: rotate(-13deg); }
+  100% { transform: rotate(16deg); }
+}
+
+@keyframes xttsActiveBook {
+  0%, 100% { transform: rotate(5deg); }
+  50%      { transform: rotate(-6.5deg); }
+}
+
+@keyframes xttsActiveFootTap {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-5.5deg); }
+}
+
+@keyframes xttsActiveSpeak {
+  0%   { transform: scaleY(0.62); }
+  100% { transform: scaleY(1.32); }
+}
+
+@keyframes xttsActiveWaves {
+  0%   { opacity: 0.45; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1.07); }
+}
+
+@keyframes avatarActiveShadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.6; }
+  50%      { transform: scaleX(0.86); opacity: 0.42; }
+}
+
+@keyframes edgeActiveBounce {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-6px); }
+}
+
+@keyframes edgeActiveTorso {
+  0%   { transform: rotate(-3.2deg); }
+  100% { transform: rotate(3.6deg); }
+}
+
+@keyframes edgeActiveHead {
+  0%   { transform: rotate(-5deg); }
+  100% { transform: rotate(5.5deg); }
+}
+
+@keyframes edgeActiveArmL {
+  0%   { transform: rotate(-16deg); }
+  100% { transform: rotate(18deg); }
+}
+
+@keyframes edgeActiveArmR {
+  0%   { transform: rotate(15deg); }
+  100% { transform: rotate(-18deg); }
+}
+
+@keyframes edgeActiveLegL {
+  0%   { transform: rotate(8deg); }
+  100% { transform: rotate(-9deg); }
+}
+
+@keyframes edgeActiveLegR {
+  0%   { transform: rotate(-8deg); }
+  100% { transform: rotate(9deg); }
+}
+
+@keyframes edgeActiveWaves {
+  0%   { opacity: 0.45; transform: translateX(-2px) scale(0.96); }
+  100% { opacity: 1; transform: translateX(2.5px) scale(1.06); }
+}
+
+@keyframes edgeActiveShadow {
+  0%   { transform: scaleX(1.02); opacity: 0.62; }
+  100% { transform: scaleX(0.78); opacity: 0.36; }
 }
 
 /* ==========================================================================
@@ -820,6 +1201,261 @@ progress.reading-progress::-moz-progress-bar {
 }
 
 /* ==========================================================================
+   4.5 SUBCARD DE CRÉDITO INICIAL GRATUITO (ÍNDIGO/VIOLETA DISTINTO DO WHATSAPP)
+   ========================================================================== */
+.quota-credit-card {
+  background: linear-gradient(135deg, rgba(49, 46, 129, 0.38) 0%, rgba(76, 29, 149, 0.26) 100%);
+  border-color: rgba(129, 140, 248, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.quota-credit-title {
+  color: #c7d2fe;
+}
+
+.quota-credit-badge {
+  color: #ddd6fe;
+}
+
+.quota-credit-track {
+  background-color: rgba(15, 23, 42, 0.78);
+}
+
+.quota-credit-bar {
+  background: linear-gradient(90deg, #818cf8 0%, #c084fc 100%);
+}
+
+.quota-credit-hint {
+  color: #cbd5e1;
+}
+
+/* ==========================================================================
+   4.8 TEMA COMPLETO AZUL/CIANO QUANDO O MOTOR EDGE TTS ESTÁ SELECIONADO
+   Garante que todos os seletores (velocidade, modos de voz, formato, idioma,
+   filtros, stepper, dropzone e badges) acompanhem a cor temática do Edge TTS.
+   ========================================================================== */
+body[data-engine="edge"] .engine-brand-icon {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+  box-shadow: 0 8px 18px -4px rgba(14, 165, 233, 0.35) !important;
+}
+
+body[data-engine="edge"] .engine-hero-gradient {
+  background-image: linear-gradient(90deg, #38bdf8 0%, #22d3ee 50%, #67e8f9 100%) !important;
+}
+
+body[data-engine="edge"] .engine-soft-pill,
+body[data-engine="edge"] .engine-live-pill {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  background-color: rgba(14, 165, 233, 0.15) !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .step-card-active {
+  border-color: rgba(56, 189, 248, 0.68) !important;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.22), 0 12px 32px -8px rgba(14, 165, 233, 0.18);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-engine="edge"] .step-card-active {
+    animation: stepCardBreathEdge 2.8s infinite ease-in-out;
+  }
+}
+
+@keyframes stepCardBreathEdge {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18), 0 10px 28px -8px rgba(14, 165, 233, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.44), 0 14px 36px -6px rgba(14, 165, 233, 0.26);
+  }
+}
+
+body[data-engine="edge"] .step-number-solid,
+body[data-engine="edge"] .stepper-pill-active .stepper-badge {
+  background-color: #38bdf8 !important;
+  color: #082f49 !important;
+}
+
+body[data-engine="edge"] .step-number-soft {
+  background-color: rgba(14, 165, 233, 0.2) !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .stepper-pill-active {
+  border-color: rgba(56, 189, 248, 0.72) !important;
+  background-color: rgba(14, 165, 233, 0.15) !important;
+}
+
+body[data-engine="edge"] .stepper-pill-active .stepper-eyebrow,
+body[data-engine="edge"] .stepper-pill-active .step-arrow-cue,
+body[data-engine="edge"] .engine-accent-arrow,
+body[data-engine="edge"] .engine-accent-label,
+body[data-engine="edge"] .engine-accent-legend,
+body[data-engine="edge"] .engine-accent-text,
+body[data-engine="edge"] .engine-req-badge {
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .step-connector-active {
+  border-color: rgba(56, 189, 248, 0.52) !important;
+  background-color: rgba(14, 165, 233, 0.12) !important;
+  color: #bae6fd !important;
+}
+
+/* Dropzone, botões de ação e seletores de idioma no Card 01 em modo Edge */
+body[data-engine="edge"] #dropzone:hover {
+  border-color: rgba(56, 189, 248, 0.72) !important;
+}
+
+body[data-engine="edge"] #dropzone.drag-over {
+  border-color: #38bdf8 !important;
+  background-color: rgba(14, 165, 233, 0.13) !important;
+}
+
+body[data-engine="edge"] .dropzone-icon-circle {
+  color: #38bdf8 !important;
+}
+
+body[data-engine="edge"] #dropzone:hover .dropzone-icon-circle {
+  background-color: rgba(14, 165, 233, 0.2) !important;
+}
+
+body[data-engine="edge"] .engine-outline-cta {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  background-color: rgba(14, 165, 233, 0.15) !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .engine-outline-cta:hover {
+  background-color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  color: #082f49 !important;
+}
+
+body[data-engine="edge"] .engine-solid-cta {
+  background-color: #38bdf8 !important;
+  color: #082f49 !important;
+}
+
+body[data-engine="edge"] .engine-solid-cta:hover {
+  background-color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .doc-lang-btn.active-doc-lang {
+  background-color: #38bdf8 !important;
+  color: #082f49 !important;
+}
+
+body[data-engine="edge"] .doc-lang-btn-pending {
+  background-color: rgba(14, 165, 233, 0.16) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #bae6fd !important;
+}
+
+body[data-engine="edge"] .doc-lang-toggle-pending:not(.doc-lang-toggle-error) {
+  border-color: rgba(56, 189, 248, 0.65) !important;
+}
+
+/* Painel de velocidade, slider, presets, modo de distribuição de vozes e formato em modo Edge */
+body[data-engine="edge"] .engine-themed-panel {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+body[data-engine="edge"] .engine-badge-box {
+  border-color: rgba(56, 189, 248, 0.55) !important;
+  background-color: rgba(14, 165, 233, 0.13) !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .speed-step-btn:hover {
+  border-color: #38bdf8 !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .speed-range-slider::-webkit-slider-thumb {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.36), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+body[data-engine="edge"] .speed-range-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.46), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+body[data-engine="edge"] .speed-range-slider::-moz-range-thumb {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.36), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+body[data-engine="edge"] .speed-preset-btn:hover {
+  border-color: rgba(56, 189, 248, 0.65) !important;
+}
+
+body[data-engine="edge"] .speed-preset-btn.active-preset {
+  border-color: rgba(56, 189, 248, 0.72) !important;
+  background-color: rgba(14, 165, 233, 0.14) !important;
+}
+
+body[data-engine="edge"] .speed-preset-btn.active-preset > span:first-child {
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .voice-mode-group.active-mode {
+  border-color: #38bdf8 !important;
+  background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+body[data-engine="edge"] .voice-mode-group.active-mode .voice-mode-tag {
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .voice-mode-group.active-mode .voice-submode-panel {
+  border-top-color: rgba(56, 189, 248, 0.28) !important;
+}
+
+body[data-engine="edge"] .voice-submode-btn.active-submode {
+  border-color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+body[data-engine="edge"] .output-format-btn.active-format {
+  border-color: #38bdf8 !important;
+  background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+body[data-engine="edge"] .output-format-btn.active-format .output-format-ext {
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .voice-filter-btn.active-filter {
+  border-color: rgba(56, 189, 248, 0.68) !important;
+  background-color: rgba(14, 165, 233, 0.16) !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .voices-carousel-nav:hover:not(:disabled) {
+  border-color: #38bdf8 !important;
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] .voice-card:not(.playing-voice):hover {
+  border-color: rgba(56, 189, 248, 0.62) !important;
+  box-shadow: 0 12px 26px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(56, 189, 248, 0.24);
+}
+
+body[data-engine="edge"] .play-voice-btn:not(.is-playing):hover {
+  background-color: #38bdf8 !important;
+  color: #082f49 !important;
+}
+
+body[data-engine="edge"] .voice-gender-badge {
+  color: #67e8f9 !important;
+}
+
+body[data-engine="edge"] #summaryStickyCard {
+  border-color: rgba(56, 189, 248, 0.38) !important;
+}
+
+/* ==========================================================================
    5. MODAL NATIVO (<dialog>) + TOP-LAYER ENTRY/EXIT + SCROLL CONTAINMENT
    ========================================================================== */
 dialog.pix-dialog {
@@ -1079,6 +1715,35 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     border-color: rgba(217, 119, 6, 0.42) !important;
   }
 
+  /* [web_v13_01] Minicards do Hero 100% opacos no modo claro */
+  .hero-minicard {
+    box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.10) !important;
+  }
+
+  .hero-minicard-emerald {
+    background-color: #ecfdf5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+  }
+
+  .hero-minicard-amber {
+    background-color: #fffbeb !important;
+    border-color: #d97706 !important;
+    color: #92400e !important;
+  }
+
+  .hero-minicard-cyan {
+    background-color: #ecfeff !important;
+    border-color: #0891b2 !important;
+    color: #155e75 !important;
+  }
+
+  .hero-minicard-neutral {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #1e293b !important;
+  }
+
   #estEngineCompareBox.compare-target-xtts #quickSwitchEngineBtn:hover {
     background-color: #f59e0b !important;
     border-color: #d97706 !important;
@@ -1205,12 +1870,184 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
 
   .speed-preset-btn.active-preset,
   .voice-mode-group.active-mode,
-  .voice-mode-btn.active-mode,
   .voice-submode-btn.active-submode,
   .output-format-btn.active-format {
     border-color: #d97706 !important;
     background-color: rgba(251, 191, 36, 0.16) !important;
     box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.35) !important;
+  }
+
+  .voice-mode-btn.active-mode {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .engine-hero-gradient {
+    background-image: linear-gradient(90deg, #b45309 0%, #ea580c 55%, #d97706 100%) !important;
+  }
+
+  body[data-engine="edge"] .engine-hero-gradient {
+    background-image: linear-gradient(90deg, #0369a1 0%, #0284c7 55%, #0891b2 100%) !important;
+  }
+
+  /* Palco de avatares de corpo inteiro no modo claro */
+  .engine-avatar-stage {
+    background: radial-gradient(circle at 50% 28%, #f8fafc 0%, #e2e8f0 100%) !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .engine-card-xtts.engine-active .engine-avatar-stage-xtts,
+  .engine-card-xtts:has(input:checked) .engine-avatar-stage-xtts {
+    background: radial-gradient(circle at 50% 28%, #fef3c7 0%, #fde68a 100%) !important;
+    border-color: #d97706 !important;
+  }
+
+  .engine-card-edge.engine-active .engine-avatar-stage-edge,
+  .engine-card-edge:has(input:checked) .engine-avatar-stage-edge {
+    background: radial-gradient(circle at 50% 28%, #e0f2fe 0%, #bae6fd 100%) !important;
+    border-color: #0284c7 !important;
+  }
+
+  /* Subcard de crédito inicial gratuito no modo claro (índigo/violeta nítido, distinto do verde WhatsApp) */
+  .quota-credit-card {
+    background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%) !important;
+    border-color: #a5b4fc !important;
+    box-shadow: 0 4px 12px -4px rgba(67, 56, 202, 0.10) !important;
+  }
+
+  .quota-credit-title {
+    color: #3730a3 !important;
+  }
+
+  .quota-credit-badge {
+    color: #5b21b6 !important;
+  }
+
+  .quota-credit-track {
+    background-color: #c7d2fe !important;
+  }
+
+  .quota-credit-bar {
+    background: linear-gradient(90deg, #4f46e5 0%, #9333ea 100%) !important;
+  }
+
+  .quota-credit-hint {
+    color: #334155 !important;
+  }
+
+  /* Tema Edge TTS Azul/Ciano no modo claro */
+  body[data-engine="edge"] .step-card-active {
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.25), 0 14px 30px -10px rgba(2, 132, 199, 0.16) !important;
+  }
+
+  body[data-engine="edge"] .step-number-solid,
+  body[data-engine="edge"] .stepper-pill-active .stepper-badge {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  body[data-engine="edge"] .step-number-soft {
+    background-color: rgba(2, 132, 199, 0.14) !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .stepper-pill-active {
+    border-color: #0284c7 !important;
+    background-color: rgba(14, 165, 233, 0.13) !important;
+  }
+
+  body[data-engine="edge"] .engine-soft-pill,
+  body[data-engine="edge"] .engine-live-pill {
+    border-color: rgba(2, 132, 199, 0.45) !important;
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .stepper-pill-active .stepper-eyebrow,
+  body[data-engine="edge"] .stepper-pill-active .step-arrow-cue,
+  body[data-engine="edge"] .engine-accent-arrow,
+  body[data-engine="edge"] .engine-accent-label,
+  body[data-engine="edge"] .engine-accent-legend,
+  body[data-engine="edge"] .engine-accent-text,
+  body[data-engine="edge"] .engine-req-badge {
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .step-connector-active {
+    background-color: rgba(14, 165, 233, 0.14) !important;
+    border-color: rgba(2, 132, 199, 0.5) !important;
+    color: #075985 !important;
+  }
+
+  body[data-engine="edge"] .engine-outline-cta {
+    border-color: rgba(2, 132, 199, 0.5) !important;
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .engine-outline-cta:hover {
+    background-color: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  body[data-engine="edge"] .engine-solid-cta {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  body[data-engine="edge"] .engine-badge-box {
+    border-color: rgba(2, 132, 199, 0.5) !important;
+    background-color: rgba(14, 165, 233, 0.12) !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .speed-preset-btn.active-preset,
+  body[data-engine="edge"] .voice-mode-group.active-mode,
+  body[data-engine="edge"] .voice-submode-btn.active-submode,
+  body[data-engine="edge"] .output-format-btn.active-format {
+    border-color: #0284c7 !important;
+    background-color: rgba(14, 165, 233, 0.14) !important;
+    box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.32) !important;
+  }
+
+  body[data-engine="edge"] .speed-preset-btn.active-preset > span:first-child,
+  body[data-engine="edge"] .voice-mode-group.active-mode .voice-mode-tag,
+  body[data-engine="edge"] .output-format-btn.active-format .output-format-ext {
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .voice-filter-btn.active-filter {
+    border-color: #0284c7 !important;
+    background-color: rgba(14, 165, 233, 0.15) !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .voices-carousel-nav:hover:not(:disabled) {
+    border-color: #0284c7 !important;
+    color: #0369a1 !important;
+  }
+
+  body[data-engine="edge"] .voice-card:not(.playing-voice):hover {
+    border-color: #0284c7 !important;
+    box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(2, 132, 199, 0.35) !important;
+  }
+
+  body[data-engine="edge"] .doc-lang-btn.active-doc-lang {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  body[data-engine="edge"] .doc-lang-btn-pending {
+    color: #075985 !important;
+    background-color: rgba(14, 165, 233, 0.15) !important;
+    border-color: rgba(2, 132, 199, 0.5) !important;
+  }
+
+  body[data-engine="edge"] #summaryStickyCard {
+    border-color: rgba(2, 132, 199, 0.45) !important;
   }
 
   .doc-lang-btn {
