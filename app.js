@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v18_00_persistencia_sessao_e_modal)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v19_00_whatsapp_oculto_por_flag)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
@@ -41,7 +41,8 @@
     COM_MARGEM_AUTOCAL: 1.1,
     COM_LINK_DIAS_EXPIRA: 7,
     COM_LIMITE_ANEXO_MB: 15,
-    COM_WHATSAPP_NUMERO_PUBLICO: "5519999999999",
+    COM_WHATSAPP_ATIVO: false,
+    COM_WHATSAPP_NUMERO_PUBLICO: "",
     API_BASE_URL: "https://tocatexto-api.onrender.com",
     // [web_v07_02] Baseline autocalibrado pelos logs centrais do XTTSv2 (22 fatias / 60 itens CPU)
     // alinhado à frota CPU completa ociosa (9 contas × 5 fatias = 45 fatias / 135 workers: 3 tocatexto* + 3 audiobook* + 3 GPU-como-CPU)
@@ -1140,8 +1141,13 @@
     return `R$ ${txt}`;
   }
 
+  function ehWhatsappAtivo() {
+    return Boolean(CONFIG_COMERCIAL.COM_WHATSAPP_ATIVO);
+  }
+
   function atualizarTextosComerciaisNaUI() {
     const ehGratuito = ehModoGratuitoDoacao();
+    const waAtivo = ehWhatsappAtivo();
     const ativa = Boolean(CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA);
     const totalBase = ativa ? Math.max(0, Math.round(Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS) || 0)) : 0;
     const charsPorPag = Math.max(100, Math.round(Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000));
@@ -1275,6 +1281,33 @@
     if (termsItem4Gratuito) termsItem4Gratuito.classList.toggle("hidden", !ehGratuito);
     if (termsItem4Comercial) termsItem4Comercial.classList.toggle("hidden", ehGratuito);
 
+    const heroDeliveryChannel = document.getElementById("heroDeliveryChannelText");
+    if (heroDeliveryChannel) {
+      heroDeliveryChannel.textContent = waAtivo ? "E-mail ou WhatsApp" : "E-mail";
+    }
+    const step03Subtitle = document.getElementById("step03Subtitle");
+    if (step03Subtitle) {
+      step03Subtitle.textContent = waAtivo
+        ? "Receba no seu E-mail e, se desejar, diretamente no seu WhatsApp"
+        : "Receba o seu audiobook diretamente no seu E-mail";
+    }
+    const whatsappFieldCard = el.whatsappFieldCard || document.getElementById("whatsappFieldCard");
+    if (whatsappFieldCard) {
+      whatsappFieldCard.classList.toggle("hidden", !waAtivo);
+    }
+    const termsDeliveryMode = document.getElementById("termsDeliveryMode");
+    if (termsDeliveryMode) {
+      termsDeliveryMode.textContent = `${ehGratuito ? "gratuita " : ""}${waAtivo ? "por E-mail e WhatsApp" : "por E-mail"}`;
+    }
+    if (el.estDeliverySubtext) {
+      el.estDeliverySubtext.textContent = `Entrega ${ehGratuito ? "gratuita " : ""}${
+        waAtivo ? "por E-mail e WhatsApp" : "por E-mail"
+      } (link ativo por ${diasExpira} dias)`;
+    }
+    if (!waAtivo && el.approvedWhatsappNotice) {
+      el.approvedWhatsappNotice.classList.add("hidden");
+    }
+
     const termsDias = document.getElementById("termsLinkDias");
     if (termsDias) termsDias.textContent = String(diasExpira);
     const termsPricingDetail = document.getElementById("termsPricingDetail");
@@ -1308,6 +1341,15 @@
       if (CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA !== cfgRemota.COM_COTA_GRATIS_ATIVA) alterou = true;
       CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA = cfgRemota.COM_COTA_GRATIS_ATIVA;
     }
+    if (typeof cfgRemota.COM_WHATSAPP_ATIVO === "boolean") {
+      if (CONFIG_COMERCIAL.COM_WHATSAPP_ATIVO !== cfgRemota.COM_WHATSAPP_ATIVO) alterou = true;
+      CONFIG_COMERCIAL.COM_WHATSAPP_ATIVO = cfgRemota.COM_WHATSAPP_ATIVO;
+    }
+    if (typeof cfgRemota.COM_WHATSAPP_NUMERO_PUBLICO === "string") {
+      const waNumLimpo = cfgRemota.COM_WHATSAPP_NUMERO_PUBLICO.replace(/\D/g, "").slice(0, 20);
+      if (CONFIG_COMERCIAL.COM_WHATSAPP_NUMERO_PUBLICO !== waNumLimpo) alterou = true;
+      CONFIG_COMERCIAL.COM_WHATSAPP_NUMERO_PUBLICO = waNumLimpo;
+    }
     const numKeys = [
       ["COM_COTA_GRATIS_CHARS", 0],
       ["COM_COTA_GRATIS_CHARS_EDGE", 0],
@@ -1328,6 +1370,8 @@
     state.cotaTotalChars = novoTotal;
     state.cotaRestanteChars = Math.max(0, novoTotal - state.cotaConsumidaChars);
     atualizarTextosComerciaisNaUI();
+    atualizarLinkWhatsappClickToChat();
+    atualizarFluxoEtapas(state.etapaAtiva || 1, true);
     recalcularAgregadosDocumentos();
     atualizarCardsComparacaoMotores();
     atualizarResumoPedido();
@@ -1682,7 +1726,9 @@
               : `${state.arquivos.length} arq. · ${valorCurto}`
             : num === 2
             ? `${motorCurto} →`
-            : "E-mail & WhatsApp";
+            : ehWhatsappAtivo()
+            ? "E-mail & WhatsApp"
+            : "Entrega por E-mail";
       }
     });
 
@@ -3892,8 +3938,8 @@
       cliente: {
         nome: (el.clientName?.value || "").trim(),
         email: (el.clientEmail?.value || "").trim(),
-        whatsapp: (el.clientWhatsapp?.value || "").replace(/\D/g, ""),
-        janela_whatsapp_ativa: Boolean(state.janelaWhatsappAtiva),
+        whatsapp: ehWhatsappAtivo() ? (el.clientWhatsapp?.value || "").replace(/\D/g, "") : "",
+        janela_whatsapp_ativa: ehWhatsappAtivo() ? Boolean(state.janelaWhatsappAtiva) : false,
       },
       documento: {
         arquivo: state.arquivos[0]?.nome || "documento.txt",
@@ -4296,7 +4342,7 @@
       }
     }
 
-    const temWhatsapp = Boolean((ped.cliente?.whatsapp || "").trim());
+    const temWhatsapp = ehWhatsappAtivo() && Boolean((ped.cliente?.whatsapp || "").trim());
     const waAtivado = Boolean(ped.cliente?.janela_whatsapp_ativa || state.janelaWhatsappAtiva);
     if (el.approvedWhatsappNotice) {
       el.approvedWhatsappNotice.classList.toggle("hidden", !temWhatsapp);
@@ -5364,6 +5410,7 @@
     el.quotaBalanceBadge = document.getElementById("quotaBalanceBadge");
     el.quotaBalanceBar = document.getElementById("quotaBalanceBar");
     el.quotaStatusHint = document.getElementById("quotaStatusHint");
+    el.whatsappFieldCard = document.getElementById("whatsappFieldCard");
     el.clientWhatsapp = document.getElementById("clientWhatsapp");
     el.waClickToChatBtn = document.getElementById("waClickToChatBtn");
     el.waActivatedBadge = document.getElementById("waActivatedBadge");
