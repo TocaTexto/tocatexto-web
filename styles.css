@@ -1,8 +1,9 @@
 /* ==========================================================================
-   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v14_00_avatares_tema_mobile)
+   TOCATEXTO — ESTILOS CUSTOMIZADOS (web_v21_00_otimizacao_cpu_animacoes)
    Modern Web Guidance: light-dark(), native <dialog> + @starting-style,
-   prefers-reduced-motion opt-in + pause control, :user-invalid, accent-color,
-   scrollbar-color, single compact sticky bar on mobile & engine theming
+   compositor-only motion, content-visibility: auto, containment,
+   prefers-reduced-motion opt-in + pause/idle auto-pause, :user-invalid,
+   accent-color, scrollbar-color, single compact sticky bar on mobile
    ========================================================================== */
 
 :root {
@@ -85,10 +86,10 @@ body {
 }
 
 /* ==========================================================================
-   0.5 FUNDO AURORA LEVE COM FADE ESTÁTICO & ELEVAÇÃO DOS CARDS (web_v11_00)
+   0.5 FUNDO AURORA ESTÁTICO LEVE & ELEVAÇÃO DOS CARDS (web_v21_00)
    - Zero `filter: blur(...)`, zero SVG `feTurbulence`, zero `backdrop-filter` nos cards
-   - Duas cenas estáticas por motor rasterizadas uma única vez; transição apenas em `opacity`
-   - Opt-in de fade em `prefers-reduced-motion: no-preference` + botão pausar
+   - Cena estática por motor rasterizada uma única vez; crossfade apenas na troca Solar ↔ Raio
+   - Zero loop infinito de composição em tela cheia (CPU/GPU ociosos em ~0%)
    ========================================================================== */
 body.aurora-page {
   position: relative;
@@ -170,11 +171,10 @@ body.aurora-page[data-engine="edge"] .aurora-layer-edge {
 }
 
 .aurora-frame-b {
-  opacity: 0;
-  will-change: opacity;
+  display: none;
 }
 
-/* Paleta XTTSv2 Estúdio — Cena A e Cena B estáticas (fade suave sem blur em tempo real) */
+/* Paleta XTTSv2 Estúdio — Cena estática (crossfade apenas ao alternar Solar ↔ Raio) */
 .aurora-layer-xtts .aurora-frame-a {
   background:
     radial-gradient(ellipse 58% 52% at 14% 12%, rgba(245, 158, 11, 0.28) 0%, rgba(245, 158, 11, 0.10) 42%, transparent 74%),
@@ -183,40 +183,13 @@ body.aurora-page[data-engine="edge"] .aurora-layer-edge {
     radial-gradient(ellipse 48% 42% at 82% 16%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.06) 44%, transparent 74%);
 }
 
-.aurora-layer-xtts .aurora-frame-b {
-  background:
-    radial-gradient(ellipse 56% 50% at 28% 28%, rgba(249, 115, 22, 0.26) 0%, rgba(249, 115, 22, 0.09) 42%, transparent 74%),
-    radial-gradient(ellipse 52% 48% at 72% 70%, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.07) 44%, transparent 74%),
-    radial-gradient(ellipse 50% 46% at 80% 30%, rgba(245, 158, 11, 0.24) 0%, rgba(245, 158, 11, 0.08) 44%, transparent 74%),
-    radial-gradient(ellipse 46% 44% at 18% 82%, rgba(139, 92, 246, 0.24) 0%, rgba(139, 92, 246, 0.07) 44%, transparent 74%);
-}
-
-/* Paleta Edge TTS — Cena A e Cena B estáticas */
+/* Paleta Edge TTS — Cena estática */
 .aurora-layer-edge .aurora-frame-a {
   background:
     radial-gradient(ellipse 58% 52% at 16% 14%, rgba(6, 182, 212, 0.30) 0%, rgba(6, 182, 212, 0.10) 42%, transparent 74%),
     radial-gradient(ellipse 54% 48% at 84% 82%, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.08) 44%, transparent 74%),
     radial-gradient(ellipse 48% 44% at 52% 46%, rgba(59, 130, 246, 0.24) 0%, rgba(59, 130, 246, 0.08) 44%, transparent 74%),
     radial-gradient(ellipse 46% 42% at 84% 18%, rgba(139, 92, 246, 0.20) 0%, rgba(139, 92, 246, 0.06) 44%, transparent 74%);
-}
-
-.aurora-layer-edge .aurora-frame-b {
-  background:
-    radial-gradient(ellipse 56% 50% at 30% 26%, rgba(59, 130, 246, 0.26) 0%, rgba(59, 130, 246, 0.09) 42%, transparent 74%),
-    radial-gradient(ellipse 52% 48% at 72% 72%, rgba(6, 182, 212, 0.28) 0%, rgba(6, 182, 212, 0.09) 44%, transparent 74%),
-    radial-gradient(ellipse 48% 44% at 78% 26%, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.08) 44%, transparent 74%),
-    radial-gradient(ellipse 46% 44% at 20% 80%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.07) 44%, transparent 74%);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .aurora-frame-b {
-    animation: auroraCrossfade 16s ease-in-out infinite alternate;
-  }
-}
-
-@keyframes auroraCrossfade {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
 }
 
 /* Separação nítida em camadas (Fundo Aurora -> Cards -> Áreas internas) sem backdrop-filter pesado */
@@ -373,11 +346,11 @@ progress.reading-progress::-moz-progress-bar {
 }
 
 /* ==========================================================================
-   1. FLUXO SEQUENCIAL GUIADO (MOVIMENTO ENTRE CARDS 01 -> 02 -> 03)
+   1. FLUXO SEQUENCIAL GUIADO (DESTAQUE ESTÁTICO SEM REPAINT EM LOOP — web_v21_00)
    ========================================================================== */
 .step-card-active {
-  border-color: rgba(251, 191, 36, 0.65) !important;
-  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2), 0 12px 32px -8px rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.72) !important;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.28), 0 14px 34px -8px rgba(251, 191, 36, 0.22);
 }
 
 .step-card-completed {
@@ -386,6 +359,16 @@ progress.reading-progress::-moz-progress-bar {
 
 .step-arrow-cue {
   display: inline-block;
+  transition: transform 0.18s ease;
+}
+
+a:hover .step-arrow-cue,
+button:hover .step-arrow-cue {
+  transform: translateY(2px);
+}
+
+#heartbeatDot.motion-pulse {
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.22);
 }
 
 .step-connector-active {
@@ -394,65 +377,26 @@ progress.reading-progress::-moz-progress-bar {
   color: #fde68a !important;
 }
 
-/* Opt-in para animações espaciais/contínuas respeitando prefers-reduced-motion */
+/* [web_v21_00] Removidas animações infinitas de box-shadow/opacity/transform fora de interação
+   para eliminar RecalcStyle/Layout a 60 Hz e manter CPU ociosa em ~0%. */
 @media (prefers-reduced-motion: no-preference) {
-  .step-card-active {
-    animation: stepCardBreath 2.8s infinite ease-in-out;
-  }
-
-  .step-arrow-cue {
-    animation: arrowFlowBounce 1.35s infinite ease-in-out;
-  }
-
-  .step-live-indicator {
-    animation: livePulse 2s infinite ease-in-out;
-  }
-
-  .motion-pulse {
-    animation: livePulse 2s infinite ease-in-out;
-  }
-
   .price-updated-flash {
-    animation: priceFlashPop 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: priceFlashPop 0.65s cubic-bezier(0.22, 1, 0.36, 1);
   }
-}
-
-@keyframes stepCardBreath {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18), 0 10px 28px -8px rgba(251, 191, 36, 0.12);
-  }
-  50% {
-    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.42), 0 14px 36px -6px rgba(251, 191, 36, 0.26);
-  }
-}
-
-@keyframes arrowFlowBounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(3px);
-  }
-}
-
-@keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.58; }
 }
 
 @keyframes priceFlashPop {
   0% {
     transform: scale(1);
-    filter: brightness(1);
+    opacity: 1;
   }
   35% {
-    transform: scale(1.16);
-    filter: brightness(1.35);
-    text-shadow: 0 0 18px rgba(16, 185, 129, 0.7);
+    transform: scale(1.12);
+    opacity: 0.88;
   }
   100% {
     transform: scale(1);
-    filter: brightness(1);
+    opacity: 1;
   }
 }
 
@@ -481,6 +425,12 @@ progress.reading-progress::-moz-progress-bar {
   accent-color: var(--edge-accent);
 }
 
+/* [web_v21_00] Containment + content-visibility: auto para pular renderização fora da viewport */
+#engineSelectorFieldset {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 280px;
+}
+
 /* Palco dos avatares de corpo inteiro no Card 02 */
 .engine-avatar-stage {
   position: relative;
@@ -491,6 +441,7 @@ progress.reading-progress::-moz-progress-bar {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  contain: layout style paint;
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: radial-gradient(circle at 50% 30%, rgba(30, 41, 59, 0.85) 0%, rgba(2, 6, 23, 0.92) 100%);
   transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
@@ -578,24 +529,9 @@ progress.reading-progress::-moz-progress-bar {
   opacity: 1;
 }
 
-/* Dois níveis de movimento (menos ativo quando não selecionado; mais ativo quando selecionado) */
+/* [web_v21_00] Animação restrita ao motor ATIVO e suspensa fora da viewport, em aba oculta ou após ociosidade */
 @media (prefers-reduced-motion: no-preference) {
-  /* Nível 1 — Motor NÃO selecionado: respiração calma e balanço sutil */
-  .engine-choice-card:not(.engine-active) .engine-avatar-torso {
-    animation: avatarIdleBreath 4.2s ease-in-out infinite;
-  }
-
-  .engine-choice-card:not(.engine-active) .engine-avatar-head {
-    animation: avatarIdleNod 4.8s ease-in-out infinite;
-  }
-
-  .engine-choice-card:not(.engine-active) .engine-avatar-arm-r {
-    animation: avatarIdleArm 4.5s ease-in-out infinite;
-  }
-
-  .engine-choice-card:not(.engine-active) .engine-avatar-waves {
-    animation: avatarIdleWaves 4.2s ease-in-out infinite;
-  }
+  /* Motor NÃO selecionado permanece em pose calma estática (contraste limpo e menos trabalho no compositor) */
 
   /* Nível 2A — XTTSv2 SELECIONADO: locução expressiva de estúdio, regência e marcação no pé */
   .engine-card-xtts.engine-active .engine-avatar-figure,
@@ -689,32 +625,14 @@ progress.reading-progress::-moz-progress-bar {
     animation: edgeActiveShadow 0.86s ease-in-out infinite alternate;
   }
 
-  /* Controle explícito de pausa pelo botão (WCAG 2.2.2 Pause, Stop, Hide) */
-  #engineSelectorFieldset[data-avatars-paused="true"] .engine-fullbody-svg * {
-    animation-play-state: paused !important;
+  /* Controle explícito de pausa pelo botão (WCAG 2.2.2) e pausa automática (fora da viewport / aba oculta / ocioso) */
+  #engineSelectorFieldset[data-avatars-paused="true"] .engine-fullbody-svg *,
+  #engineSelectorFieldset[data-avatars-auto-paused="true"] .engine-fullbody-svg * {
+    animation: none !important;
   }
 }
 
-@keyframes avatarIdleBreath {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-1.8px); }
-}
-
-@keyframes avatarIdleNod {
-  0%, 100% { transform: rotate(-1.3deg); }
-  50%      { transform: rotate(1.5deg); }
-}
-
-@keyframes avatarIdleArm {
-  0%, 100% { transform: rotate(-2deg); }
-  50%      { transform: rotate(2.4deg); }
-}
-
-@keyframes avatarIdleWaves {
-  0%, 100% { opacity: 0.14; }
-  50%      { opacity: 0.28; }
-}
-
+/* [web_v21_00] Motor ativo: keyframes exclusivamente em transform/opacity */
 @keyframes xttsActiveGroove {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-4.2px); }
@@ -1051,7 +969,7 @@ progress.reading-progress::-moz-progress-bar {
   }
 }
 
-/* Indicador animado de barras de equalizador */
+/* Indicador animado de barras de equalizador (web_v21_00: scaleY no compositor, zero Layout thrashing) */
 .eq-bars {
   display: inline-flex;
   align-items: flex-end;
@@ -1061,29 +979,31 @@ progress.reading-progress::-moz-progress-bar {
 
 .eq-bars span {
   width: 2.5px;
-  height: 8px;
+  height: 12px;
   background-color: currentColor;
   border-radius: 1px;
+  transform-origin: bottom;
+  transform: scaleY(0.65);
 }
 
 .eq-bars span:nth-child(2) {
   animation-delay: 0.16s;
-  height: 11px;
+  transform: scaleY(0.9);
 }
 
 .eq-bars span:nth-child(3) {
   animation-delay: 0.32s;
-  height: 6px;
+  transform: scaleY(0.5);
 }
 
 .eq-bars span:nth-child(4) {
   animation-delay: 0.1s;
-  height: 9px;
+  transform: scaleY(0.75);
 }
 
 @keyframes eqBounce {
-  0%, 100% { height: 3px; }
-  50% { height: 12px; }
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
 }
 
 /* ==========================================================================
@@ -1142,45 +1062,13 @@ progress.reading-progress::-moz-progress-bar {
   color: #ffffff;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .doc-lang-toggle-pending {
-    animation: docLangToggleBreath 2.1s ease-in-out infinite;
-  }
-
-  .doc-lang-toggle-pending.doc-lang-toggle-error {
-    animation: docLangToggleErrorBreath 1.4s ease-in-out infinite;
-  }
-
-  .doc-lang-btn-pending {
-    animation: docLangBtnPulse 1.8s ease-in-out infinite;
-  }
-
-  .doc-lang-btn-pending:last-child {
-    animation-delay: 0.35s;
-  }
+/* [web_v21_00] Destaque estático de alto contraste p/ idioma pendente (sem animação infinita de box-shadow/cores) */
+.doc-lang-toggle-pending {
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.24);
 }
 
-@keyframes docLangToggleBreath {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.15); }
-  50% { box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.22); }
-}
-
-@keyframes docLangToggleErrorBreath {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.22); }
-  50% { box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.36); }
-}
-
-@keyframes docLangBtnPulse {
-  0%, 100% {
-    transform: scale(1);
-    background-color: rgba(251, 191, 36, 0.12);
-    border-color: rgba(251, 191, 36, 0.4);
-  }
-  50% {
-    transform: scale(1.05);
-    background-color: rgba(251, 191, 36, 0.26);
-    border-color: rgba(251, 191, 36, 0.85);
-  }
+.doc-lang-toggle-pending.doc-lang-toggle-error {
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.38);
 }
 
 .doc-lang-btn.active-doc-lang {
@@ -1251,23 +1139,8 @@ body[data-engine="edge"] .engine-live-pill {
 }
 
 body[data-engine="edge"] .step-card-active {
-  border-color: rgba(56, 189, 248, 0.68) !important;
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.22), 0 12px 32px -8px rgba(14, 165, 233, 0.18);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  body[data-engine="edge"] .step-card-active {
-    animation: stepCardBreathEdge 2.8s infinite ease-in-out;
-  }
-}
-
-@keyframes stepCardBreathEdge {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.18), 0 10px 28px -8px rgba(14, 165, 233, 0.12);
-  }
-  50% {
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.44), 0 14px 36px -6px rgba(14, 165, 233, 0.26);
-  }
+  border-color: rgba(56, 189, 248, 0.72) !important;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.28), 0 14px 34px -8px rgba(14, 165, 233, 0.22);
 }
 
 body[data-engine="edge"] .step-number-solid,
@@ -1557,7 +1430,7 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     background-color: #eef8fb !important;
   }
 
-  /* Paleta Aurora leve para modo claro — cenas estáticas com fade suave */
+  /* Paleta Aurora leve para modo claro — cena estática por motor */
   .aurora-layer-xtts .aurora-frame-a {
     background:
       radial-gradient(ellipse 58% 52% at 14% 12%, rgba(251, 191, 36, 0.34) 0%, rgba(251, 191, 36, 0.12) 42%, transparent 74%),
@@ -1566,28 +1439,12 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
       radial-gradient(ellipse 48% 42% at 82% 16%, rgba(192, 132, 252, 0.20) 0%, rgba(192, 132, 252, 0.06) 44%, transparent 74%);
   }
 
-  .aurora-layer-xtts .aurora-frame-b {
-    background:
-      radial-gradient(ellipse 56% 50% at 28% 28%, rgba(251, 146, 60, 0.30) 0%, rgba(251, 146, 60, 0.10) 42%, transparent 74%),
-      radial-gradient(ellipse 52% 48% at 72% 70%, rgba(56, 189, 248, 0.26) 0%, rgba(56, 189, 248, 0.08) 44%, transparent 74%),
-      radial-gradient(ellipse 50% 46% at 80% 30%, rgba(251, 191, 36, 0.30) 0%, rgba(251, 191, 36, 0.10) 44%, transparent 74%),
-      radial-gradient(ellipse 46% 44% at 18% 82%, rgba(192, 132, 252, 0.22) 0%, rgba(192, 132, 252, 0.06) 44%, transparent 74%);
-  }
-
   .aurora-layer-edge .aurora-frame-a {
     background:
       radial-gradient(ellipse 58% 52% at 16% 14%, rgba(6, 182, 212, 0.28) 0%, rgba(6, 182, 212, 0.09) 42%, transparent 74%),
       radial-gradient(ellipse 54% 48% at 84% 82%, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.07) 44%, transparent 74%),
       radial-gradient(ellipse 48% 44% at 52% 46%, rgba(99, 102, 241, 0.18) 0%, rgba(99, 102, 241, 0.05) 44%, transparent 74%),
       radial-gradient(ellipse 46% 42% at 84% 18%, rgba(34, 211, 238, 0.22) 0%, rgba(34, 211, 238, 0.06) 44%, transparent 74%);
-  }
-
-  .aurora-layer-edge .aurora-frame-b {
-    background:
-      radial-gradient(ellipse 56% 50% at 30% 26%, rgba(99, 102, 241, 0.20) 0%, rgba(99, 102, 241, 0.06) 42%, transparent 74%),
-      radial-gradient(ellipse 52% 48% at 72% 72%, rgba(6, 182, 212, 0.26) 0%, rgba(6, 182, 212, 0.08) 44%, transparent 74%),
-      radial-gradient(ellipse 48% 44% at 78% 26%, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.07) 44%, transparent 74%),
-      radial-gradient(ellipse 46% 44% at 20% 80%, rgba(34, 211, 238, 0.22) 0%, rgba(34, 211, 238, 0.06) 44%, transparent 74%);
   }
 
   header.bg-slate-950\/90,

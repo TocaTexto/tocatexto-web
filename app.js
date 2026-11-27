@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v20_00_reset_cache_e_status_raio)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v21_00_otimizacao_cpu_animacoes)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
@@ -5404,6 +5404,117 @@
     }
   }
 
+  // [web_v21_00] Pausa automática das animações SVG dos avatares fora da viewport,
+  // em aba/janela oculta ou após 30s de inatividade (CPU ociosa em ~0%).
+  function configurarAutoPausaAvatares() {
+    const fieldset = el.engineSelectorFieldset || document.getElementById("engineSelectorFieldset");
+    if (!fieldset) return;
+
+    const AVATAR_IDLE_TIMEOUT_MS = 30000;
+    let skippedPorContentVisibility = false;
+    let naViewport = false;
+    let abaVisivel = document.visibilityState !== "hidden";
+    let janelaFocada = true;
+    let ocioso = false;
+    let idleTimerId = null;
+    let ultimoSinalAtividade = 0;
+
+    const aplicarEstadoAutoPausa = () => {
+      const devePausar = skippedPorContentVisibility || !naViewport || !abaVisivel || !janelaFocada || ocioso;
+      if (devePausar) {
+        if (fieldset.getAttribute("data-avatars-auto-paused") !== "true") {
+          fieldset.setAttribute("data-avatars-auto-paused", "true");
+        }
+      } else if (fieldset.hasAttribute("data-avatars-auto-paused")) {
+        fieldset.removeAttribute("data-avatars-auto-paused");
+      }
+    };
+
+    const reagendarTimerOciosidade = () => {
+      if (idleTimerId !== null) {
+        clearTimeout(idleTimerId);
+        idleTimerId = null;
+      }
+      if (!naViewport || !abaVisivel || !janelaFocada || skippedPorContentVisibility) {
+        return;
+      }
+      idleTimerId = setTimeout(() => {
+        idleTimerId = null;
+        ocioso = true;
+        aplicarEstadoAutoPausa();
+      }, AVATAR_IDLE_TIMEOUT_MS);
+    };
+
+    const registrarAtividadeUsuario = (forcar = false) => {
+      const agora = Date.now();
+      if (!forcar && !ocioso && agora - ultimoSinalAtividade < 1000) return;
+      ultimoSinalAtividade = agora;
+      if (ocioso) {
+        ocioso = false;
+        aplicarEstadoAutoPausa();
+      }
+      reagendarTimerOciosidade();
+    };
+
+    // Inicia pausado até confirmar que o bloco dos avatares entrou na viewport
+    fieldset.setAttribute("data-avatars-auto-paused", "true");
+
+    // 1. Listener direto para content-visibility: auto (não borbulha em todos os navegadores)
+    fieldset.addEventListener("contentvisibilityautostatechange", (event) => {
+      skippedPorContentVisibility = Boolean(event?.skipped);
+      aplicarEstadoAutoPausa();
+      reagendarTimerOciosidade();
+    });
+
+    // 2. IntersectionObserver garante pausa imediata quando os avatares saem da viewport
+    if (typeof IntersectionObserver === "function") {
+      const io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[entries.length - 1];
+          naViewport = Boolean(entry?.isIntersecting);
+          if (naViewport) {
+            ocioso = false;
+          }
+          aplicarEstadoAutoPausa();
+          reagendarTimerOciosidade();
+        },
+        { rootMargin: "40px 0px", threshold: 0.01 }
+      );
+      io.observe(fieldset);
+    } else {
+      naViewport = true;
+      aplicarEstadoAutoPausa();
+      reagendarTimerOciosidade();
+    }
+
+    // 3. Visibilidade da aba e foco da janela
+    document.addEventListener("visibilitychange", () => {
+      abaVisivel = document.visibilityState !== "hidden";
+      if (abaVisivel) {
+        ocioso = false;
+      }
+      aplicarEstadoAutoPausa();
+      reagendarTimerOciosidade();
+    });
+    window.addEventListener("blur", () => {
+      janelaFocada = false;
+      aplicarEstadoAutoPausa();
+      reagendarTimerOciosidade();
+    });
+    window.addEventListener("focus", () => {
+      janelaFocada = true;
+      ocioso = false;
+      aplicarEstadoAutoPausa();
+      registrarAtividadeUsuario(true);
+    });
+
+    // 4. Inatividade do usuário (30s sem interação -> pausa automática até novo gesto)
+    ["pointerdown", "keydown", "scroll", "touchstart"].forEach((evt) => {
+      window.addEventListener(evt, () => registrarAtividadeUsuario(false), { passive: true });
+    });
+    window.addEventListener("pointermove", () => registrarAtividadeUsuario(false), { passive: true });
+  }
+
   function revalidarReferenciasDom() {
     el.siteTopHeader = document.getElementById("siteTopHeader");
     el.flowStepper = document.getElementById("flowStepper");
@@ -5593,6 +5704,7 @@
     if (!el.dropzone || !el.fileInput) return;
     _initialized = true;
     configurarObservadorAlturaHeader();
+    configurarAutoPausaAvatares();
     atualizarUiSeletorMotor();
     renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
     atualizarUiModoVoz();
