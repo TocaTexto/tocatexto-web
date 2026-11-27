@@ -1,15 +1,15 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v16_00_solar_natural_cota_raio)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v17_00_gratuito_doacao_pix)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
- *    melhor cadência e indicado para leituras longas (`COM_VALOR_CARACTERE = R$ 0,00005/char`), prazo calibrado em CPU.
- * 2. Raio (Síntese Rápida · interno: edge): 12 vozes (3 PT-BR · 9 EN), tarifa econômica
- *    (`COM_VALOR_CARACTERE_EDGE = R$ 0,000025/char`, metade do Solar) e síntese paralela ágil.
- * - Ambos compartilham o crédito inicial gratuito unificado ponderado por e-mail
- *   (`COM_COTA_GRATIS_CHARS = 20.000` Solar / `COM_COTA_GRATIS_CHARS_EDGE = 10.000` Raio),
- *   com excedente cobrado via PIX respeitando o piso `COM_VALOR_MINIMO = R$ 1,00`.
+ *    melhor cadência e indicado para leituras longas (`COM_VALOR_CARACTERE = R$ 0,00005/char` como referência de sugestão).
+ * 2. Raio (Síntese Rápida · interno: edge): 12 vozes (3 PT-BR · 9 EN),
+ *    referência de sugestão `COM_VALOR_CARACTERE_EDGE = R$ 0,000025/char` e síntese paralela ágil.
+ * - Em `COM_MODO_OPERACAO = "gratuito_doacao"` (padrão), todo o serviço é 100% gratuito,
+ *   sem cota nem cobrança obrigatória, com sugestão de doação voluntária via PIX estático.
+ * - Em `COM_MODO_OPERACAO = "comercial"`, reativa a cota inicial unificada e o PIX Mercado Pago.
  * ============================================================================
  */
 
@@ -24,6 +24,10 @@
 
   // Constantes alinhadas ao grupo `servico_comercial`, calibração CPU XTTSv2 e medições Edge TTS (WFLP)
   const CONFIG_COMERCIAL = {
+    COM_MODO_OPERACAO: "gratuito_doacao",
+    COM_PIX_DOACAO_CHAVE: "",
+    COM_PIX_DOACAO_NOME: "TOCATEXTO",
+    COM_PIX_DOACAO_CIDADE: "CAMPINAS",
     COM_VALOR_CARACTERE: 0.00005,
     COM_VALOR_CARACTERE_EDGE: 0.000025,
     COM_VALOR_MINIMO: 1.0,
@@ -97,7 +101,7 @@
       { sigla: "carolina", nome: "Carolina", idioma: "pt", genero: "F", categoria: "densa", cor1: "#14b8a6", cor2: "#0f766e", perfil: "Fluida e editorial", frase: "As siglas, numerais romanos e artigos de lei são pronunciados por extenso com precisão." },
       { sigla: "cassio", nome: "Cássio", idioma: "pt", genero: "M", categoria: "densa", cor1: "#6366f1", cor2: "#3730a3", perfil: "Barítono técnico", frase: "Você escolhe se prefere um arquivo MP3 contínuo ou um pacote ZIP dividido por capítulos." },
       { sigla: "evelin", nome: "Evelin", idioma: "pt", genero: "F", categoria: "narrativa", cor1: "#f43f5e", cor2: "#9f1239", perfil: "Suave e cadenciada", frase: "Arraste o seletor de velocidade acima para testar a locução no ritmo ideal para o seu estudo." },
-      { sigla: "gabriel", nome: "Gabriel", idioma: "pt", genero: "M", categoria: "dinamica", cor1: "#06b6d4", cor2: "#0e7490", perfil: "Jovem e articulado", frase: "Sem mensalidades ou aplicativos presos: você paga apenas pelos caracteres do documento." },
+      { sigla: "gabriel", nome: "Gabriel", idioma: "pt", genero: "M", categoria: "dinamica", cor1: "#06b6d4", cor2: "#0e7490", perfil: "Jovem e articulado", frase: "Sem mensalidades ou aplicativos presos: você recebe o audiobook em MP3 pronto para ouvir offline." },
       { sigla: "joel", nome: "Joel", idioma: "pt", genero: "M", categoria: "narrativa", cor1: "#eab308", cor2: "#a16207", perfil: "Maduro e narrativo", frase: "Livros extensos e dissertações ganham ritmo de audiolivro profissional revisado contra chiados." },
       { sigla: "lendario", nome: "Lendário", idioma: "pt", genero: "M", categoria: "narrativa", cor1: "#f97316", cor2: "#9a3412", perfil: "Imponente e profundo", frase: "No modo de vozes aleatórias, cada novo capítulo recebe um narrador diferente sem repetição." },
       { sigla: "mariana", nome: "Mariana", idioma: "pt", genero: "F", categoria: "dinamica", cor1: "#10b981", cor2: "#047857", perfil: "Ágil e cristalina", frase: "A revisão de véspera de prova rende muito mais quando você acompanha o texto pelo áudio." },
@@ -419,6 +423,134 @@
     return state.motorServico === "edge";
   }
 
+  function ehModoGratuitoDoacao() {
+    return String(CONFIG_COMERCIAL.COM_MODO_OPERACAO || "gratuito_doacao").trim().toLowerCase() !== "comercial";
+  }
+
+  function calcularSugestaoDoacaoLocal(totalChars = state.totalCaracteres, motor = state.motorServico) {
+    const chars = Math.max(0, Math.round(Number(totalChars) || 0));
+    const motorNorm = motor === "edge" ? "edge" : "xttsv2";
+    const valMotor = obterValorCaractereMotor(motorNorm);
+    const valMin = Math.max(0.01, Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
+    const charsPorPag = Math.max(100, Math.round(Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000));
+    const paginasEquiv = chars > 0 ? Math.max(1, Math.round(chars / charsPorPag)) : 0;
+    const valorSugerido =
+      chars <= 0
+        ? 0
+        : valMotor <= 0
+        ? Math.round(valMin * 100) / 100
+        : Math.round(Math.max(valMin, chars * valMotor) * 100) / 100;
+    return {
+      totalCaracteres: chars,
+      charsPorPagina: charsPorPag,
+      paginasEquivalentes: paginasEquiv,
+      motor: motorNorm,
+      motorRotulo: motorNorm === "edge" ? "Raio" : "Solar",
+      valorCaractere: valMotor,
+      valorSugerido,
+    };
+  }
+
+  function normalizarAsciiPix(texto, maxLen, fallback) {
+    const semAcentos = String(texto || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "");
+    const limpo = semAcentos
+      .replace(/[^A-Za-z0-9 ]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase()
+      .slice(0, maxLen);
+    return limpo || fallback;
+  }
+
+  function tlvPix(tag, valor) {
+    const strVal = String(valor ?? "");
+    const byteLen = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(strVal).length : strVal.length;
+    return `${tag}${String(byteLen).padStart(2, "0")}${strVal}`;
+  }
+
+  function crc16CcittPix(payloadSemCrc) {
+    const bytes =
+      typeof TextEncoder !== "undefined"
+        ? new TextEncoder().encode(payloadSemCrc)
+        : Array.from(payloadSemCrc, (c) => c.charCodeAt(0) & 0xff);
+    let crc = 0xffff;
+    for (const byte of bytes) {
+      crc ^= byte << 8;
+      for (let i = 0; i < 8; i++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = ((crc << 1) ^ 0x1021) & 0xffff;
+        } else {
+          crc = (crc << 1) & 0xffff;
+        }
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, "0");
+  }
+
+  function gerarBrCodePixEstatico({
+    chave,
+    nome = "TOCATEXTO",
+    cidade = "CAMPINAS",
+    valor = null,
+    txid = "***",
+    descricao = "Doacao TocaTexto",
+  }) {
+    const chaveLimpa = String(chave || "").trim();
+    if (!chaveLimpa) return "";
+    const nomeNorm = normalizarAsciiPix(nome, 25, "TOCATEXTO");
+    const cidadeNorm = normalizarAsciiPix(cidade, 15, "CAMPINAS");
+    const txidLimpo = String(txid || "***").replace(/[^A-Za-z0-9*]/g, "").slice(0, 25) || "***";
+
+    const sub00 = tlvPix("00", "br.gov.bcb.pix");
+    const sub01 = tlvPix("01", chaveLimpa);
+    let maiConteudo = sub00 + sub01;
+    if (descricao) {
+      const descNorm = normalizarAsciiPix(descricao, 40, "");
+      if (descNorm) {
+        const sub02 = tlvPix("02", descNorm);
+        if ((maiConteudo + sub02).length <= 99) {
+          maiConteudo += sub02;
+        }
+      }
+    }
+
+    const partes = [
+      tlvPix("00", "01"),
+      tlvPix("26", maiConteudo),
+      tlvPix("52", "0000"),
+      tlvPix("53", "986"),
+    ];
+    if (valor !== null && valor !== undefined && Number(valor) > 0) {
+      const valFmt = (Math.round(Number(valor) * 100) / 100).toFixed(2);
+      partes.push(tlvPix("54", valFmt));
+    }
+    partes.push(tlvPix("58", "BR"));
+    partes.push(tlvPix("59", nomeNorm));
+    partes.push(tlvPix("60", cidadeNorm));
+    partes.push(tlvPix("62", tlvPix("05", txidLimpo)));
+
+    const semCrc = `${partes.join("")}6304`;
+    return `${semCrc}${crc16CcittPix(semCrc)}`;
+  }
+
+  function parseValorDoacaoBRL(textoBruto) {
+    const bruto = String(textoBruto || "").trim();
+    if (!bruto) return { valido: true, valor: null };
+    let limpo = bruto.replace(/R\$/gi, "").replace(/\s+/g, "");
+    if (limpo.includes(",") && limpo.includes(".")) {
+      limpo = limpo.replace(/\./g, "").replace(",", ".");
+    } else if (limpo.includes(",")) {
+      limpo = limpo.replace(",", ".");
+    }
+    const num = Number(limpo);
+    if (!Number.isFinite(num) || num < 0.01 || num > 100000) {
+      return { valido: false, valor: null };
+    }
+    return { valido: true, valor: Math.round(num * 100) / 100 };
+  }
+
   function formatarBRL(valor) {
     return valor.toLocaleString("pt-BR", {
       style: "currency",
@@ -560,6 +692,7 @@
   }
 
   function atualizarTextosComerciaisNaUI() {
+    const ehGratuito = ehModoGratuitoDoacao();
     const ativa = Boolean(CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA);
     const totalBase = ativa ? Math.max(0, Math.round(Number(CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS) || 0)) : 0;
     const charsPorPag = Math.max(100, Math.round(Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000));
@@ -579,7 +712,9 @@
 
     const heroQuota = document.getElementById("heroXttsQuotaBadge");
     if (heroQuota) {
-      if (ativa && totalBase > 0) {
+      if (ehGratuito) {
+        heroQuota.textContent = "💚 100% Gratuito · Sem assinatura e sem limites de cota";
+      } else if (ativa && totalBase > 0) {
         heroQuota.textContent = edgeGratis
           ? `🎁 Cota inicial grátis Solar: ${totalBaseFmt} chars (~${pagsXtts} pág.)`
           : `🎁 Cota inicial grátis: ${totalBaseFmt} chars (~${pagsXtts} pág.) no Solar ou ${totalEdgeFmt} chars (~${pagsEdge} pág.) no Raio`;
@@ -589,25 +724,53 @@
     }
     const heroPrice = document.getElementById("heroXttsPriceBadge");
     if (heroPrice) {
-      heroPrice.textContent = `☀️ Solar (Voz Natural): ${precoMilXtts} / 1.000 chars (mín. ${minBrl})`;
+      heroPrice.textContent = ehGratuito
+        ? "☀️ Solar: Voz mais natural (44 vozes PT-BR & EN)"
+        : `☀️ Solar (Voz Natural): ${precoMilXtts} / 1.000 chars (mín. ${minBrl})`;
     }
     const heroEdgePrice = document.getElementById("heroEdgePriceBadge");
     if (heroEdgePrice) {
-      heroEdgePrice.textContent = edgeGratis
+      heroEdgePrice.textContent = ehGratuito
+        ? "⚡ Raio: Síntese rápida (12 vozes PT-BR & EN)"
+        : edgeGratis
         ? "⚡ Raio (Rápido): gratuito"
         : `⚡ Raio (Rápido): ${precoMilEdge} / 1.000 chars (mín. ${minBrl})`;
     }
 
+    const step01Heading = document.getElementById("step01Heading");
+    if (step01Heading) {
+      step01Heading.textContent = ehGratuito
+        ? "Envie seu(s) documento(s) para calcular o prazo de conversão"
+        : "Envie seu(s) documento(s) para calcular o prazo e o valor";
+    }
+    const dropzoneSubtitle = document.getElementById("dropzoneSubtitleText");
+    if (dropzoneSubtitle) {
+      dropzoneSubtitle.textContent = ehGratuito
+        ? "Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres e prazo (Solar e Raio) no navegador"
+        : "Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres, prazo (Solar e Raio) e valor no navegador";
+    }
+    const engineLegend = document.getElementById("engineLegendText");
+    if (engineLegend) {
+      engineLegend.textContent = ehGratuito
+        ? "Sintetizador de Voz — Naturalidade vs. Velocidade"
+        : "Sintetizador de Voz — Naturalidade vs. Velocidade & Custo";
+    }
+
     const engineTag = document.getElementById("engineXttsQuotaTag");
     if (engineTag) {
-      engineTag.textContent = `${precoMilXtts} / 1k`;
+      engineTag.textContent = ehGratuito ? "GRATUITO" : `${precoMilXtts} / 1k`;
     }
     const engineInline = document.getElementById("engineXttsQuotaInline");
     if (engineInline) {
-      engineInline.textContent =
-        ativa && totalBase > 0
-          ? `Cota inicial grátis de ${totalBaseFmt} caracteres (~${pagsXtts} páginas); excedente cobrado por caractere via PIX (mín. ${minBrl}).`
-          : `Cobrança por caractere via PIX (${precoMilXtts} / 1.000 chars, mín. ${minBrl}).`;
+      if (ehGratuito) {
+        engineInline.textContent =
+          "Uso totalmente gratuito, sem limite de cota. Ao final, você pode apoiar o projeto com uma doação opcional.";
+      } else {
+        engineInline.textContent =
+          ativa && totalBase > 0
+            ? `Cota inicial grátis de ${totalBaseFmt} caracteres (~${pagsXtts} páginas); excedente cobrado por caractere via PIX (mín. ${minBrl}).`
+            : `Cobrança por caractere via PIX (${precoMilXtts} / 1.000 chars, mín. ${minBrl}).`;
+      }
     }
 
     const engineEdgeDiscount = document.getElementById("engineEdgeDiscountPill");
@@ -616,11 +779,14 @@
     }
     const engineEdgeTag = document.getElementById("engineEdgeQuotaTag");
     if (engineEdgeTag) {
-      engineEdgeTag.textContent = edgeGratis ? "GRÁTIS" : `${precoMilEdge} / 1k`;
+      engineEdgeTag.textContent = ehGratuito ? "GRATUITO" : edgeGratis ? "GRÁTIS" : `${precoMilEdge} / 1k`;
     }
     const engineEdgeInline = document.getElementById("engineEdgeQuotaInline");
     if (engineEdgeInline) {
-      if (edgeGratis) {
+      if (ehGratuito) {
+        engineEdgeInline.textContent =
+          "Uso totalmente gratuito, sem limite de cota. Ao final, você pode apoiar o projeto com uma doação opcional.";
+      } else if (edgeGratis) {
         engineEdgeInline.textContent = "Conversão gratuita no sintetizador Raio, sem consumir a cota inicial.";
       } else if (ativa && totalEdge > 0) {
         engineEdgeInline.textContent = `Cota inicial grátis de ${totalEdgeFmt} caracteres (~${pagsEdge} páginas); excedente cobrado por caractere via PIX (mín. ${minBrl}).`;
@@ -628,6 +794,37 @@
         engineEdgeInline.textContent = `Cobrança por caractere via PIX (${precoMilEdge} / 1.000 chars, mín. ${minBrl}).`;
       }
     }
+
+    if (el.quotaStatusBox) {
+      el.quotaStatusBox.classList.toggle("hidden", ehGratuito);
+    }
+    const summaryQuotaRow = document.getElementById("summaryQuotaRow");
+    const summaryFormulaRow = document.getElementById("summaryFormulaRow");
+    const summaryCharCountRow = document.getElementById("summaryCharCountRow");
+    const donationSummaryBox = document.getElementById("donationSummaryBox");
+    if (summaryQuotaRow) summaryQuotaRow.classList.toggle("hidden", ehGratuito);
+    if (summaryFormulaRow) summaryFormulaRow.classList.toggle("hidden", ehGratuito);
+    if (summaryCharCountRow) summaryCharCountRow.classList.toggle("hidden", !ehGratuito);
+    if (donationSummaryBox) donationSummaryBox.classList.toggle("hidden", !ehGratuito);
+
+    const summaryDocLabel = document.getElementById("summaryDocLabel");
+    if (summaryDocLabel) {
+      summaryDocLabel.textContent = ehGratuito ? "• Documento(s):" : "• Documento(s) no pedido:";
+    }
+    const summaryMainTitle = document.getElementById("summaryMainTitle");
+    if (summaryMainTitle) {
+      summaryMainTitle.textContent = ehGratuito ? "⏱️ Seu Audiobook" : "⏱️ Seu Audiobook Sob Demanda";
+    }
+    if (el.connector02Text) {
+      el.connector02Text.textContent = ehGratuito
+        ? "Último passo: informe onde receber seu audiobook e inicie a conversão"
+        : "Último passo: informe onde entregar seu audiobook e confirme o pedido";
+    }
+
+    const termsItem4Gratuito = document.getElementById("termsItem4Gratuito");
+    const termsItem4Comercial = document.getElementById("termsItem4Comercial");
+    if (termsItem4Gratuito) termsItem4Gratuito.classList.toggle("hidden", !ehGratuito);
+    if (termsItem4Comercial) termsItem4Comercial.classList.toggle("hidden", ehGratuito);
 
     const termsDias = document.getElementById("termsLinkDias");
     if (termsDias) termsDias.textContent = String(diasExpira);
@@ -646,6 +843,18 @@
   function aplicarConfigComercialRemota(cfgRemota) {
     if (!cfgRemota || typeof cfgRemota !== "object") return false;
     let alterou = false;
+    if (typeof cfgRemota.COM_MODO_OPERACAO === "string") {
+      const modoRem = cfgRemota.COM_MODO_OPERACAO.trim().toLowerCase() === "comercial" ? "comercial" : "gratuito_doacao";
+      if (CONFIG_COMERCIAL.COM_MODO_OPERACAO !== modoRem) alterou = true;
+      CONFIG_COMERCIAL.COM_MODO_OPERACAO = modoRem;
+    }
+    for (const kStr of ["COM_PIX_DOACAO_CHAVE", "COM_PIX_DOACAO_NOME", "COM_PIX_DOACAO_CIDADE"]) {
+      if (typeof cfgRemota[kStr] === "string") {
+        const valLimpo = cfgRemota[kStr].trim();
+        if (CONFIG_COMERCIAL[kStr] !== valLimpo) alterou = true;
+        CONFIG_COMERCIAL[kStr] = valLimpo;
+      }
+    }
     if (typeof cfgRemota.COM_COTA_GRATIS_ATIVA === "boolean") {
       if (CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA !== cfgRemota.COM_COTA_GRATIS_ATIVA) alterou = true;
       CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA = cfgRemota.COM_COTA_GRATIS_ATIVA;
@@ -677,6 +886,15 @@
   }
 
   async function atualizarSaldoCotaPorEmail(consultarApi = false) {
+    if (ehModoGratuitoDoacao()) {
+      state.cotaTotalChars = 0;
+      state.cotaConsumidaChars = 0;
+      state.cotaRestanteChars = 0;
+      recalcularAgregadosDocumentos();
+      atualizarCardsComparacaoMotores();
+      atualizarResumoPedido();
+      return;
+    }
     let total = CONFIG_COMERCIAL.COM_COTA_GRATIS_ATIVA ? CONFIG_COMERCIAL.COM_COTA_GRATIS_CHARS : 0;
     const emailNorm = normalizarEmailCota(el.clientEmail?.value || "");
     let consumido = lerConsumidoCotaLocal(emailNorm);
@@ -864,6 +1082,13 @@
   }
 
   function calcularPrecoPorCaracteres(totalChars) {
+    if (ehModoGratuitoDoacao()) {
+      state.charsCobertosCota = 0;
+      state.charsCotaBaseDebitados = 0;
+      state.charsCobraveis = 0;
+      state.pedidoGratuito = true;
+      return 0;
+    }
     const res = calcularPrecoMotorParaCaracteres(totalChars, state.motorServico);
     state.charsCobertosCota = res.charsCobertos;
     state.charsCotaBaseDebitados = res.charsBaseDebitados;
@@ -1129,7 +1354,9 @@
     }
 
     if (el.engineXttsPriceBadge) {
-      if (!temDoc) {
+      if (ehModoGratuitoDoacao()) {
+        el.engineXttsPriceBadge.textContent = "💚 100% Gratuito";
+      } else if (!temDoc) {
         const pagsR = Math.floor(restXtts / charsPorPag);
         el.engineXttsPriceBadge.textContent = restXtts > 0
           ? `💰 Grátis até ${formatarInteiro(restXtts)} chars (~${pagsR} pág.)`
@@ -1148,7 +1375,9 @@
     }
 
     if (el.engineEdgePriceBadge) {
-      if (edgeGratis) {
+      if (ehModoGratuitoDoacao()) {
+        el.engineEdgePriceBadge.textContent = "💚 100% Gratuito";
+      } else if (edgeGratis) {
         el.engineEdgePriceBadge.textContent = "🆓 R$ 0,00 (Grátis)";
       } else if (!temDoc) {
         const pagsE = Math.floor(restEdge / charsPorPag);
@@ -1167,19 +1396,24 @@
       if (!temDoc) {
         el.estEngineCompareBox.classList.add("hidden");
       } else {
+        const ehGrat = ehModoGratuitoDoacao();
         if (ehEdgeTts()) {
           // [web_v08_01] Em Edge TTS, o atalho sugere XTTSv2 na cor âmbar/laranja temática
           el.estEngineCompareBox.className = "mt-3 rounded-xl border border-amber-500/35 bg-amber-950/25 px-3 py-2 text-[11px] text-slate-300 compare-target-xtts";
           el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-amber-400/55 bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold text-amber-300 hover:bg-amber-400 hover:text-slate-950 transition";
           const precoTxt = xttsPreco.preco <= 0 ? "grátis na cota" : formatarBRL(xttsPreco.preco);
-          el.estEngineCompareHint.textContent = `Prefere voz mais natural e cadenciada para leituras longas? Solar: ~${formatarDuracaoHorasMinutos(minXtts)} (${precoTxt}).`;
+          el.estEngineCompareHint.textContent = ehGrat
+            ? `Prefere voz mais natural e cadenciada para leituras longas? Solar: ~${formatarDuracaoHorasMinutos(minXtts)} (Gratuito).`
+            : `Prefere voz mais natural e cadenciada para leituras longas? Solar: ~${formatarDuracaoHorasMinutos(minXtts)} (${precoTxt}).`;
           el.quickSwitchEngineBtn.textContent = "Usar Solar";
         } else {
           // Em Solar (xttsv2), o atalho sugere Raio (edge) na cor ciano temática
           el.estEngineCompareBox.className = "mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 px-3 py-2 text-[11px] text-slate-300 compare-target-edge";
           el.quickSwitchEngineBtn.className = "shrink-0 rounded-lg border border-cyan-400/50 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-bold text-cyan-300 hover:bg-cyan-400 hover:text-slate-950 transition";
           const precoEdgeTxt = edgePreco.preco <= 0 ? "grátis na cota" : formatarBRL(edgePreco.preco);
-          el.estEngineCompareHint.textContent = `Prefere entrega mais rápida? Raio: ~${formatarDuracaoHorasMinutos(minEdge)} (${precoEdgeTxt}).`;
+          el.estEngineCompareHint.textContent = ehGrat
+            ? `Prefere entrega mais rápida? Raio: ~${formatarDuracaoHorasMinutos(minEdge)} (Gratuito).`
+            : `Prefere entrega mais rápida? Raio: ~${formatarDuracaoHorasMinutos(minEdge)} (${precoEdgeTxt}).`;
           el.quickSwitchEngineBtn.textContent = "Usar Raio";
         }
       }
@@ -2422,7 +2656,7 @@
       el.docFileName.textContent =
         state.arquivos.length === 1
           ? `${state.arquivos[0].nome} (${formatarBytes(state.tamanhoBytes)})`
-          : `${state.arquivos.length} documentos no pedido (${formatarBytes(state.tamanhoBytes)} no total)`;
+          : `${state.arquivos.length} documentos anexados (${formatarBytes(state.tamanhoBytes)} no total)`;
     }
 
     if (el.docQualityBadge) {
@@ -2701,6 +2935,45 @@
   function atualizarExibicaoCotaEPreco(preco) {
     const isEdge = ehEdgeTts();
     const temDoc = state.totalCaracteres > 0;
+    const motorRotuloCurto = isEdge ? "Raio" : "Solar";
+
+    if (ehModoGratuitoDoacao()) {
+      const sug = calcularSugestaoDoacaoLocal(state.totalCaracteres, state.motorServico);
+      if (el.priceDisplay) el.priceDisplay.textContent = "GRÁTIS";
+      if (el.docPriceCount) el.docPriceCount.textContent = "GRÁTIS";
+      if (el.docPriceLabel) el.docPriceLabel.textContent = "Acesso";
+      if (el.summaryPriceLabel) el.summaryPriceLabel.textContent = "Acesso";
+      if (el.docPriceFormulaNote) {
+        el.docPriceFormulaNote.textContent = "100% gratuito · Doação opcional";
+      }
+      if (el.summaryCharCountVal) {
+        el.summaryCharCountVal.textContent = temDoc
+          ? `${formatarInteiro(sug.totalCaracteres)} chars (~${formatarInteiro(sug.paginasEquivalentes)} pág.)`
+          : "0 chars (~0 pág.)";
+      }
+      if (el.donationSuggestedValue) {
+        el.donationSuggestedValue.textContent = temDoc
+          ? `Sugestão: ${formatarBRL(sug.valorSugerido)}`
+          : "Sugestão: --";
+      }
+      if (el.donationSuggestedNote) {
+        el.donationSuggestedNote.textContent = temDoc
+          ? `Equivalente a ${formatarInteiro(sug.totalCaracteres)} caracteres (~${formatarInteiro(
+              sug.paginasEquivalentes
+            )} pág.) no ${motorRotuloCurto}. Você pode doar este valor, outro valor ou usar gratuitamente.`
+          : "Serviço 100% gratuito. Envie seus arquivos para ver a sugestão proporcional em páginas, ou doe qualquer valor via PIX se quiser apoiar.";
+      }
+      if (el.generatePixBtn) {
+        el.generatePixBtn.textContent = isEdge
+          ? "⚡ Iniciar Conversão Gratuita (Raio)"
+          : "☀️ Iniciar Conversão Gratuita (Solar)";
+        el.generatePixBtn.className = isEdge
+          ? "w-full rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          : "w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
+      }
+      return;
+    }
+
     const cotaTotalBase = state.cotaTotalChars;
     const cotaRestBase = state.cotaRestanteChars;
     const cobertos = state.charsCobertosCota;
@@ -2721,7 +2994,6 @@
     const pagsRestMotor = Math.floor(cotaRestMotor / charsPorPag);
     const precoMilAtivoFmt = formatarPrecoMil(valMotorAtivo);
     const valorMinFmt = formatarBRL(Number(CONFIG_COMERCIAL.COM_VALOR_MINIMO) || 1.0);
-    const motorRotuloCurto = isEdge ? "Raio" : "Solar";
 
     if (el.priceDisplay) el.priceDisplay.textContent = valorFmt;
     if (el.docPriceCount) el.docPriceCount.textContent = valorFmt;
@@ -3006,10 +3278,14 @@
       if (filaPed <= 0) {
         el.estQueueStatus.textContent = isEdge
           ? "Livre (processamento imediato)"
+          : ehModoGratuitoDoacao()
+          ? "Livre (fila imediata)"
           : "Livre (0 pedidos na frente)";
         el.estQueueStatus.className = "font-mono font-semibold text-emerald-300";
       } else {
-        el.estQueueStatus.textContent = `${filaPed} pedido(s) (+${filaMin} min)`;
+        el.estQueueStatus.textContent = ehModoGratuitoDoacao()
+          ? `${filaPed} na fila (+${filaMin} min)`
+          : `${filaPed} pedido(s) (+${filaMin} min)`;
         el.estQueueStatus.className = "font-mono font-semibold text-amber-300";
       }
     }
@@ -3346,16 +3622,21 @@
     }
 
     const ehGratuito =
+      ehModoGratuitoDoacao() ||
       respostaApi?.status === "na_fila" ||
       respostaApi?.pedido_gratuito === true ||
       Number(pedidoFinal.documento.valor_pago || 0) <= 0;
     const ehEdge = pedidoFinal.configuracoes?.motor_tts === "edge";
 
-    if (el.pixModalOrderId) el.pixModalOrderId.textContent = pedidoFinal.id_pedido;
+    if (el.pixModalOrderId) {
+      el.pixModalOrderId.textContent = ehModoGratuitoDoacao()
+        ? `Código: ${String(pedidoFinal.id_pedido || "").replace(/^PED-/, "CONV-")}`
+        : pedidoFinal.id_pedido;
+    }
 
     if (ehGratuito) {
       if (el.pixModalTitle) {
-        el.pixModalTitle.textContent = "Pedido confirmado!";
+        el.pixModalTitle.textContent = ehModoGratuitoDoacao() ? "Conversão iniciada!" : "Pedido confirmado!";
       }
       confirmarPixNoModal(true);
     } else {
@@ -3439,7 +3720,16 @@
     if (el.pixPendingStage) el.pixPendingStage.classList.add("hidden");
     if (el.pixApprovedStage) el.pixApprovedStage.classList.remove("hidden");
     if (el.pixModalTitle) {
-      el.pixModalTitle.textContent = gratuito ? "Pedido confirmado!" : "Pagamento confirmado!";
+      el.pixModalTitle.textContent = ehModoGratuitoDoacao()
+        ? "Conversão iniciada!"
+        : gratuito
+        ? "Pedido confirmado!"
+        : "Pagamento confirmado!";
+    }
+    if (el.approvedStageSubtitle) {
+      el.approvedStageSubtitle.textContent = ehModoGratuitoDoacao()
+        ? "Seu audiobook já entrou na fila gratuita de conversão. Você pode fechar esta página com tranquilidade."
+        : "Seu pedido já entrou na fila de conversão. Você pode fechar esta página com tranquilidade.";
     }
     if (el.approvedEngineLabel) {
       el.approvedEngineLabel.textContent = ehEdge
@@ -3462,21 +3752,43 @@
     }
 
     if (el.approvedQuotaSummary) {
-      const motorKey = ehEdge ? "edge" : "xttsv2";
-      const charsPorPag = Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000);
-      if (ehEdge && obterValorCaractereMotor("edge") <= 0) {
-        el.approvedQuotaSummary.textContent = `Sua cota inicial gratuita (${formatarInteiro(state.cotaRestanteChars)} chars no Solar) permanece intacta.`;
-        el.approvedQuotaSummary.classList.remove("hidden");
-      } else if (charsCobertos > 0) {
-        const motorTxt = ehEdge ? "Raio" : "Solar";
-        const restMotor = obterCharsEquivalentesMotor(state.cotaRestanteChars, motorKey);
-        const restPags = Math.floor(restMotor / charsPorPag);
-        el.approvedQuotaSummary.textContent = `Cota inicial gratuita (${motorTxt}): ${formatarInteiro(
-          charsCobertos
-        )} chars usados · restam ${formatarInteiro(restMotor)} chars (~${restPags} pág.) no ${motorTxt}.`;
-        el.approvedQuotaSummary.classList.remove("hidden");
-      } else {
+      if (ehModoGratuitoDoacao()) {
         el.approvedQuotaSummary.classList.add("hidden");
+      } else {
+        const motorKey = ehEdge ? "edge" : "xttsv2";
+        const charsPorPag = Math.max(100, Number(CONFIG_COMERCIAL.COM_CHARS_POR_PAGINA) || 2000);
+        if (ehEdge && obterValorCaractereMotor("edge") <= 0) {
+          el.approvedQuotaSummary.textContent = `Sua cota inicial gratuita (${formatarInteiro(state.cotaRestanteChars)} chars no Solar) permanece intacta.`;
+          el.approvedQuotaSummary.classList.remove("hidden");
+        } else if (charsCobertos > 0) {
+          const motorTxt = ehEdge ? "Raio" : "Solar";
+          const restMotor = obterCharsEquivalentesMotor(state.cotaRestanteChars, motorKey);
+          const restPags = Math.floor(restMotor / charsPorPag);
+          el.approvedQuotaSummary.textContent = `Cota inicial gratuita (${motorTxt}): ${formatarInteiro(
+            charsCobertos
+          )} chars usados · restam ${formatarInteiro(restMotor)} chars (~${restPags} pág.) no ${motorTxt}.`;
+          el.approvedQuotaSummary.classList.remove("hidden");
+        } else {
+          el.approvedQuotaSummary.classList.add("hidden");
+        }
+      }
+    }
+
+    if (el.approvedDonationInvite) {
+      if (ehModoGratuitoDoacao()) {
+        const charsRef = Number(ped.documento?.total_caracteres || state.totalCaracteres || 0);
+        const sug = calcularSugestaoDoacaoLocal(charsRef, ehEdge ? "edge" : "xttsv2");
+        if (el.approvedDonationText) {
+          el.approvedDonationText.textContent =
+            charsRef > 0
+              ? `Este texto possui ${formatarInteiro(sug.totalCaracteres)} chars (~${formatarInteiro(
+                  sug.paginasEquivalentes
+                )} pág.). Sugestão de doação: ${formatarBRL(sug.valorSugerido)} (ou qualquer outro valor).`
+              : "Se este audiobook te ajudar, você pode fazer uma doação opcional via PIX do valor que preferir.";
+        }
+        el.approvedDonationInvite.classList.remove("hidden");
+      } else {
+        el.approvedDonationInvite.classList.add("hidden");
       }
     }
 
@@ -3516,6 +3828,107 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function atualizarChipsDoacaoAtivo(valorOuModo) {
+    if (!el.donationChipBtns) return;
+    el.donationChipBtns.forEach((btn) => {
+      const chipAttr = btn.getAttribute("data-donation-chip");
+      const ativo =
+        (valorOuModo === null && chipAttr === "free") ||
+        (valorOuModo !== null && chipAttr === String(valorOuModo));
+      btn.classList.toggle("active-chip", ativo);
+      btn.setAttribute("aria-pressed", ativo ? "true" : "false");
+    });
+  }
+
+  function atualizarPixDoacaoNoModal(valorNumericoOuNull) {
+    const chave = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CHAVE || "").trim();
+    const nome = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_NOME || "TOCATEXTO").trim();
+    const cidade = String(CONFIG_COMERCIAL.COM_PIX_DOACAO_CIDADE || "CAMPINAS").trim();
+
+    if (!chave) {
+      if (el.donationNotConfiguredNotice) el.donationNotConfiguredNotice.classList.remove("hidden");
+      if (el.donationPixResult) el.donationPixResult.classList.add("hidden");
+      return;
+    }
+    if (el.donationNotConfiguredNotice) el.donationNotConfiguredNotice.classList.add("hidden");
+
+    const valor = valorNumericoOuNull !== null && Number(valorNumericoOuNull) > 0 ? Number(valorNumericoOuNull) : null;
+    const codigoPix = gerarBrCodePixEstatico({
+      chave,
+      nome,
+      cidade,
+      valor,
+      descricao: "Doacao TocaTexto",
+    });
+
+    if (el.donationPixAmountCaption) {
+      el.donationPixAmountCaption.textContent =
+        valor !== null
+          ? `QR Code PIX gerado para ${formatarBRL(valor)}`
+          : "QR Code PIX de valor livre (digite o valor no app do banco)";
+    }
+    if (el.donationCopyPasteInput) el.donationCopyPasteInput.value = codigoPix;
+    if (el.donationPixKeyText) el.donationPixKeyText.textContent = chave;
+    if (el.donationQrImage) {
+      const qrUrl = new URL("https://api.qrserver.com/v1/create-qr-code/");
+      qrUrl.searchParams.set("size", "220x220");
+      qrUrl.searchParams.set("data", codigoPix);
+      el.donationQrImage.src = qrUrl.toString();
+    }
+    if (el.donationPixResult) el.donationPixResult.classList.remove("hidden");
+  }
+
+  function abrirModalDoacao() {
+    if (!el.donationModal) return;
+    const temDoc = state.totalCaracteres > 0;
+    const sug = calcularSugestaoDoacaoLocal(state.totalCaracteres, state.motorServico);
+
+    if (el.donationContextBanner) {
+      if (temDoc) {
+        el.donationContextBanner.innerHTML =
+          `Seu texto: <strong class="font-mono text-white">${formatarInteiro(
+            sug.totalCaracteres
+          )} caracteres</strong> (~${formatarInteiro(sug.paginasEquivalentes)} pág. no ${
+            sug.motorRotulo
+          }) · Sugestão: <strong class="font-mono text-emerald-300">${formatarBRL(sug.valorSugerido)}</strong>`;
+        el.donationContextBanner.classList.remove("hidden");
+      } else {
+        el.donationContextBanner.classList.add("hidden");
+      }
+    }
+
+    if (el.donationChipSuggested) {
+      if (temDoc && sug.valorSugerido > 0) {
+        el.donationChipSuggested.textContent = `Sugerido (${formatarBRL(sug.valorSugerido)})`;
+        el.donationChipSuggested.classList.remove("hidden");
+      } else {
+        el.donationChipSuggested.classList.add("hidden");
+      }
+    }
+
+    if (el.donationAmountError) {
+      el.donationAmountError.classList.add("hidden");
+      el.donationAmountError.textContent = "";
+    }
+
+    const valorInicial = temDoc && sug.valorSugerido > 0 ? sug.valorSugerido : null;
+    if (el.donationAmountInput) {
+      el.donationAmountInput.value = valorInicial !== null ? valorInicial.toFixed(2).replace(".", ",") : "";
+    }
+    atualizarChipsDoacaoAtivo(valorInicial !== null ? "suggested" : null);
+    atualizarPixDoacaoNoModal(valorInicial);
+
+    if (!el.donationModal.open) {
+      el.donationModal.removeAttribute("data-closing");
+      el.donationModal.showModal();
+    }
+  }
+
+  function fecharModalDoacao() {
+    if (!el.donationModal || !el.donationModal.open) return;
+    closeTopLayerDialog(el.donationModal);
   }
 
   // ==========================================================================
@@ -4035,6 +4448,106 @@
     if (el.approvedDownloadOrderJsonBtn) {
       el.approvedDownloadOrderJsonBtn.addEventListener("click", baixarPedidoJsonLocal);
     }
+
+    if (el.openDonationModalBtn) {
+      el.openDonationModalBtn.addEventListener("click", abrirModalDoacao);
+    }
+
+    if (el.approvedOpenDonationBtn) {
+      el.approvedOpenDonationBtn.addEventListener("click", () => {
+        fecharModalPix();
+        setTimeout(() => abrirModalDoacao(), 80);
+      });
+    }
+
+    if (el.donationModal) {
+      configurarFallbackLightDismissDialog(el.donationModal);
+      el.donationModal.addEventListener("cancel", (event) => {
+        if (!supportsTopLayerExit()) {
+          event.preventDefault();
+          closeTopLayerDialog(el.donationModal);
+        }
+      });
+      el.donationModal.addEventListener("close", () => {
+        el.donationModal.removeAttribute("data-closing");
+        el.donationModal.returnValue = "";
+      });
+    }
+
+    if (el.closeDonationModalBtn) {
+      el.closeDonationModalBtn.addEventListener("click", fecharModalDoacao);
+    }
+
+    if (el.donationChipBtns) {
+      el.donationChipBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const chip = btn.getAttribute("data-donation-chip");
+          if (el.donationAmountError) el.donationAmountError.classList.add("hidden");
+          if (chip === "free") {
+            if (el.donationAmountInput) el.donationAmountInput.value = "";
+            atualizarChipsDoacaoAtivo(null);
+            atualizarPixDoacaoNoModal(null);
+            return;
+          }
+          let valNum = null;
+          if (chip === "suggested") {
+            const sug = calcularSugestaoDoacaoLocal(state.totalCaracteres, state.motorServico);
+            valNum = sug.valorSugerido > 0 ? sug.valorSugerido : null;
+          } else {
+            const parsed = parseValorDoacaoBRL(chip);
+            valNum = parsed.valido ? parsed.valor : null;
+          }
+          if (el.donationAmountInput) {
+            el.donationAmountInput.value = valNum !== null ? valNum.toFixed(2).replace(".", ",") : "";
+          }
+          atualizarChipsDoacaoAtivo(chip);
+          atualizarPixDoacaoNoModal(valNum);
+        });
+      });
+    }
+
+    if (el.donationAmountForm) {
+      el.donationAmountForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const parsed = parseValorDoacaoBRL(el.donationAmountInput?.value || "");
+        if (!parsed.valido) {
+          if (el.donationAmountError) {
+            el.donationAmountError.textContent = "Informe um valor válido em reais (ex.: 5,00) ou deixe vazio para valor livre.";
+            el.donationAmountError.classList.remove("hidden");
+          }
+          el.donationAmountInput?.focus();
+          return;
+        }
+        if (el.donationAmountError) el.donationAmountError.classList.add("hidden");
+        atualizarChipsDoacaoAtivo(parsed.valor === null ? null : String(parsed.valor));
+        atualizarPixDoacaoNoModal(parsed.valor);
+      });
+    }
+
+    if (el.copyDonationPixBtn) {
+      el.copyDonationPixBtn.addEventListener("click", () => {
+        if (!el.donationCopyPasteInput?.value) return;
+        navigator.clipboard?.writeText(el.donationCopyPasteInput.value).then(() => {
+          el.copyDonationPixBtn.textContent = "Copiado!";
+          setTimeout(() => {
+            el.copyDonationPixBtn.textContent = "Copiar";
+          }, 1800);
+        });
+      });
+    }
+
+    if (el.copyDonationKeyBtn) {
+      el.copyDonationKeyBtn.addEventListener("click", () => {
+        const chave = el.donationPixKeyText?.textContent || "";
+        if (!chave || chave === "--") return;
+        navigator.clipboard?.writeText(chave).then(() => {
+          el.copyDonationKeyBtn.textContent = "Copiada!";
+          setTimeout(() => {
+            el.copyDonationKeyBtn.textContent = "Copiar chave";
+          }, 1800);
+        });
+      });
+    }
   }
 
   function configurarObservadorAlturaHeader() {
@@ -4161,9 +4674,15 @@
     el.priceDisplay = document.getElementById("priceDisplay");
     el.estEngineSummary = document.getElementById("estEngineSummary");
     el.summaryDocStatus = document.getElementById("summaryDocStatus");
+    el.summaryCharCountRow = document.getElementById("summaryCharCountRow");
+    el.summaryCharCountVal = document.getElementById("summaryCharCountVal");
     el.summaryQuotaLabel = document.getElementById("summaryQuotaLabel");
     el.summaryQuotaStatus = document.getElementById("summaryQuotaStatus");
     el.priceFormulaHint = document.getElementById("priceFormulaHint");
+    el.donationSummaryBox = document.getElementById("donationSummaryBox");
+    el.donationSuggestedValue = document.getElementById("donationSuggestedValue");
+    el.donationSuggestedNote = document.getElementById("donationSuggestedNote");
+    el.openDonationModalBtn = document.getElementById("openDonationModalBtn");
     el.estConversionTime = document.getElementById("estConversionTime");
     el.estQueueStatus = document.getElementById("estQueueStatus");
     el.estConfigSummary = document.getElementById("estConfigSummary");
@@ -4196,6 +4715,10 @@
     el.approvedEtaText = document.getElementById("approvedEtaText");
     el.approvedEmailDisplay = document.getElementById("approvedEmailDisplay");
     el.approvedQuotaSummary = document.getElementById("approvedQuotaSummary");
+    el.approvedDonationInvite = document.getElementById("approvedDonationInvite");
+    el.approvedDonationText = document.getElementById("approvedDonationText");
+    el.approvedOpenDonationBtn = document.getElementById("approvedOpenDonationBtn");
+    el.approvedStageSubtitle = document.getElementById("approvedStageSubtitle");
     el.approvedWhatsappNotice = document.getElementById("approvedWhatsappNotice");
     el.approvedWhatsappPending = document.getElementById("approvedWhatsappPending");
     el.approvedWhatsappDone = document.getElementById("approvedWhatsappDone");
@@ -4203,6 +4726,23 @@
     el.approvedDownloadOrderJsonBtn = document.getElementById("approvedDownloadOrderJsonBtn");
     el.approvedCloseBtn = document.getElementById("approvedCloseBtn");
     el.modalWaClickToChatBtn = document.getElementById("modalWaClickToChatBtn");
+    el.donationModal = document.getElementById("donationModal");
+    el.closeDonationModalBtn = document.getElementById("closeDonationModalBtn");
+    el.donationContextBanner = document.getElementById("donationContextBanner");
+    el.donationAmountForm = document.getElementById("donationAmountForm");
+    el.donationChipSuggested = document.getElementById("donationChipSuggested");
+    el.donationChipBtns = document.querySelectorAll("[data-donation-chip]");
+    el.donationAmountInput = document.getElementById("donationAmountInput");
+    el.generateDonationPixBtn = document.getElementById("generateDonationPixBtn");
+    el.donationAmountError = document.getElementById("donationAmountError");
+    el.donationNotConfiguredNotice = document.getElementById("donationNotConfiguredNotice");
+    el.donationPixResult = document.getElementById("donationPixResult");
+    el.donationPixAmountCaption = document.getElementById("donationPixAmountCaption");
+    el.donationQrImage = document.getElementById("donationQrImage");
+    el.donationCopyPasteInput = document.getElementById("donationCopyPasteInput");
+    el.copyDonationPixBtn = document.getElementById("copyDonationPixBtn");
+    el.donationPixKeyText = document.getElementById("donationPixKeyText");
+    el.copyDonationKeyBtn = document.getElementById("copyDonationKeyBtn");
     el.voicePreviewAudio = document.getElementById("voicePreviewAudio");
   }
 
@@ -4220,6 +4760,7 @@
     atualizarLinkWhatsappClickToChat();
     atualizarFluxoEtapas(1);
     atualizarTextosComerciaisNaUI();
+    atualizarResumoPedido();
     atualizarSaldoCotaPorEmail(false);
     sincronizarStatusMotor();
     registrarEventos();

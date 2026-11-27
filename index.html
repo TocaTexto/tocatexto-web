@@ -83,17 +83,16 @@
         Sem assinatura e sem aplicativo exclusivo. Escolha entre o sintetizador de voz <strong class="text-amber-300">Solar (voz mais natural)</strong> ou o <strong class="text-cyan-300">Raio (síntese rápida)</strong>, com higienização automática em <strong class="text-white">Português e Inglês</strong> e entrega direta no seu E-mail ou WhatsApp.
       </p>
       <div class="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
-        <span id="heroXttsQuotaBadge" class="hero-minicard hero-minicard-emerald rounded-lg border px-3 py-1.5 font-semibold">🎁 Cota inicial grátis: 20.000 chars (~10 pág.) no Solar ou 10.000 chars (~5 pág.) no Raio</span>
-        <span id="heroXttsPriceBadge" class="hero-minicard hero-minicard-amber rounded-lg border px-3 py-1.5 font-semibold">☀️ Solar (Voz Natural): R$ 0,05 / 1.000 chars (mín. R$ 1,00)</span>
-        <span id="heroEdgePriceBadge" class="hero-minicard hero-minicard-cyan rounded-lg border px-3 py-1.5 font-semibold">⚡ Raio (Rápido): R$ 0,025 / 1.000 chars (mín. R$ 1,00)</span>
-        <span class="hero-minicard hero-minicard-neutral rounded-lg border px-3 py-1.5 font-medium">🎧 44 vozes Solar + 12 vozes Raio (PT-BR &amp; EN)</span>
+        <span id="heroXttsQuotaBadge" class="hero-minicard hero-minicard-emerald rounded-lg border px-3 py-1.5 font-semibold">💚 100% Gratuito · Sem assinatura e sem limites de cota</span>
+        <span id="heroXttsPriceBadge" class="hero-minicard hero-minicard-amber rounded-lg border px-3 py-1.5 font-semibold">☀️ Solar: Voz mais natural (44 vozes PT-BR &amp; EN)</span>
+        <span id="heroEdgePriceBadge" class="hero-minicard hero-minicard-cyan rounded-lg border px-3 py-1.5 font-semibold">⚡ Raio: Síntese rápida (12 vozes PT-BR &amp; EN)</span>
         <span class="hero-minicard hero-minicard-neutral rounded-lg border px-3 py-1.5 font-medium">⚡ Posse real do arquivo (.mp3 ou .zip)</span>
       </div>
     </section>
 
 
     <!-- BARRA DE JORNADA GUIADA CONGELADA NO TOPO AO ROLAR (compacta em 1 linha de 3 colunas no celular) -->
-    <nav id="flowStepper" aria-label="Etapas do pedido" class="sticky z-30 mb-5 rounded-xl border border-slate-800/90 bg-slate-900/90 p-1.5 shadow-xl transition-all duration-200 md:mb-8 md:rounded-2xl md:p-3">
+    <nav id="flowStepper" aria-label="Etapas da conversão" class="sticky z-30 mb-5 rounded-xl border border-slate-800/90 bg-slate-900/90 p-1.5 shadow-xl transition-all duration-200 md:mb-8 md:rounded-2xl md:p-3">
       <div class="grid grid-cols-3 gap-1.5 md:gap-2.5">
         <a href="#stepCard01" id="stepperItem01" aria-current="step" class="stepper-pill stepper-pill-active flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-500/10 px-2 py-1.5 transition md:justify-between md:rounded-xl md:px-4 md:py-2.5">
           <div class="flex min-w-0 items-center gap-1.5 md:gap-3">
@@ -143,7 +142,7 @@
           <span class="step-number-badge step-number-solid mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400 font-mono text-xs font-extrabold text-slate-950 shadow">01</span>
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <h2 class="text-base font-bold text-white sm:text-lg">Envie seu(s) documento(s) para calcular o prazo e o valor</h2>
+              <h2 id="step01Heading" class="text-base font-bold text-white sm:text-lg">Envie seu(s) documento(s) para calcular o prazo de conversão</h2>
               <span id="step01LivePill" class="step-live-indicator engine-live-pill shrink-0 whitespace-nowrap rounded-full border border-amber-400/50 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
                 ● Etapa atual
               </span>
@@ -204,9 +203,9 @@
             <span id="docChaptersSubnote" class="block text-[10px] text-slate-400 mt-0.5">Detectados na estrutura</span>
           </div>
           <div id="docPriceBox" class="rounded-lg border border-emerald-500/40 bg-emerald-950/40 p-2.5">
-            <span id="docPriceLabel" class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Valor Estimado</span>
+            <span id="docPriceLabel" class="block text-[11px] font-bold uppercase tracking-wider text-emerald-300">Acesso</span>
             <span id="docPriceCount" class="font-mono text-lg font-extrabold text-emerald-400">GRÁTIS</span>
-            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">Coberto pela cota inicial grátis (por caracteres)</span>
+            <span id="docPriceFormulaNote" class="block text-[10px] text-emerald-200/80 mt-0.5">100% gratuito · Doação opcional</span>
           </div>
         </div>
       </div>
@@ -231,7 +230,7 @@
           Clique para selecionar ou arraste seus arquivos (.PDF, .DOCX, .TXT ou .MD)
         </p>
         <p id="dropzoneSubtitleText" class="pointer-events-none mt-1 text-xs text-slate-400">
-          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres, prazo (Solar e Raio) e valor no navegador
+          Suporta seleção múltipla · Contagem instantânea de capítulos, caracteres e prazo (Solar e Raio) no navegador
         </p>
       </label>
 
@@ -293,8 +292,8 @@
 
       <!-- SELETOR DE SINTETIZADOR DE VOZ COM AVATARES DE CORPO INTEIRO: SOLAR vs RAIO -->
       <fieldset id="engineSelectorFieldset" class="mb-6 rounded-2xl border border-slate-800 bg-slate-950/75 p-3.5 sm:p-5">
-        <legend class="engine-accent-legend px-2 text-xs font-extrabold uppercase tracking-wider text-amber-300">
-          Sintetizador de Voz — Naturalidade vs. Velocidade &amp; Custo
+        <legend id="engineLegendText" class="engine-accent-legend px-2 text-xs font-extrabold uppercase tracking-wider text-amber-300">
+          Sintetizador de Voz — Naturalidade vs. Velocidade
         </legend>
 
         <div class="mb-2.5 flex items-center justify-between gap-2 px-0.5 text-[11px] text-slate-400">
@@ -443,13 +442,13 @@
                       </p>
                     </div>
                   </div>
-                  <span id="engineXttsQuotaTag" class="shrink-0 rounded-lg border border-amber-500/40 bg-amber-950/40 px-2 py-1 font-mono text-[10px] font-bold text-amber-300">
-                    R$ 0,05 / 1k
+                  <span id="engineXttsQuotaTag" class="shrink-0 rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-2 py-1 font-mono text-[10px] font-bold text-emerald-300">
+                    GRATUITO
                   </span>
                 </div>
 
                 <p class="mt-2.5 text-xs leading-relaxed text-slate-300">
-                  Entrega <strong class="text-white">voz mais natural e melhor cadência</strong>, indicado para leituras longas e mais confortável para ouvir por mais tempo. Por utilizar síntese neural mais expressiva, <strong class="text-amber-300">demora mais para gerar o áudio</strong>. <span id="engineXttsQuotaInline">Cota inicial grátis de 20.000 caracteres (~10 páginas); excedente cobrado por caractere via PIX (mín. R$ 1,00).</span>
+                  Entrega <strong class="text-white">voz mais natural e melhor cadência</strong>, indicado para leituras longas e mais confortável para ouvir por mais tempo. Por utilizar síntese neural mais expressiva, <strong class="text-amber-300">demora mais para gerar o áudio</strong>. <span id="engineXttsQuotaInline">Uso totalmente gratuito, sem limite de cota. Ao final, você pode apoiar o projeto com uma doação opcional.</span>
                 </p>
               </div>
             </div>
@@ -459,7 +458,7 @@
                 ⏱️ Envie um texto p/ estimar
               </span>
               <span id="engineXttsPriceBadge" class="font-mono font-bold text-emerald-300">
-                💰 Grátis até 20.000 chars (~10 pág.)
+                💚 100% Gratuito
               </span>
             </div>
           </label>
@@ -579,13 +578,13 @@
                       </p>
                     </div>
                   </div>
-                  <span id="engineEdgeQuotaTag" class="shrink-0 rounded-lg border border-cyan-500/45 bg-cyan-950/50 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
-                    R$ 0,025 / 1k
+                  <span id="engineEdgeQuotaTag" class="shrink-0 rounded-lg border border-emerald-500/45 bg-emerald-950/50 px-2 py-1 font-mono text-[10px] font-bold text-emerald-300">
+                    GRATUITO
                   </span>
                 </div>
 
                 <p class="mt-2.5 text-xs leading-relaxed text-slate-300">
-                  Síntese <strong class="text-cyan-300">muito mais rápida</strong> para entregas ágeis. <strong class="text-white">A voz é mais sintética</strong> em comparação ao Solar, <strong class="text-emerald-300">porém continua clara e agradável para ouvir e estudar</strong>. <span id="engineEdgeQuotaInline">Cota inicial grátis de 10.000 caracteres (~5 páginas); excedente cobrado por caractere via PIX (mín. R$ 1,00).</span>
+                  Síntese <strong class="text-cyan-300">muito mais rápida</strong> para entregas ágeis. <strong class="text-white">A voz é mais sintética</strong> em comparação ao Solar, <strong class="text-emerald-300">porém continua clara e agradável para ouvir e estudar</strong>. <span id="engineEdgeQuotaInline">Uso totalmente gratuito, sem limite de cota. Ao final, você pode apoiar o projeto com uma doação opcional.</span>
                 </p>
               </div>
             </div>
@@ -594,8 +593,8 @@
               <span id="engineEdgeEtaBadge" class="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-950/35 px-2.5 py-1 font-mono font-semibold text-cyan-200">
                 ⚡ Envie um texto p/ estimar
               </span>
-              <span id="engineEdgePriceBadge" class="font-mono font-bold text-cyan-300">
-                💰 Grátis até 10.000 chars (~5 pág.)
+              <span id="engineEdgePriceBadge" class="font-mono font-bold text-emerald-300">
+                💚 100% Gratuito
               </span>
             </div>
           </label>
@@ -906,7 +905,7 @@
     <div class="my-3 flex flex-col items-center justify-center" aria-hidden="true">
       <div id="connector02to03" class="step-connector flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 text-center text-xs font-semibold text-slate-400 sm:rounded-full sm:px-4 sm:py-1">
         <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
-        <span id="connector02Text">Último passo: informe onde entregar seu audiobook e confirme o pedido</span>
+        <span id="connector02Text">Último passo: informe onde receber seu audiobook e inicie a conversão</span>
         <span class="step-arrow-cue engine-accent-arrow shrink-0 text-amber-400">↓</span>
       </div>
     </div>
@@ -1068,8 +1067,8 @@
           </div>
 
 
-          <!-- SUBCARD DE CRÉDITO INICIAL GRATUITO (ABAIXO DO WHATSAPP E EM COR ÍNDIGO/VIOLETA DISTINTA) -->
-          <div id="quotaStatusBox" class="quota-credit-card rounded-xl border px-3.5 py-3 text-xs">
+          <!-- SUBCARD DE CRÉDITO INICIAL GRATUITO (oculto no modo gratuito+doação; exibido apenas em modo comercial) -->
+          <div id="quotaStatusBox" class="quota-credit-card hidden rounded-xl border px-3.5 py-3 text-xs">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span id="quotaStatusTitle" class="quota-credit-title font-semibold">🎁 Crédito Inicial Gratuito por Caracteres (compartilhado)</span>
               <span id="quotaBalanceBadge" class="quota-credit-badge font-mono font-bold">20.000 chars (~10 pág.) Solar · 10.000 chars (~5 pág.) Raio</span>
@@ -1099,8 +1098,9 @@
                 <span class="block mt-1 text-slate-400">
                   1. <strong>Natureza Tecnológica:</strong> Conversão por síntese neural de voz (sintetizadores Solar ou Raio), sujeita a variações pontuais de entonação e siglas.<br />
                   2. <strong>Responsabilidade do Conteúdo:</strong> Declaro possuir titularidade ou fazer uso privado para estudo pessoal (art. 46, Lei 9.610/98).<br />
-                  3. <strong>Prazo e Validade:</strong> Entrega assíncrona por E-mail e WhatsApp no prazo estimado. Link de download ativo por <span id="termsLinkDias">7</span> dias.<br />
-                  4. <strong>Produtos Digitais:</strong> Serviço sob demanda imediata (<span id="termsPricingDetail">cota inicial gratuita por caracteres compartilhada entre os sintetizadores de voz — <span id="termsQuotaChars">20.000</span> caracteres (~10 páginas) no Solar ou 10.000 caracteres (~5 páginas) no Raio — e pagamento via PIX no excedente, mín. R$ 1,00</span>), sem cancelamento após confirmação.
+                  3. <strong>Prazo e Validade:</strong> Entrega assíncrona gratuita por E-mail e WhatsApp no prazo estimado. Link de download ativo por <span id="termsLinkDias">7</span> dias.<br />
+                  <span id="termsItem4Gratuito">4. <strong>Serviço Gratuito e Doação Voluntária:</strong> O TocaTexto é disponibilizado gratuitamente, sem cobrança, taxa ou vínculo comercial. Eventuais contribuições via PIX são doações espontâneas, opcionais e incondicionais de apoio à manutenção do projeto, não configurando compra, venda ou contratação remunerada de serviço.</span>
+                  <span id="termsItem4Comercial" class="hidden">4. <strong>Produtos Digitais:</strong> Serviço sob demanda imediata (<span id="termsPricingDetail">cota inicial gratuita por caracteres compartilhada entre os sintetizadores de voz — <span id="termsQuotaChars">20.000</span> caracteres (~10 páginas) no Solar ou 10.000 caracteres (~5 páginas) no Raio — e pagamento via PIX no excedente, mín. R$ 1,00</span>), sem cancelamento após confirmação.</span>
                 </span>
               </span>
             </label>
@@ -1118,44 +1118,67 @@
             type="submit"
             class="w-full rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3.5 text-sm font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Iniciar Conversão Gratuita (Cota Inicial)
+            ☀️ Iniciar Conversão Gratuita (Solar)
           </button>
         </form>
       </section>
 
 
-      <!-- COLUNA DIREITA: CARD DE RESUMO FINANCEIRO & PREVISÃO DINÂMICA DE ENTREGA -->
-      <aside class="lg:col-span-5" aria-label="Resumo do pedido e previsão de entrega">
+      <!-- COLUNA DIREITA: CARD DE RESUMO, DOAÇÃO OPCIONAL & PREVISÃO DINÂMICA DE ENTREGA -->
+      <aside class="lg:col-span-5" aria-label="Resumo da conversão e previsão de entrega">
         <section id="summaryStickyCard" class="sticky top-36 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-900 to-slate-950 p-4 shadow-2xl sm:p-6">
           <div class="flex items-start justify-between border-b border-slate-800 pb-4">
             <div>
               <span id="summaryEyebrowLabel" class="engine-accent-label text-[11px] font-bold uppercase tracking-wider text-amber-400">Resumo &amp; Previsão Dinâmica</span>
-              <h2 class="text-lg font-extrabold text-white">⏱️ Seu Audiobook Sob Demanda</h2>
+              <h2 id="summaryMainTitle" class="text-lg font-extrabold text-white">⏱️ Seu Audiobook</h2>
             </div>
             <div class="text-right">
-              <span id="summaryPriceLabel" class="block text-[11px] text-slate-400">Valor do Pedido</span>
+              <span id="summaryPriceLabel" class="block text-[11px] text-slate-400">Acesso</span>
               <span id="priceDisplay" class="inline-block font-mono text-2xl font-extrabold text-emerald-400 transition-transform duration-300">GRÁTIS</span>
             </div>
           </div>
 
-          <!-- Memória de Cálculo Transparente (Serviço + Cota Grátis + Excedente PIX) -->
+          <!-- Resumo de Caracteres & Sintetizador (no modo comercial exibe também Cota e Fórmula) -->
           <div class="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 px-3.5 py-2.5 text-xs">
             <div class="flex items-center justify-between gap-2 text-slate-300">
               <span>• Sintetizador de voz:</span>
               <span id="estEngineSummary" class="font-mono font-bold text-amber-300">☀️ Solar (Voz Natural)</span>
             </div>
             <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
-              <span>• Documento(s) no pedido:</span>
+              <span id="summaryDocLabel">• Documento(s):</span>
               <span id="summaryDocStatus" class="font-mono font-semibold text-slate-400">Aguardando arquivo...</span>
             </div>
-            <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
+            <div id="summaryCharCountRow" class="mt-1 flex items-center justify-between gap-2 text-slate-300">
+              <span>• Contagem de texto:</span>
+              <span id="summaryCharCountVal" class="font-mono font-semibold text-emerald-300">0 chars (~0 pág.)</span>
+            </div>
+            <div id="summaryQuotaRow" class="mt-1 hidden flex items-center justify-between gap-2 text-slate-300">
               <span id="summaryQuotaLabel">• Cota grátis (chars):</span>
               <span id="summaryQuotaStatus" class="font-mono text-[11px] font-semibold text-emerald-300">20.000 chars (~10 pág.)</span>
             </div>
-            <div class="mt-1 flex items-center justify-between gap-2 text-slate-300">
+            <div id="summaryFormulaRow" class="mt-1 hidden flex items-center justify-between gap-2 text-slate-300">
               <span>• Cálculo de cobrança:</span>
               <span id="priceFormulaHint" class="font-mono text-[11px] text-emerald-300">100% coberto pela cota grátis</span>
             </div>
+          </div>
+
+          <!-- Card de Sugestão de Doação Voluntária (visível no modo gratuito+doação) -->
+          <div id="donationSummaryBox" class="donation-summary-box mt-3 rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-3 text-xs">
+            <div class="flex items-center justify-between gap-2">
+              <span class="donation-summary-title font-bold text-emerald-300">💚 Apoie o TocaTexto (Opcional)</span>
+              <span id="donationSuggestedValue" class="donation-summary-badge font-mono text-sm font-extrabold text-emerald-300">Sugestão: --</span>
+            </div>
+            <p id="donationSuggestedNote" class="donation-summary-note mt-1 text-[11px] leading-relaxed text-slate-300">
+              Serviço 100% gratuito. Envie seus arquivos para ver a sugestão proporcional em páginas, ou doe qualquer valor via PIX se quiser apoiar.
+            </p>
+            <button
+              id="openDonationModalBtn"
+              type="button"
+              class="donation-cta-btn mt-2.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950"
+            >
+              <span aria-hidden="true">💚</span>
+              <span>Quero doar via PIX (Opcional)</span>
+            </button>
           </div>
 
           <div class="mt-4 space-y-2.5 text-xs">
@@ -1186,7 +1209,7 @@
           <div id="estDeliveryBox" class="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
             <p id="estDeliveryLabel" class="text-[11px] font-semibold uppercase tracking-wider text-amber-300">🚀 Seu áudio será entregue até</p>
             <p id="estDeliveryClock" class="mt-0.5 font-mono text-xl font-extrabold text-white">Aguardando documento...</p>
-            <p id="estDeliverySubtext" class="mt-0.5 text-[11px] text-slate-300">Entrega simultânea por E-mail e WhatsApp (link ativo por 7 dias)</p>
+            <p id="estDeliverySubtext" class="mt-0.5 text-[11px] text-slate-300">Entrega gratuita por E-mail e WhatsApp (link ativo por 7 dias)</p>
           </div>
         </section>
       </aside>
@@ -1303,7 +1326,7 @@
             ✓
           </div>
           <p id="approvedStageSubtitle" class="mx-auto max-w-sm text-sm leading-relaxed text-slate-300">
-            Seu pedido já entrou na fila de conversão. Você pode fechar esta página com tranquilidade.
+            Seu audiobook já entrou na fila gratuita de conversão. Você pode fechar esta página com tranquilidade.
           </p>
           <div class="pt-0.5">
             <span id="approvedEngineLabel" class="confirm-engine-pill inline-flex items-center rounded-full border border-slate-700/80 bg-slate-950/75 px-3 py-1 text-xs font-medium text-slate-300">
@@ -1342,6 +1365,25 @@
         </div>
 
         <p id="approvedQuotaSummary" class="hidden text-center text-xs leading-relaxed text-slate-400"></p>
+
+        <!-- Convite discreto de doação voluntária no modal de confirmação -->
+        <div id="approvedDonationInvite" class="donation-summary-box hidden rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-4 py-3 text-left text-xs leading-relaxed">
+          <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="donation-summary-title font-bold text-emerald-300">💚 Serviço 100% gratuito — quer apoiar?</p>
+              <p id="approvedDonationText" class="donation-summary-note mt-0.5 text-[11px] text-slate-300">
+                Se este audiobook te ajudar, você pode fazer uma doação opcional via PIX do valor que preferir.
+              </p>
+            </div>
+            <button
+              id="approvedOpenDonationBtn"
+              type="button"
+              class="donation-cta-btn inline-flex shrink-0 items-center justify-center rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500 hover:text-slate-950"
+            >
+              💚 Apoiar via PIX
+            </button>
+          </div>
+        </div>
 
         <!-- Aviso discreto de WhatsApp (exibido apenas se o usuário informou WhatsApp) -->
         <div id="approvedWhatsappNotice" class="hidden rounded-xl border border-emerald-500/30 bg-emerald-950/20 px-4 py-3 text-left text-xs leading-relaxed text-slate-300">
@@ -1387,6 +1429,122 @@
         >
           Entendi, fechar
         </button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <!-- MODAL NATIVO (<dialog>) DE DOAÇÃO VOLUNTÁRIA VIA PIX ESTÁTICO -->
+  <dialog id="donationModal" closedby="any" aria-labelledby="donationModalTitle" class="pix-dialog w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-0 text-slate-100 shadow-2xl">
+    <div class="p-6 sm:p-7">
+      <div class="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
+        <div class="min-w-0">
+          <span class="inline-block font-mono text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Contribuição Voluntária · Sem Obrigação</span>
+          <h1 id="donationModalTitle" class="mt-0.5 text-lg font-extrabold tracking-tight text-white">Apoie o TocaTexto via PIX</h1>
+        </div>
+        <button id="closeDonationModalBtn" type="button" aria-label="Fechar janela de doação" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white">
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <p class="text-xs leading-relaxed text-slate-300">
+          O TocaTexto é <strong class="text-emerald-300">100% gratuito</strong>. Se o audiobook te ajudar e você quiser contribuir para manter os servidores e a síntese de voz no ar, informe qualquer valor abaixo ou gere um QR Code de valor livre.
+        </p>
+
+        <div id="donationContextBanner" class="hidden rounded-xl border border-emerald-500/35 bg-emerald-950/20 px-3.5 py-2.5 text-xs text-slate-200">
+          <!-- Preenchido dinamicamente por app.js com caracteres, páginas e sugestão -->
+        </div>
+
+        <form id="donationAmountForm" class="space-y-3" novalidate>
+          <div>
+            <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Escolha rápida ou valor personalizado</p>
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="Valores rápidos de doação">
+              <button type="button" id="donationChipSuggested" data-donation-chip="suggested" class="donation-chip-btn hidden rounded-lg border border-emerald-500/45 bg-emerald-500/15 px-2.5 py-1.5 font-mono text-xs font-bold text-emerald-300 transition">Sugerido</button>
+              <button type="button" data-donation-chip="5" class="donation-chip-btn rounded-lg border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-200 transition hover:border-emerald-400">R$ 5,00</button>
+              <button type="button" data-donation-chip="10" class="donation-chip-btn rounded-lg border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-200 transition hover:border-emerald-400">R$ 10,00</button>
+              <button type="button" data-donation-chip="20" class="donation-chip-btn rounded-lg border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-200 transition hover:border-emerald-400">R$ 20,00</button>
+              <button type="button" data-donation-chip="free" class="donation-chip-btn rounded-lg border border-slate-700 bg-slate-950/70 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-emerald-400">Valor livre</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="donationAmountInput" class="mb-1 block text-xs font-semibold text-slate-200">
+              Valor da doação em R$ (opcional — deixe vazio para valor livre no app do banco)
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="donationAmountInput"
+                name="donation_amount"
+                type="text"
+                inputmode="decimal"
+                autofocus
+                placeholder="Ex.: 5,00 (ou vazio = valor livre)"
+                class="form-text-input flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2 text-sm font-mono text-white placeholder-slate-500"
+              />
+              <button
+                id="generateDonationPixBtn"
+                type="submit"
+                class="shrink-0 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-extrabold text-slate-950 shadow hover:bg-emerald-400 transition"
+              >
+                Gerar PIX
+              </button>
+            </div>
+            <p id="donationAmountError" role="alert" class="mt-1.5 hidden text-xs text-red-300"></p>
+          </div>
+        </form>
+
+        <div id="donationNotConfiguredNotice" class="hidden rounded-xl border border-amber-500/40 bg-amber-950/30 p-3.5 text-xs text-amber-200">
+          A chave PIX de doações ainda não foi configurada pelo administrador. Assim que configurada, o QR Code aparecerá aqui automaticamente.
+        </div>
+
+        <div id="donationPixResult" class="hidden space-y-3.5 border-t border-slate-800/80 pt-4 text-center">
+          <p id="donationPixAmountCaption" class="text-xs font-semibold text-emerald-300">
+            QR Code PIX gerado
+          </p>
+
+          <div class="mx-auto flex h-48 w-48 items-center justify-center rounded-xl border border-slate-700 bg-white p-3">
+            <img id="donationQrImage" alt="QR Code PIX para doação voluntária ao TocaTexto" class="h-full w-full object-contain" src="" />
+          </div>
+
+          <div class="text-left">
+            <label for="donationCopyPasteInput" class="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">PIX Copia e Cola</label>
+            <div class="flex gap-2">
+              <input
+                id="donationCopyPasteInput"
+                name="donation_pix_copy_paste"
+                type="text"
+                readonly
+                class="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-200"
+              />
+              <button
+                id="copyDonationPixBtn"
+                type="button"
+                class="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400"
+              >
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-left text-xs">
+            <div class="min-w-0">
+              <span class="block text-[10px] uppercase tracking-wider text-slate-400">Chave PIX</span>
+              <span id="donationPixKeyText" class="font-mono text-xs font-semibold text-slate-200 break-all">--</span>
+            </div>
+            <button
+              id="copyDonationKeyBtn"
+              type="button"
+              class="shrink-0 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-slate-700"
+            >
+              Copiar chave
+            </button>
+          </div>
+
+          <p class="text-[11px] text-slate-400">
+            Doação 100% opcional e independente da geração do seu audiobook.
+          </p>
+        </div>
       </div>
     </div>
   </dialog>

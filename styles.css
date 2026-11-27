@@ -1479,6 +1479,12 @@ dialog.pix-dialog:modal {
   overscroll-behavior: contain;
 }
 
+.donation-chip-btn.active-chip {
+  border-color: rgba(52, 211, 153, 0.85);
+  background-color: rgba(16, 185, 129, 0.22);
+  color: #6ee7b7;
+}
+
 dialog.pix-dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
@@ -2079,6 +2085,43 @@ dialog.pix-dialog[open]:where(:not([data-closing])) {
     border-color: #dc2626 !important;
     background-color: #fef2f2 !important;
     box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .donation-summary-box {
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 100%) !important;
+    border-color: #10b981 !important;
+  }
+
+  .donation-summary-title,
+  .donation-summary-badge {
+    color: #047857 !important;
+  }
+
+  .donation-summary-note {
+    color: #334155 !important;
+  }
+
+  .donation-cta-btn {
+    background-color: #059669 !important;
+    border-color: #047857 !important;
+    color: #ffffff !important;
+  }
+
+  .donation-cta-btn:hover {
+    background-color: #047857 !important;
+    color: #ffffff !important;
+  }
+
+  .donation-chip-btn {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  .donation-chip-btn.active-chip {
+    background-color: #d1fae5 !important;
+    border-color: #059669 !important;
+    color: #065f46 !important;
   }
 
   .field-validation-error,
