@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v19_00_whatsapp_oculto_por_flag)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v20_00_reset_cache_e_status_raio)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
@@ -206,6 +206,9 @@
     heartbeatEpoch: Math.floor(Date.now() / 1000),
     calibracaoCpu: null,
     calibracaoEdge: null,
+    edgeDisponivel: true,
+    solarEmProducao: 0,
+    edgeEmProducao: 0,
     filaPedidosFrente: 0,
     filaMinutosFrente: 0,
     filaPedidosFrenteEdge: 0,
@@ -469,22 +472,100 @@
     }
   }
 
-  function coletarMetaSessao(opcoes = {}) {
-    const pixConfirmadoVisivel =
-      opcoes.forcarPixConfirmado === true ||
-      Boolean(
-        el.pixModal?.open &&
-          el.pixApprovedStage &&
-          !el.pixApprovedStage.classList.contains("hidden")
-      );
-    const donationAberto =
-      opcoes.forcarDonationAberto !== undefined
-        ? Boolean(opcoes.forcarDonationAberto)
-        : Boolean(el.donationModal?.open);
-    const manterPedido = Boolean((pixConfirmadoVisivel || state.reabrirPixAoFecharDoacao) && state.ultimoPedidoCriado);
+  function limparMetaSessaoStorage() {
+    if (_draftMetaTimerId !== null) {
+      clearTimeout(_draftMetaTimerId);
+      _draftMetaTimerId = null;
+    }
+    try {
+      window.sessionStorage.removeItem(STORAGE_DRAFT_META_KEY);
+    } catch (_e) {}
+    try {
+      window.localStorage.removeItem(STORAGE_DRAFT_META_KEY);
+    } catch (_e) {}
+  }
 
+  function limparCacheSessaoCompleto() {
+    limparMetaSessaoStorage();
+    salvarArquivosNoIndexedDb([]);
+  }
+
+  function temRascunhoPendenteParaPersistir() {
+    const temArquivos = Array.isArray(state.arquivos) && state.arquivos.length > 0;
+    const temCampos = Boolean(
+      (el.clientName?.value || "").trim() ||
+        (el.clientEmail?.value || "").trim() ||
+        (el.clientEmailConfirm?.value || "").trim() ||
+        (el.clientWhatsapp?.value || "").trim()
+    );
+    const pixAguardandoPagamento = Boolean(
+      el.pixModal?.open &&
+        el.pixPendingStage &&
+        !el.pixPendingStage.classList.contains("hidden")
+    );
+    return temArquivos || temCampos || pixAguardandoPagamento;
+  }
+
+  function resetarFormularioAposEnvio(pedRef = null) {
+    // [web_v20_00] Assim que o pedido é enviado/confirmado, zera imediatamente o cache (IndexedDB + Storage)
+    // e limpa a página por trás do modal de confirmação, preservando apenas state.ultimoPedidoCriado
+    // enquanto o modal aberto exibir resumo / sugestão de doação.
+    if (pedRef && pedRef._rascunhoLimpo) {
+      limparCacheSessaoCompleto();
+      return;
+    }
+    if (pedRef) {
+      pedRef._rascunhoLimpo = true;
+    }
+    _restaurandoSessao = true;
+    try {
+      limparCacheSessaoCompleto();
+      state.arquivos = [];
+      state.validacaoIdiomaTentada = false;
+      state.vozesCapitulos = {};
+      state.janelaWhatsappAtiva = false;
+      recalcularAgregadosDocumentos();
+
+      if (el.fileInput) el.fileInput.value = "";
+      if (el.ocrErrorAlert) el.ocrErrorAlert.classList.add("hidden");
+      if (el.formValidationError) {
+        el.formValidationError.classList.add("hidden");
+        delete el.formValidationError.dataset.langOnly;
+      }
+      if (el.clientName) {
+        el.clientName.value = "";
+        el.clientName.classList.remove("field-validation-error");
+      }
+      if (el.clientEmail) {
+        el.clientEmail.value = "";
+        el.clientEmail.classList.remove("field-validation-error");
+      }
+      if (el.clientEmailConfirm) {
+        el.clientEmailConfirm.value = "";
+        el.clientEmailConfirm.classList.remove("field-validation-error");
+        el.clientEmailConfirm.setCustomValidity("");
+      }
+      if (el.clientWhatsapp) {
+        el.clientWhatsapp.value = "";
+      }
+      if (el.waActivatedBadge) el.waActivatedBadge.classList.add("hidden");
+      if (el.termsCheckbox) el.termsCheckbox.checked = false;
+      if (el.termsBox) el.termsBox.classList.remove("field-validation-error");
+
+      atualizarCardsResumoDocumentos(false);
+      renderizarMapeadorCapitulos();
+      atualizarLinkWhatsappClickToChat();
+      validarConfirmacaoEmail();
+      atualizarFluxoEtapas(1, true);
+      atualizarResumoPedido();
+    } finally {
+      _restaurandoSessao = false;
+    }
+  }
+
+  function coletarMetaSessao(opcoes = {}) {
     return {
-      versao: 1,
+      versao: 2,
       atualizadoEm: Date.now(),
       motorServico: state.motorServico,
       idioma: state.idioma,
@@ -503,16 +584,16 @@
       janelaWhatsappAtiva: Boolean(state.janelaWhatsappAtiva),
       termsAccepted: Boolean(el.termsCheckbox?.checked),
       etapaAtiva: state.etapaAtiva,
-      pixModalAbertoConfirmado: pixConfirmadoVisivel,
-      donationModalAberto: donationAberto && (pixConfirmadoVisivel || state.reabrirPixAoFecharDoacao),
-      reabrirPixAoFecharDoacao: Boolean(state.reabrirPixAoFecharDoacao),
-      ultimoPedidoCriado: manterPedido ? state.ultimoPedidoCriado : null,
       focoRetorno: opcoes.focoRetorno || null,
     };
   }
 
   function persistirMetaSessaoAgora(opcoes = {}) {
     if (_restaurandoSessao) return;
+    if (!temRascunhoPendenteParaPersistir()) {
+      limparMetaSessaoStorage();
+      return;
+    }
     try {
       const payload = JSON.stringify(coletarMetaSessao(opcoes));
       try {
@@ -561,10 +642,14 @@
     try {
       const parsed = JSON.parse(bruto);
       if (!parsed || typeof parsed !== "object") return null;
+      // [web_v20_00] Descarta caches legados (versao < 2) ou já marcados como confirmados
+      if (Number(parsed.versao || 0) < 2 || parsed.pixModalAbertoConfirmado === true) {
+        limparCacheSessaoCompleto();
+        return null;
+      }
       const idade = Date.now() - Number(parsed.atualizadoEm || 0);
       if (!Number.isFinite(idade) || idade > DRAFT_TTL_MS) {
-        try { window.sessionStorage.removeItem(STORAGE_DRAFT_META_KEY); } catch (_e) {}
-        try { window.localStorage.removeItem(STORAGE_DRAFT_META_KEY); } catch (_e) {}
+        limparCacheSessaoCompleto();
         return null;
       }
       return parsed;
@@ -669,38 +754,23 @@
         atualizarLinkWhatsappClickToChat();
         validarConfirmacaoEmail();
         atualizarResumoPedido();
-
-        const idadeMeta = Date.now() - Number(meta.atualizadoEm || 0);
-        const reabrirConfirmacao = Boolean(
-          meta.pixModalAbertoConfirmado &&
-            meta.ultimoPedidoCriado &&
-            idadeMeta <= CONFIRM_MODAL_TTL_MS
-        );
-        if (reabrirConfirmacao) {
-          const pedSalvo = meta.ultimoPedidoCriado;
-          if (state.janelaWhatsappAtiva && pedSalvo.cliente) {
-            pedSalvo.cliente.janela_whatsapp_ativa = true;
-          }
-          abrirModalPix(pedSalvo, {
-            pedido: pedSalvo,
-            status: "na_fila",
-            pedido_gratuito: true,
-          });
-          if (meta.donationModalAberto) {
-            abrirModalDoacao({ retornoParaPix: true });
-          }
-        }
       } finally {
         _restaurandoSessao = false;
       }
 
-      if (focoRetorno === "stepCard03" && !meta.pixModalAbertoConfirmado) {
+      if (focoRetorno === "stepCard03") {
         // Limpa a flag de salto único para não forçar scroll em recargas futuras
         persistirMetaSessaoAgora({ focoRetorno: null });
         requestAnimationFrame(() => {
           el.stepCard03?.scrollIntoView({ behavior: "auto", block: "start" });
         });
       }
+    }
+
+    // [web_v20_00] Só restaura arquivos do IndexedDB se houver rascunho ativo pendente (não enviado)
+    if (!meta) {
+      salvarArquivosNoIndexedDb([]);
+      return;
     }
 
     // Restaura arquivos anexados (objetos File reais) do IndexedDB de forma assíncrona
@@ -1480,6 +1550,7 @@
         }
         if (hb.calibracao_edge && typeof hb.calibracao_edge === "object") {
           state.calibracaoEdge = hb.calibracao_edge;
+          state.edgeDisponivel = hb.calibracao_edge.disponivel !== false;
         }
         const fila = data?.fila || hb.fila;
         if (fila && typeof fila === "object") {
@@ -1487,13 +1558,20 @@
           state.filaMinutosFrente = Math.max(0, Number(fila.minutos_estimados || 0));
           state.filaPedidosFrenteEdge = Math.max(0, Number(fila.pedidos_pendentes_edge || 0));
           state.filaMinutosFrenteEdge = Math.max(0, Number(fila.minutos_estimados_edge || 0));
+          state.solarEmProducao = Math.max(0, Number(fila.em_processamento_solar || 0));
+          state.edgeEmProducao = Math.max(
+            0,
+            Number(fila.em_processamento_edge ?? hb.calibracao_edge?.pedidos_ativos ?? 0)
+          );
         }
         if (el.heartbeatDot && el.heartbeatText) {
           el.heartbeatDot.className = state.heartbeatOnline
             ? "h-2 w-2 shrink-0 rounded-full bg-emerald-400 motion-pulse sm:h-2.5 sm:w-2.5"
             : "h-2 w-2 shrink-0 rounded-full bg-amber-400 sm:h-2.5 sm:w-2.5";
           el.heartbeatText.textContent = state.heartbeatOnline
-            ? "Sintetizador online · Solar & Raio prontos"
+            ? state.edgeDisponivel
+              ? "Sintetizador online · Solar & Raio prontos"
+              : "Sintetizador online · Solar pronto (Raio indisponível)"
             : "Sintetizador em espera (janela programada)";
           if (el.heartbeatTextMobile) {
             el.heartbeatTextMobile.textContent = state.heartbeatOnline
@@ -3799,13 +3877,20 @@
     }
 
     if (el.estQueueStatus) {
-      if (filaPed <= 0) {
+      const emProdMotor = isEdge ? state.edgeEmProducao : state.solarEmProducao;
+      if (isEdge && !state.edgeDisponivel) {
+        el.estQueueStatus.textContent = "Motor Raio indisponível no momento";
+        el.estQueueStatus.className = "font-mono font-semibold text-rose-300";
+      } else if (filaPed <= 0) {
         el.estQueueStatus.textContent = isEdge
           ? "Livre (processamento imediato)"
           : ehModoGratuitoDoacao()
           ? "Livre (fila imediata)"
           : "Livre (0 pedidos na frente)";
         el.estQueueStatus.className = "font-mono font-semibold text-emerald-300";
+      } else if (filaPed === 1 && emProdMotor >= 1) {
+        el.estQueueStatus.textContent = `1 em produção (+${filaMin} min)`;
+        el.estQueueStatus.className = "font-mono font-semibold text-amber-300";
       } else {
         el.estQueueStatus.textContent = ehModoGratuitoDoacao()
           ? `${filaPed} na fila (+${filaMin} min)`
@@ -4233,8 +4318,9 @@
       el.pixModal.removeAttribute("data-closing");
       el.pixModal.showModal();
     }
-    if (ehGratuito) {
-      persistirMetaSessaoAgora({ forcarPixConfirmado: true });
+    if (!ehGratuito) {
+      // Em modo comercial aguardando PIX, mantém o rascunho salvo caso o usuário troque para o app do banco
+      persistirMetaSessaoAgora();
     }
     if (ehGratuito && el.approvedCloseBtn) {
       requestAnimationFrame(() => {
@@ -4358,9 +4444,9 @@
       el.localApprovedActions.classList.toggle("hidden", Boolean(CONFIG_COMERCIAL.API_BASE_URL) || !gratuito);
     }
 
-    if (el.pixModal?.open) {
-      persistirMetaSessaoAgora({ forcarPixConfirmado: true });
-    }
+    // [web_v20_00] Pedido enviado e confirmado: zera imediatamente o cache e limpa o formulário da página
+    resetarFormularioAposEnvio(ped);
+    sincronizarStatusMotor(true);
 
     if (el.pixModal?.open && el.approvedCloseBtn) {
       requestAnimationFrame(() => {
@@ -4564,10 +4650,10 @@
       el.donationModal.removeAttribute("data-closing");
       el.donationModal.showModal();
     }
-    persistirMetaSessaoAgora({
-      forcarPixConfirmado: origemConfirmacao,
-      forcarDonationAberto: true,
-    });
+    if (!origemConfirmacao && temRascunhoPendenteParaPersistir()) {
+      // [web_v20_00] Antes do envio do pedido, preserva o rascunho atual caso o usuário abra o app do banco para doar
+      agendarPersistenciaSessao({ incluirArquivos: true, imediato: true });
+    }
     garantirChavePixDoacaoERenderizar(valorInicial);
   }
 
@@ -5071,10 +5157,13 @@
         el.pixModal.removeAttribute("data-closing");
         el.pixModal.returnValue = "";
         if (!state.reabrirPixAoFecharDoacao) {
-          persistirMetaSessaoAgora({
-            forcarPixConfirmado: false,
-            forcarDonationAberto: false,
-          });
+          if (state.ultimoPedidoCriado?._rascunhoLimpo) {
+            state.ultimoPedidoCriado = null;
+            limparCacheSessaoCompleto();
+            sincronizarStatusMotor(true);
+          } else {
+            persistirMetaSessaoAgora();
+          }
         }
       });
     }
