@@ -1351,6 +1351,9 @@
               <p class="text-xs leading-relaxed text-slate-400">
                 Enviaremos para: <strong id="approvedEmailDisplay" class="font-mono font-medium text-slate-200 break-all">--</strong>
               </p>
+              <p id="approvedConfirmationEmailHint" class="text-[11px] leading-relaxed text-emerald-300/90">
+                ✓ Enviamos agora um e-mail de confirmação com estas informações. Assim que finalizar, você receberá um segundo e-mail com o seu audiobook.
+              </p>
             </div>
           </div>
 
@@ -1563,6 +1566,14 @@
             Doação 100% opcional e independente da geração do seu audiobook.
           </p>
         </div>
+
+        <button
+          id="donationFooterCloseBtn"
+          type="button"
+          class="confirm-close-btn w-full rounded-xl border border-slate-700 bg-slate-800/90 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-slate-600 hover:bg-slate-700"
+        >
+          Fechar
+        </button>
       </div>
     </div>
   </dialog>

@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TOCATEXTO — FRONT-END APPLICATION (web_v17_01_gratuito_doacao_pix)
+ * TOCATEXTO — FRONT-END APPLICATION (web_v18_00_persistencia_sessao_e_modal)
  * ============================================================================
  * Sintetizadores de Voz Disponíveis (nomes públicos -> motores internos):
  * 1. Solar (Voz Mais Natural · interno: xttsv2): 44 vozes neurais (18 PT-BR · 26 EN),
@@ -214,6 +214,7 @@
     previsaoEntregaRotulo: "Aguardando documento...",
     previsaoEntregaRotuloModal: "--",
     ultimoPedidoCriado: null,
+    reabrirPixAoFecharDoacao: false,
   };
 
   // Referências DOM
@@ -276,6 +277,454 @@
         closeTopLayerDialog(dialog);
       }
       pressedOutside = false;
+    });
+  }
+
+  // ==========================================================================
+  // 0B. PERSISTÊNCIA RESILIENTE DE SESSÃO, ARQUIVOS E MODAIS ([web_v18_00])
+  //     Evita perda de progresso ao abrir WhatsApp / app do banco no celular
+  //     ou quando o navegador recarrega a aba em segundo plano.
+  // ==========================================================================
+  const STORAGE_DRAFT_META_KEY = "tocatexto_rascunho_sessao_v1";
+  const IDB_DRAFT_DB_NAME = "tocatexto_sessao_db_v1";
+  const IDB_DRAFT_STORE = "rascunho";
+  const IDB_DRAFT_FILES_KEY = "arquivos_v1";
+  const DRAFT_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
+  const CONFIRM_MODAL_TTL_MS = 60 * 60 * 1000; // 1 hora
+
+  let _restaurandoSessao = false;
+  let _draftMetaTimerId = null;
+  let _draftIdbWriteSeq = 0;
+
+  function abrirDbRascunho() {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !("indexedDB" in window)) {
+        resolve(null);
+        return;
+      }
+      try {
+        const req = window.indexedDB.open(IDB_DRAFT_DB_NAME, 1);
+        req.onupgradeneeded = (ev) => {
+          const db = ev.target.result;
+          if (!db.objectStoreNames.contains(IDB_DRAFT_STORE)) {
+            db.createObjectStore(IDB_DRAFT_STORE);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+        req.onblocked = () => resolve(null);
+      } catch (_err) {
+        resolve(null);
+      }
+    });
+  }
+
+  async function salvarArquivosNoIndexedDb(listaArquivos) {
+    const seq = ++_draftIdbWriteSeq;
+    const db = await abrirDbRascunho();
+    if (!db || seq !== _draftIdbWriteSeq) {
+      if (db) try { db.close(); } catch (_) {}
+      return;
+    }
+
+    const itens = Array.isArray(listaArquivos) ? listaArquivos : [];
+    if (itens.length === 0) {
+      await new Promise((resolve) => {
+        try {
+          const tx = db.transaction(IDB_DRAFT_STORE, "readwrite");
+          tx.objectStore(IDB_DRAFT_STORE).delete(IDB_DRAFT_FILES_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+          tx.onabort = () => resolve();
+        } catch (_err) {
+          resolve();
+        }
+      });
+      try { db.close(); } catch (_) {}
+      return;
+    }
+
+    const prepararRegistro = async (usarArrayBuffer) => {
+      const serializados = [];
+      for (const a of itens) {
+        if (!a || !a.file) continue;
+        let payloadBlob = a.file;
+        let payloadBuf = null;
+        if (usarArrayBuffer && typeof a.file.arrayBuffer === "function") {
+          payloadBuf = await a.file.arrayBuffer();
+          payloadBlob = null;
+        }
+        serializados.push({
+          id: a.id,
+          nome: a.nome,
+          tamanhoBytes: Number(a.tamanhoBytes || a.file.size || 0),
+          caracteres: Number(a.caracteres || 0),
+          paginas: Number(a.paginas || 1),
+          capitulos: Array.isArray(a.capitulos) ? a.capitulos : [{ numero: 1, titulo: a.nome }],
+          idioma: a.idioma === "pt" || a.idioma === "en" ? a.idioma : null,
+          idiomaDetectado: a.idiomaDetectado || "pt",
+          mimeType: a.file.type || "application/octet-stream",
+          lastModified: Number(a.file.lastModified || Date.now()),
+          blob: payloadBlob,
+          buffer: payloadBuf,
+        });
+      }
+      return { atualizadoEm: Date.now(), arquivos: serializados };
+    };
+
+    const gravarNoIdb = (registro) =>
+      new Promise((resolve) => {
+        try {
+          const tx = db.transaction(IDB_DRAFT_STORE, "readwrite");
+          tx.objectStore(IDB_DRAFT_STORE).put(registro, IDB_DRAFT_FILES_KEY);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+          tx.onabort = () => resolve(false);
+        } catch (_err) {
+          resolve(false);
+        }
+      });
+
+    try {
+      const regBlob = await prepararRegistro(false);
+      if (seq !== _draftIdbWriteSeq) return;
+      const ok = await gravarNoIdb(regBlob);
+      if (!ok && seq === _draftIdbWriteSeq) {
+        const regBuf = await prepararRegistro(true);
+        if (seq === _draftIdbWriteSeq) {
+          await gravarNoIdb(regBuf);
+        }
+      }
+    } catch (_err) {
+      // Silencioso em quota excedida / modo privado restrito
+    } finally {
+      try { db.close(); } catch (_) {}
+    }
+  }
+
+  async function lerArquivosDoIndexedDb() {
+    const db = await abrirDbRascunho();
+    if (!db) return [];
+    try {
+      const registro = await new Promise((resolve) => {
+        try {
+          const tx = db.transaction(IDB_DRAFT_STORE, "readonly");
+          const req = tx.objectStore(IDB_DRAFT_STORE).get(IDB_DRAFT_FILES_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        } catch (_err) {
+          resolve(null);
+        }
+      });
+      if (!registro || !Array.isArray(registro.arquivos)) return [];
+      const idade = Date.now() - Number(registro.atualizadoEm || 0);
+      if (!Number.isFinite(idade) || idade > DRAFT_TTL_MS) {
+        salvarArquivosNoIndexedDb([]);
+        return [];
+      }
+      const restaurados = [];
+      for (const raw of registro.arquivos) {
+        if (!raw || !raw.nome) continue;
+        let fileObj = null;
+        const mime = raw.mimeType || "application/octet-stream";
+        const lm = Number(raw.lastModified || Date.now());
+        if (typeof File !== "undefined" && raw.blob instanceof File) {
+          fileObj = raw.blob;
+        } else if (raw.blob instanceof Blob) {
+          try {
+            fileObj = new File([raw.blob], raw.nome, { type: mime, lastModified: lm });
+          } catch (_e) {
+            fileObj = raw.blob;
+          }
+        } else if (raw.buffer instanceof ArrayBuffer) {
+          const b = new Blob([raw.buffer], { type: mime });
+          try {
+            fileObj = new File([b], raw.nome, { type: mime, lastModified: lm });
+          } catch (_e) {
+            fileObj = b;
+          }
+        }
+        if (!fileObj) continue;
+        restaurados.push({
+          id: raw.id || `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          file: fileObj,
+          nome: raw.nome,
+          tamanhoBytes: Number(raw.tamanhoBytes || fileObj.size || 0),
+          caracteres: Number(raw.caracteres || 0),
+          paginas: Math.max(1, Number(raw.paginas || 1)),
+          capitulos:
+            Array.isArray(raw.capitulos) && raw.capitulos.length
+              ? raw.capitulos
+              : [{ numero: 1, titulo: raw.nome }],
+          idioma: raw.idioma === "pt" || raw.idioma === "en" ? raw.idioma : null,
+          idiomaDetectado: raw.idiomaDetectado || "pt",
+        });
+      }
+      return restaurados;
+    } catch (_err) {
+      return [];
+    } finally {
+      try { db.close(); } catch (_) {}
+    }
+  }
+
+  function coletarMetaSessao(opcoes = {}) {
+    const pixConfirmadoVisivel =
+      opcoes.forcarPixConfirmado === true ||
+      Boolean(
+        el.pixModal?.open &&
+          el.pixApprovedStage &&
+          !el.pixApprovedStage.classList.contains("hidden")
+      );
+    const donationAberto =
+      opcoes.forcarDonationAberto !== undefined
+        ? Boolean(opcoes.forcarDonationAberto)
+        : Boolean(el.donationModal?.open);
+    const manterPedido = Boolean((pixConfirmadoVisivel || state.reabrirPixAoFecharDoacao) && state.ultimoPedidoCriado);
+
+    return {
+      versao: 1,
+      atualizadoEm: Date.now(),
+      motorServico: state.motorServico,
+      idioma: state.idioma,
+      filtroVoz: state.filtroVoz,
+      velocidade: state.velocidade,
+      modoVoz: state.modoVoz,
+      subModoVoz: state.subModoVoz,
+      vozId: state.vozId,
+      vozIdPorMotor: state.vozIdPorMotor,
+      vozesCapitulos: state.vozesCapitulos,
+      formatoSaida: state.formatoSaida,
+      clientName: el.clientName?.value || "",
+      clientEmail: el.clientEmail?.value || "",
+      clientEmailConfirm: el.clientEmailConfirm?.value || "",
+      clientWhatsapp: el.clientWhatsapp?.value || "",
+      janelaWhatsappAtiva: Boolean(state.janelaWhatsappAtiva),
+      termsAccepted: Boolean(el.termsCheckbox?.checked),
+      etapaAtiva: state.etapaAtiva,
+      pixModalAbertoConfirmado: pixConfirmadoVisivel,
+      donationModalAberto: donationAberto && (pixConfirmadoVisivel || state.reabrirPixAoFecharDoacao),
+      reabrirPixAoFecharDoacao: Boolean(state.reabrirPixAoFecharDoacao),
+      ultimoPedidoCriado: manterPedido ? state.ultimoPedidoCriado : null,
+      focoRetorno: opcoes.focoRetorno || null,
+    };
+  }
+
+  function persistirMetaSessaoAgora(opcoes = {}) {
+    if (_restaurandoSessao) return;
+    try {
+      const payload = JSON.stringify(coletarMetaSessao(opcoes));
+      try {
+        window.sessionStorage.setItem(STORAGE_DRAFT_META_KEY, payload);
+      } catch (_e) {}
+      try {
+        window.localStorage.setItem(STORAGE_DRAFT_META_KEY, payload);
+      } catch (_e) {}
+    } catch (_err) {
+      // Silencioso se storage estiver indisponível
+    }
+  }
+
+  function agendarPersistenciaSessao(opcoes = {}) {
+    if (_restaurandoSessao) return;
+    const { incluirArquivos = false, imediato = false, focoRetorno = null } = opcoes;
+    if (incluirArquivos) {
+      salvarArquivosNoIndexedDb(state.arquivos);
+    }
+    if (imediato) {
+      if (_draftMetaTimerId !== null) {
+        clearTimeout(_draftMetaTimerId);
+        _draftMetaTimerId = null;
+      }
+      persistirMetaSessaoAgora({ focoRetorno });
+      return;
+    }
+    if (_draftMetaTimerId !== null) clearTimeout(_draftMetaTimerId);
+    _draftMetaTimerId = setTimeout(() => {
+      _draftMetaTimerId = null;
+      persistirMetaSessaoAgora();
+    }, 220);
+  }
+
+  function lerMetaSessaoSalva() {
+    let bruto = null;
+    try {
+      bruto = window.sessionStorage.getItem(STORAGE_DRAFT_META_KEY);
+    } catch (_e) {}
+    if (!bruto) {
+      try {
+        bruto = window.localStorage.getItem(STORAGE_DRAFT_META_KEY);
+      } catch (_e) {}
+    }
+    if (!bruto) return null;
+    try {
+      const parsed = JSON.parse(bruto);
+      if (!parsed || typeof parsed !== "object") return null;
+      const idade = Date.now() - Number(parsed.atualizadoEm || 0);
+      if (!Number.isFinite(idade) || idade > DRAFT_TTL_MS) {
+        try { window.sessionStorage.removeItem(STORAGE_DRAFT_META_KEY); } catch (_e) {}
+        try { window.localStorage.removeItem(STORAGE_DRAFT_META_KEY); } catch (_e) {}
+        return null;
+      }
+      return parsed;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function atualizarUiFormatoSaida() {
+    if (!el.outputFormatBtns) return;
+    el.outputFormatBtns.forEach((b) => {
+      const ativo = (b.getAttribute("data-output-format") || "unico") === state.formatoSaida;
+      b.setAttribute("aria-pressed", ativo ? "true" : "false");
+      b.classList.toggle("active-format", ativo);
+      b.classList.toggle("border-amber-400", ativo);
+      b.classList.toggle("bg-amber-500/10", ativo);
+      b.classList.toggle("border-slate-800", !ativo);
+      b.classList.toggle("bg-slate-900/70", !ativo);
+      const extSpan = b.querySelector(".output-format-ext");
+      if (extSpan) {
+        extSpan.classList.toggle("text-amber-300", ativo);
+        extSpan.classList.toggle("text-slate-400", !ativo);
+      }
+    });
+  }
+
+  function restaurarSessaoSalva() {
+    const meta = lerMetaSessaoSalva();
+    const focoRetorno = meta?.focoRetorno || null;
+
+    if (meta) {
+      _restaurandoSessao = true;
+      try {
+        if (meta.motorServico === "edge" || meta.motorServico === "xttsv2") {
+          state.motorServico = meta.motorServico;
+        }
+        if (meta.idioma === "en" || meta.idioma === "pt") {
+          state.idioma = meta.idioma;
+        }
+        if (typeof meta.filtroVoz === "string" && meta.filtroVoz) {
+          state.filtroVoz = meta.filtroVoz;
+        }
+        if (meta.vozIdPorMotor && typeof meta.vozIdPorMotor === "object") {
+          for (const mKey of ["xttsv2", "edge"]) {
+            if (meta.vozIdPorMotor[mKey] && typeof meta.vozIdPorMotor[mKey] === "object") {
+              state.vozIdPorMotor[mKey] = {
+                ...state.vozIdPorMotor[mKey],
+                ...meta.vozIdPorMotor[mKey],
+              };
+            }
+          }
+        }
+        if (typeof meta.vozId === "string" && meta.vozId) {
+          const listaAtual = obterListaVozesIdiomaAtual();
+          if (listaAtual.some((v) => v.sigla === meta.vozId)) {
+            state.vozId = meta.vozId;
+          }
+        }
+        if (meta.modoVoz === "unica" || meta.modoVoz === "por_capitulo") {
+          state.modoVoz = meta.modoVoz;
+        }
+        if (meta.subModoVoz === "escolher" || meta.subModoVoz === "aleatoria") {
+          state.subModoVoz = meta.subModoVoz;
+        }
+        if (meta.vozesCapitulos && typeof meta.vozesCapitulos === "object") {
+          state.vozesCapitulos = { ...meta.vozesCapitulos };
+        }
+        if (meta.formatoSaida === "unico" || meta.formatoSaida === "capitulos") {
+          state.formatoSaida = meta.formatoSaida;
+        }
+        if (typeof meta.velocidade === "number" && Number.isFinite(meta.velocidade)) {
+          state.velocidade = normalizarVelocidadeComIma(meta.velocidade, false);
+        }
+
+        if (el.clientName && typeof meta.clientName === "string") {
+          el.clientName.value = meta.clientName;
+        }
+        if (el.clientEmail && typeof meta.clientEmail === "string") {
+          el.clientEmail.value = meta.clientEmail;
+        }
+        if (el.clientEmailConfirm && typeof meta.clientEmailConfirm === "string") {
+          el.clientEmailConfirm.value = meta.clientEmailConfirm;
+        }
+        if (el.clientWhatsapp && typeof meta.clientWhatsapp === "string") {
+          el.clientWhatsapp.value = meta.clientWhatsapp;
+        }
+        if (meta.janelaWhatsappAtiva) {
+          state.janelaWhatsappAtiva = true;
+          if (el.waActivatedBadge) el.waActivatedBadge.classList.remove("hidden");
+        }
+        if (el.termsCheckbox && typeof meta.termsAccepted === "boolean") {
+          el.termsCheckbox.checked = meta.termsAccepted;
+        }
+
+        atualizarUiSeletorMotor();
+        atualizarUiFiltrosVoz();
+        atualizarUiModoVoz();
+        atualizarUiFormatoSaida();
+        atualizarVelocidade(state.velocidade, false, false);
+        renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: false });
+        renderizarMapeadorCapitulos();
+        atualizarLinkWhatsappClickToChat();
+        validarConfirmacaoEmail();
+        atualizarResumoPedido();
+
+        const idadeMeta = Date.now() - Number(meta.atualizadoEm || 0);
+        const reabrirConfirmacao = Boolean(
+          meta.pixModalAbertoConfirmado &&
+            meta.ultimoPedidoCriado &&
+            idadeMeta <= CONFIRM_MODAL_TTL_MS
+        );
+        if (reabrirConfirmacao) {
+          const pedSalvo = meta.ultimoPedidoCriado;
+          if (state.janelaWhatsappAtiva && pedSalvo.cliente) {
+            pedSalvo.cliente.janela_whatsapp_ativa = true;
+          }
+          abrirModalPix(pedSalvo, {
+            pedido: pedSalvo,
+            status: "na_fila",
+            pedido_gratuito: true,
+          });
+          if (meta.donationModalAberto) {
+            abrirModalDoacao({ retornoParaPix: true });
+          }
+        }
+      } finally {
+        _restaurandoSessao = false;
+      }
+
+      if (focoRetorno === "stepCard03" && !meta.pixModalAbertoConfirmado) {
+        // Limpa a flag de salto único para não forçar scroll em recargas futuras
+        persistirMetaSessaoAgora({ focoRetorno: null });
+        requestAnimationFrame(() => {
+          el.stepCard03?.scrollIntoView({ behavior: "auto", block: "start" });
+        });
+      }
+    }
+
+    // Restaura arquivos anexados (objetos File reais) do IndexedDB de forma assíncrona
+    lerArquivosDoIndexedDb().then((arquivosSalvos) => {
+      if (!arquivosSalvos.length || state.arquivos.length > 0) return;
+      _restaurandoSessao = true;
+      try {
+        state.arquivos = arquivosSalvos;
+        recalcularAgregadosDocumentos();
+        atualizarCardsResumoDocumentos(false);
+        renderizarMapeadorCapitulos();
+        atualizarResumoPedido();
+        const etapaAlvo =
+          meta && Number(meta.etapaAtiva) >= 1 && Number(meta.etapaAtiva) <= 3
+            ? Number(meta.etapaAtiva)
+            : 2;
+        atualizarFluxoEtapas(etapaAlvo, true);
+      } finally {
+        _restaurandoSessao = false;
+      }
+      if (focoRetorno === "stepCard03" && !(el.pixModal?.open || el.donationModal?.open)) {
+        requestAnimationFrame(() => {
+          el.stepCard03?.scrollIntoView({ behavior: "auto", block: "start" });
+        });
+      }
     });
   }
 
@@ -1326,6 +1775,7 @@
     if (animarPreco && state.totalCaracteres > 0) {
       dispararFlashPreco();
     }
+    agendarPersistenciaSessao();
   }
 
   function atualizarUiSeletorMotor() {
@@ -1679,6 +2129,7 @@
         renderizarCatalogoVozes();
         renderizarMapeadorCapitulos();
         atualizarResumoPedido();
+        agendarPersistenciaSessao();
       });
 
       cards.push(card);
@@ -1743,6 +2194,7 @@
       selectEl.addEventListener("change", (e) => {
         state.vozesCapitulos[capKey] = e.target.value;
         atualizarResumoPedido();
+        agendarPersistenciaSessao();
       });
 
       row.append(labelSpan, selectEl);
@@ -1829,6 +2281,7 @@
       if (state.vozIdPorMotor[state.motorServico]) {
         state.vozIdPorMotor[state.motorServico][state.idioma] = voz.sigla;
       }
+      agendarPersistenciaSessao();
     }
     renderizarCatalogoVozes();
     atualizarResumoPedido();
@@ -2631,6 +3084,7 @@
           alternarIdiomaCatalogo(escolhido, false);
           atualizarCardsResumoDocumentos();
           atualizarFluxoEtapas(state.etapaAtiva);
+          agendarPersistenciaSessao({ incluirArquivos: true });
         });
       });
 
@@ -2717,6 +3171,7 @@
       alternarIdiomaCatalogo(idiomasRestantes[0], false);
     }
     atualizarCardsResumoDocumentos();
+    agendarPersistenciaSessao({ incluirArquivos: true });
   }
 
   async function processarArquivosSelecionados(fileList, acrescentar = true) {
@@ -2827,6 +3282,7 @@
       state.arquivos.every((a) => a.idioma === "pt" || a.idioma === "en");
 
     atualizarCardsResumoDocumentos(arquivosProcessados > 0);
+    agendarPersistenciaSessao({ incluirArquivos: true });
     if (state.arquivos.length > 0) {
       atualizarFluxoEtapas(todosIdiomasDefinidos ? 2 : 1);
     }
@@ -3731,6 +4187,9 @@
       el.pixModal.removeAttribute("data-closing");
       el.pixModal.showModal();
     }
+    if (ehGratuito) {
+      persistirMetaSessaoAgora({ forcarPixConfirmado: true });
+    }
     if (ehGratuito && el.approvedCloseBtn) {
       requestAnimationFrame(() => {
         if (el.pixModal?.open) el.approvedCloseBtn.focus();
@@ -3851,6 +4310,10 @@
 
     if (el.localApprovedActions) {
       el.localApprovedActions.classList.toggle("hidden", Boolean(CONFIG_COMERCIAL.API_BASE_URL) || !gratuito);
+    }
+
+    if (el.pixModal?.open) {
+      persistirMetaSessaoAgora({ forcarPixConfirmado: true });
     }
 
     if (el.pixModal?.open && el.approvedCloseBtn) {
@@ -3994,10 +4457,30 @@
     }
   }
 
-  function abrirModalDoacao() {
+  function abrirModalDoacao(opcoes = {}) {
     if (!el.donationModal) return;
-    const temDoc = state.totalCaracteres > 0;
-    const sug = calcularSugestaoDoacaoLocal(state.totalCaracteres, state.motorServico);
+    const origemConfirmacao = Boolean(
+      opcoes?.retornoParaPix ||
+        (el.pixModal?.open && el.pixApprovedStage && !el.pixApprovedStage.classList.contains("hidden"))
+    );
+    state.reabrirPixAoFecharDoacao = origemConfirmacao;
+
+    if (el.donationFooterCloseBtn) {
+      el.donationFooterCloseBtn.textContent = origemConfirmacao
+        ? "← Voltar para a confirmação"
+        : "Fechar";
+    }
+
+    const charsRef =
+      state.totalCaracteres > 0
+        ? state.totalCaracteres
+        : Number(state.ultimoPedidoCriado?.documento?.total_caracteres || 0);
+    const motorRef =
+      state.totalCaracteres > 0
+        ? state.motorServico
+        : state.ultimoPedidoCriado?.configuracoes?.motor_tts || state.motorServico;
+    const temDoc = charsRef > 0;
+    const sug = calcularSugestaoDoacaoLocal(charsRef, motorRef);
 
     if (el.donationContextBanner) {
       if (temDoc) {
@@ -4035,6 +4518,10 @@
       el.donationModal.removeAttribute("data-closing");
       el.donationModal.showModal();
     }
+    persistirMetaSessaoAgora({
+      forcarPixConfirmado: origemConfirmacao,
+      forcarDonationAberto: true,
+    });
     garantirChavePixDoacaoERenderizar(valorInicial);
   }
 
@@ -4161,6 +4648,7 @@
         if (el.fileInput) el.fileInput.value = "";
         if (el.ocrErrorAlert) el.ocrErrorAlert.classList.add("hidden");
         atualizarCardsResumoDocumentos();
+        agendarPersistenciaSessao({ incluirArquivos: true, imediato: true });
       });
     }
 
@@ -4186,6 +4674,7 @@
         state.filtroVoz = btn.getAttribute("data-voice-filter") || "todas";
         atualizarUiFiltrosVoz();
         renderizarCatalogoVozes({ preservarScroll: false, animarEntrada: true });
+        agendarPersistenciaSessao();
       });
     });
 
@@ -4218,18 +4707,21 @@
     if (el.speedSlider) {
       el.speedSlider.addEventListener("input", (e) => {
         atualizarVelocidade(e.target.value, true, true);
+        agendarPersistenciaSessao();
       });
     }
 
     if (el.speedMinusBtn) {
       el.speedMinusBtn.addEventListener("click", () => {
         atualizarVelocidade(state.velocidade - 0.05, false, true);
+        agendarPersistenciaSessao();
       });
     }
 
     if (el.speedPlusBtn) {
       el.speedPlusBtn.addEventListener("click", () => {
         atualizarVelocidade(state.velocidade + 0.05, false, true);
+        agendarPersistenciaSessao();
       });
     }
 
@@ -4237,6 +4729,7 @@
       btn.addEventListener("click", () => {
         const preset = parseFloat(btn.getAttribute("data-speed-preset"));
         atualizarVelocidade(preset, false, true);
+        agendarPersistenciaSessao();
       });
     });
 
@@ -4249,6 +4742,7 @@
         renderizarCatalogoVozes();
         renderizarMapeadorCapitulos();
         atualizarResumoPedido();
+        agendarPersistenciaSessao();
       });
     });
 
@@ -4263,6 +4757,7 @@
         renderizarCatalogoVozes();
         renderizarMapeadorCapitulos();
         atualizarResumoPedido();
+        agendarPersistenciaSessao();
       });
     });
 
@@ -4271,23 +4766,9 @@
       btn.addEventListener("click", () => {
         const fmt = btn.getAttribute("data-output-format") || "unico";
         state.formatoSaida = fmt;
-
-        el.outputFormatBtns.forEach((b) => {
-          const ativo = b === btn;
-          b.setAttribute("aria-pressed", ativo ? "true" : "false");
-          b.classList.toggle("active-format", ativo);
-          b.classList.toggle("border-amber-400", ativo);
-          b.classList.toggle("bg-amber-500/10", ativo);
-          b.classList.toggle("border-slate-800", !ativo);
-          b.classList.toggle("bg-slate-900/70", !ativo);
-          const extSpan = b.querySelector(".output-format-ext");
-          if (extSpan) {
-            extSpan.classList.toggle("text-amber-300", ativo);
-            extSpan.classList.toggle("text-slate-400", !ativo);
-          }
-        });
-
+        atualizarUiFormatoSaida();
         atualizarResumoPedido();
+        agendarPersistenciaSessao();
       });
     });
 
@@ -4309,6 +4790,7 @@
       el.clientName.addEventListener("input", () => {
         el.clientName.classList.remove("field-validation-error");
         atualizarLinkWhatsappClickToChat();
+        agendarPersistenciaSessao();
       });
     }
 
@@ -4320,6 +4802,7 @@
         if (el.clientEmailConfirm && el.clientEmailConfirm.value.trim()) {
           syncFieldAria(el.clientEmailConfirm, false);
         }
+        agendarPersistenciaSessao();
       });
       el.clientEmail.addEventListener("blur", () => {
         atualizarSaldoCotaPorEmail(true);
@@ -4327,6 +4810,7 @@
         if (el.clientEmailConfirm && el.clientEmailConfirm.value.trim()) {
           syncFieldAria(el.clientEmailConfirm, true);
         }
+        agendarPersistenciaSessao();
       });
     }
 
@@ -4335,10 +4819,18 @@
         el.clientEmailConfirm.classList.remove("field-validation-error");
         validarConfirmacaoEmail();
         syncFieldAria(el.clientEmailConfirm, false);
+        agendarPersistenciaSessao();
       });
       el.clientEmailConfirm.addEventListener("blur", () => {
         validarConfirmacaoEmail();
         syncFieldAria(el.clientEmailConfirm, true);
+        agendarPersistenciaSessao();
+      });
+    }
+
+    if (el.clientWhatsapp) {
+      el.clientWhatsapp.addEventListener("input", () => {
+        agendarPersistenciaSessao();
       });
     }
 
@@ -4347,6 +4839,7 @@
         if (el.termsCheckbox.checked && el.termsBox) {
           el.termsBox.classList.remove("field-validation-error");
         }
+        agendarPersistenciaSessao();
       });
     }
 
@@ -4354,15 +4847,26 @@
       el.waClickToChatBtn.addEventListener("click", () => {
         state.janelaWhatsappAtiva = true;
         if (el.waActivatedBadge) el.waActivatedBadge.classList.remove("hidden");
+        // [web_v18_00] Grava progresso + arquivos imediatamente antes de abrir o app do WhatsApp
+        agendarPersistenciaSessao({
+          incluirArquivos: true,
+          imediato: true,
+          focoRetorno: "stepCard03",
+        });
       });
     }
 
     if (el.modalWaClickToChatBtn) {
       el.modalWaClickToChatBtn.addEventListener("click", () => {
         state.janelaWhatsappAtiva = true;
+        if (state.ultimoPedidoCriado?.cliente) {
+          state.ultimoPedidoCriado.cliente.janela_whatsapp_ativa = true;
+        }
         if (el.waActivatedBadge) el.waActivatedBadge.classList.remove("hidden");
         if (el.approvedWhatsappPending) el.approvedWhatsappPending.classList.add("hidden");
         if (el.approvedWhatsappDone) el.approvedWhatsappDone.classList.remove("hidden");
+        // [web_v18_00] Preserva a janela de confirmação aberta caso o navegador recarregue ao voltar do WhatsApp
+        persistirMetaSessaoAgora({ forcarPixConfirmado: true });
       });
     }
 
@@ -4520,6 +5024,12 @@
         pararPollingPix();
         el.pixModal.removeAttribute("data-closing");
         el.pixModal.returnValue = "";
+        if (!state.reabrirPixAoFecharDoacao) {
+          persistirMetaSessaoAgora({
+            forcarPixConfirmado: false,
+            forcarDonationAberto: false,
+          });
+        }
       });
     }
 
@@ -4562,13 +5072,15 @@
     }
 
     if (el.openDonationModalBtn) {
-      el.openDonationModalBtn.addEventListener("click", abrirModalDoacao);
+      el.openDonationModalBtn.addEventListener("click", () => {
+        abrirModalDoacao({ retornoParaPix: false });
+      });
     }
 
     if (el.approvedOpenDonationBtn) {
       el.approvedOpenDonationBtn.addEventListener("click", () => {
-        fecharModalPix();
-        setTimeout(() => abrirModalDoacao(), 80);
+        // [web_v18_00] Empilha #donationModal no top-layer ACIMA de #pixModal sem fechar a confirmação
+        abrirModalDoacao({ retornoParaPix: true });
       });
     }
 
@@ -4583,12 +5095,36 @@
       el.donationModal.addEventListener("close", () => {
         el.donationModal.removeAttribute("data-closing");
         el.donationModal.returnValue = "";
+        const voltarParaPix = state.reabrirPixAoFecharDoacao;
+        state.reabrirPixAoFecharDoacao = false;
+        if (voltarParaPix && el.pixModal && !el.pixModal.open && state.ultimoPedidoCriado) {
+          abrirModalPix(state.ultimoPedidoCriado, {
+            pedido: state.ultimoPedidoCriado,
+            status: "na_fila",
+            pedido_gratuito: true,
+          });
+        } else {
+          persistirMetaSessaoAgora({ forcarDonationAberto: false });
+        }
       });
     }
 
     if (el.closeDonationModalBtn) {
       el.closeDonationModalBtn.addEventListener("click", fecharModalDoacao);
     }
+
+    if (el.donationFooterCloseBtn) {
+      el.donationFooterCloseBtn.addEventListener("click", fecharModalDoacao);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        persistirMetaSessaoAgora();
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      persistirMetaSessaoAgora();
+    });
 
     if (el.donationAmountInput) {
       el.donationAmountInput.addEventListener("keydown", (e) => {
@@ -4651,7 +5187,15 @@
           }
           let valNum = null;
           if (chip === "suggested") {
-            const sug = calcularSugestaoDoacaoLocal(state.totalCaracteres, state.motorServico);
+            const charsRef =
+              state.totalCaracteres > 0
+                ? state.totalCaracteres
+                : Number(state.ultimoPedidoCriado?.documento?.total_caracteres || 0);
+            const motorRef =
+              state.totalCaracteres > 0
+                ? state.motorServico
+                : state.ultimoPedidoCriado?.configuracoes?.motor_tts || state.motorServico;
+            const sug = calcularSugestaoDoacaoLocal(charsRef, motorRef);
             valNum = sug.valorSugerido > 0 ? sug.valorSugerido : null;
           } else {
             const parsed = parseValorDoacaoBRL(chip);
@@ -4885,6 +5429,7 @@
     el.modalWaClickToChatBtn = document.getElementById("modalWaClickToChatBtn");
     el.donationModal = document.getElementById("donationModal");
     el.closeDonationModalBtn = document.getElementById("closeDonationModalBtn");
+    el.donationFooterCloseBtn = document.getElementById("donationFooterCloseBtn");
     el.donationContextBanner = document.getElementById("donationContextBanner");
     el.donationAmountForm = document.getElementById("donationAmountForm");
     el.donationChipSuggested = document.getElementById("donationChipSuggested");
@@ -4923,6 +5468,7 @@
     atualizarSaldoCotaPorEmail(false);
     sincronizarStatusMotor();
     registrarEventos();
+    restaurarSessaoSalva();
     configurarScrollSpyStepper();
   }
 
